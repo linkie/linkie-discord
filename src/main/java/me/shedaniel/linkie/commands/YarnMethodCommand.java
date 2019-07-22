@@ -114,10 +114,8 @@ public class YarnMethodCommand implements CommandBase {
         String s = split[0];
         if (s.contains(";")) {
             for(String aClass : s.substring(1).split(";")) {
-                if (aClass.startsWith("L"))
-                    split[0] = split[0].replace(aClass.substring(1), mapClass(aClass.substring(1)));
-                else if (aClass.startsWith("[[L"))
-                    split[0] = split[0].replace(aClass.substring(3), mapClass(aClass.substring(3)));
+                int l = aClass.indexOf("L");
+                split[0] = split[0].replace(aClass.substring(l + 1), mapClass(aClass.substring(l + 1)));
             }
         }
         split[1] = mapDescClass(split[1]);
