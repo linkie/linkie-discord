@@ -12,7 +12,6 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
 public class YarnClassCommand implements CommandBase {
     @Override
@@ -59,12 +58,19 @@ public class YarnClassCommand implements CommandBase {
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                String desc = files.stream().limit(10).map(yarnClass -> {
+                final String[] desc = {""};
+                files.stream().limit(10).map(yarnClass -> {
                     String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                     String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
                     return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
-                }).collect(Collectors.joining("\n\n"));
-                builder.setDescription(desc.substring(0, Math.min(desc.length(), 2000)));
+                }).forEach(s -> {
+                    if (desc[0].length() + s.length() > 1990)
+                        return;
+                    if (!desc[0].isEmpty())
+                        desc[0] += "\n\n";
+                    desc[0] += s;
+                });
+                builder.setDescription(desc[0].substring(0, Math.min(desc[0].length(), 2000)));
                 message1.edit(builder);
             } catch (Throwable throwable1) {
                 message1.edit(new EmbedBuilder().setTitle("Linkie Error").setColor(Color.red).setFooter("Requested by " + event.getMessageAuthor().getDiscriminatedName(), event.getMessageAuthor().getAvatar()).addField("Error occurred while processing the command:", throwable1.getClass().getSimpleName() + ": " + throwable1.getLocalizedMessage()).setTimestampToNow());

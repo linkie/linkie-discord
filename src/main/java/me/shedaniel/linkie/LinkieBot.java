@@ -70,6 +70,7 @@ public class LinkieBot {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
+                commandApi.registerCommand(new YarnMethodCommand(), "ym");
                 commandApi.registerCommand(new YarnFieldCommand(), "yf");
                 commandApi.registerCommand(new YarnClassCommand(), "yc");
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
@@ -99,8 +100,8 @@ public class LinkieBot {
                 });
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 1, TimeUnit.MINUTES);
             }
-            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
+        yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         while (true) {
         
         }

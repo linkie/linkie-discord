@@ -3,8 +3,8 @@ package me.shedaniel.linkie.commands;
 import me.shedaniel.linkie.CommandBase;
 import me.shedaniel.linkie.InvalidUsageException;
 import me.shedaniel.linkie.yarn.MappingsData;
-import me.shedaniel.linkie.yarn.YarnField;
 import me.shedaniel.linkie.yarn.YarnManager;
+import me.shedaniel.linkie.yarn.YarnMethod;
 import net.fabricmc.mappings.EntryTriple;
 import org.javacord.api.entity.message.MessageAuthor;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
-public class YarnFieldCommand implements CommandBase {
+public class YarnMethodCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (YarnManager.updating)
@@ -29,44 +29,50 @@ public class YarnFieldCommand implements CommandBase {
                 String clazz = args[0].indexOf('.') > -1 ? args[0].split("\\.")[0] : null;
                 String low = name.toLowerCase(Locale.ROOT);
                 String lowClazz = clazz != null ? clazz.toLowerCase(Locale.ROOT) : null;
-                List<YarnField> files = new ArrayList<>();
-                YarnManager.r1_2_5.tiny.getFieldEntries().forEach(fieldEntry -> {
-                    EntryTriple intermediary = fieldEntry.get("intermediary");
-                    EntryTriple server = fieldEntry.get("server");
-                    EntryTriple client = fieldEntry.get("client");
+                List<YarnMethod> files = new ArrayList<>();
+                YarnManager.r1_2_5.tiny.getMethodEntries().forEach(methodEntry -> {
+                    EntryTriple intermediary = methodEntry.get("intermediary");
+                    EntryTriple server = methodEntry.get("server");
+                    EntryTriple client = methodEntry.get("client");
                     if (clazz == null || intermediary.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz) || (server != null && server.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz)) || (client != null && client.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz))) {
                         if (getLast(intermediary.getName()).toLowerCase(Locale.ROOT).contains(low) || (server != null && server.getName().contains(low)) || (client != null && client.getName().contains(low)))
-                            files.add(new YarnField(intermediary, server, client));
+                            files.add(new YarnMethod(intermediary, server, client));
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
                     boolean matchClass = clazz == null || mappingsFile.getObfClass().toLowerCase(Locale.ROOT).contains(lowClazz) || mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT).contains(lowClazz);
                     if (matchClass)
-                        for(MappingsData.FieldMappings fieldMapping : mappingsFile.getFieldMappings())
-                            if (fieldMapping.getObfName().toLowerCase(Locale.ROOT).contains(low) || fieldMapping.getDeobfName().toLowerCase(Locale.ROOT).contains(low))
-                                files.add(new YarnField(new EntryTriple(mappingsFile.getObfClass(), fieldMapping.getObfName(), fieldMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), fieldMapping.getDeobfName(), fieldMapping.getDesc())));
+                        for(MappingsData.MethodMappings methodMapping : mappingsFile.getMethodMappings())
+                            if (methodMapping.getObfName().toLowerCase(Locale.ROOT).contains(low) || methodMapping.getDeobfName().toLowerCase(Locale.ROOT).contains(low))
+                                files.add(new YarnMethod(new EntryTriple(mappingsFile.getObfClass(), methodMapping.getObfName(), methodMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), methodMapping.getDeobfName(), methodMapping.getDesc())));
                 });
-                files.forEach(yarnField -> {
-                    if (yarnField.incomplete())
-                        if (yarnField.needObf()) {
-                            YarnManager.r1_2_5.tiny.getFieldEntries().stream().filter(fieldEntry -> {
-                                return getLast(fieldEntry.get("intermediary").getName()).equalsIgnoreCase(getLast(yarnField.getIntermediary().getName()));
+                files.forEach(yarnMethod -> {
+                    if (yarnMethod.incomplete())
+                        if (yarnMethod.needObf()) {
+                            YarnManager.r1_2_5.tiny.getMethodEntries().stream().filter(methodEntry -> {
+                                return getLast(methodEntry.get("intermediary").getName()).equalsIgnoreCase(getLast(yarnMethod.getIntermediary().getName()));
                             }).findAny().ifPresent(classEntry -> {
-                                yarnField.setClient(classEntry.get("client"));
-                                yarnField.setServer(classEntry.get("server"));
+                                yarnMethod.setClient(classEntry.get("client"));
+                                yarnMethod.setServer(classEntry.get("server"));
                             });
-                        } else if (yarnField.needMapped()) {
+                        } else if (yarnMethod.needMapped()) {
                             for(MappingsData.MappingsFile file : YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-                                return getLast(mappingsFile.getObfClass()).equalsIgnoreCase(getLast(yarnField.getIntermediary().getOwner()));
+                                return getLast(mappingsFile.getObfClass()).equalsIgnoreCase(getLast(yarnMethod.getIntermediary().getOwner()));
                             }).collect(Collectors.toList())) {
-                                for(MappingsData.FieldMappings fieldMapping : file.getFieldMappings()) {
-                                    if (fieldMapping.getObfName().equalsIgnoreCase(yarnField.getIntermediary().getName())) {
-                                        yarnField.setMapped(new EntryTriple(file.getDeobfClass(), fieldMapping.getDeobfName(), fieldMapping.getDesc()));
+                                for(MappingsData.MethodMappings methodMapping : file.getMethodMappings()) {
+                                    if (methodMapping.getObfName().equalsIgnoreCase(yarnMethod.getIntermediary().getName())) {
+                                        yarnMethod.setMapped(new EntryTriple(file.getDeobfClass(), methodMapping.getDeobfName(), methodMapping.getDesc()));
                                         break;
                                     }
                                 }
                             }
                         }
+                });
+                List<YarnMethod> cloneFiles = new ArrayList<>(files);
+                files.clear();
+                cloneFiles.forEach(yarnMethod -> {
+                    if (!files.stream().anyMatch(yarnMethod1 -> yarnMethod1.getIntermediary().getName().equals(yarnMethod.getIntermediary().getName())))
+                        files.add(yarnMethod);
                 });
                 if (files.isEmpty())
                     throw new NullPointerException("null");
@@ -74,12 +80,13 @@ public class YarnFieldCommand implements CommandBase {
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                 final String[] desc = {""};
-                files.stream().limit(10).map(yarnField -> {
-                    if (yarnField.needObf())
+                files.stream().limit(10).map(yarnMethod -> {
+                    if (yarnMethod.needObf())
                         return null;
-                    String obf = "client=" + (yarnField.getClient() == null ? "null" : yarnField.getClient().getName()) + ",server=" + (yarnField.getServer() == null ? "null" : yarnField.getServer().getName());
-                    String main = yarnField.getMapped() != null ? yarnField.getMapped().getOwner() + "." + yarnField.getMapped().getName() : yarnField.getIntermediary().getOwner() + "." + yarnField.getIntermediary().getName();
-                    return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnField.getIntermediary().getName() + "`" + (yarnField.getMapped() != null ? " => `" + yarnField.getMapped().getName() + "`" : "") + "\n__Type__: `" + nameType(mapDesc(yarnField.getIntermediary().getDesc())).replace('/', '.') + "`\n__Mixin Target__: `" + turnDesc(yarnField.getMapped() != null ? yarnField.getMapped().getOwner() : yarnField.getIntermediary().getOwner()) + (yarnField.getMapped() != null ? yarnField.getMapped().getName() : yarnField.getIntermediary().getName()) + ":" + mapDesc(yarnField.getIntermediary().getDesc()) + "`";
+                    String obf = "client=" + (yarnMethod.getClient() == null ? "null" : yarnMethod.getClient().getName()) + ",server=" + (yarnMethod.getServer() == null ? "null" : yarnMethod.getServer().getName());
+                    String main = yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() + "." + yarnMethod.getMapped().getName() : yarnMethod.getIntermediary().getOwner() + "." + yarnMethod.getIntermediary().getName();
+                    String methodDesc = (yarnMethod.getMapped() == null ? yarnMethod.getIntermediary().getName() : yarnMethod.getMapped().getName()) + mapDesc(yarnMethod.getIntermediary().getDesc());
+                    return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnMethod.getIntermediary().getName() + "`" + (yarnMethod.getMapped() != null ? " => `" + yarnMethod.getMapped().getName() + "`" : "") + "\n__Descriptor__: `" + methodDesc + "`\n__Mixin Target__: `" + turnDesc(yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() : yarnMethod.getIntermediary().getOwner()) + methodDesc + "`";
                 }).filter(Objects::nonNull).forEach(s -> {
                     if (desc[0].length() + s.length() > 1990)
                         return;
@@ -100,52 +107,36 @@ public class YarnFieldCommand implements CommandBase {
         return "L" + s + ";";
     }
     
-    private String nameType(String desc) {
-        if (desc.length() == 1 || (desc.length() == 2 && desc.charAt(0) == '[')) {
-            char c = desc.length() == 1 ? desc.charAt(0) : desc.charAt(1);
-            switch (c) {
-                case 'Z':
-                    return "boolean";
-                case 'C':
-                    return "char";
-                case 'B':
-                    return "byte";
-                case 'S':
-                    return "short";
-                case 'I':
-                    return "int";
-                case 'F':
-                    return "float";
-                case 'J':
-                    return "long";
-                case 'D':
-                    return "double";
+    private String mapDesc(String desc) {
+        String[] split = desc.split("\\)");
+        if (split.length > 2)
+            throw new IllegalStateException("Wrong Description!");
+        String s = split[0];
+        if (s.contains(";")) {
+            for(String aClass : s.substring(1).split(";")) {
+                if (aClass.startsWith("L"))
+                    split[0] = split[0].replace(aClass.substring(1), mapClass(aClass.substring(1)));
+                else if (aClass.startsWith("[[L"))
+                    split[0] = split[0].replace(aClass.substring(3), mapClass(aClass.substring(3)));
             }
         }
-        if (desc.startsWith("L"))
-            return desc.substring(1, desc.length() - 1);
-        if (desc.startsWith("[[L"))
-            return desc.substring(3, desc.length() - 1);
-        return desc;
+        split[1] = mapDescClass(split[1]);
+        return String.join(")", split);
     }
     
-    private String mapDesc(String desc) {
-        if (desc.startsWith("L")) {
-            String substring = desc.substring(1, desc.length() - 1);
-            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(substring)).findAny();
-            if (any.isPresent())
-                return "L" + any.get().getDeobfClass() + ";";
-        }
-        if (desc.startsWith("[[L")) {
-            String substring = desc.substring(3, desc.length() - 1);
-            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(substring)).findAny();
-            if (any.isPresent())
-                return "[[L" + any.get().getDeobfClass() + ";";
-        }
-        return desc;
+    private String mapDescClass(String clazz) {
+        if (clazz.startsWith("L"))
+            return "L" + mapClass(clazz.substring(1, clazz.length() - 1)) + ";";
+        if (clazz.startsWith("[[L"))
+            return "L" + mapClass(clazz.substring(3, clazz.length() - 1)) + ";";
+        return mapClass(clazz);
     }
     
-    public String get(YarnField yarnClass, String search) {
+    private String mapClass(String clazz) {
+        return YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(clazz)).findAny().map(MappingsData.MappingsFile::getDeobfClass).orElse(clazz);
+    }
+    
+    public String get(YarnMethod yarnClass, String search) {
         String intermediary = getLast(yarnClass.getIntermediary().getName());
         if (intermediary.contains(search))
             return intermediary;
