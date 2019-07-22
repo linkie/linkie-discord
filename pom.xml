@@ -15,6 +15,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.Chocohead</groupId>
+            <artifactId>Tiny-Mappings-Parser</artifactId>
+            <version>337c8b6</version>
+        </dependency>
+        <dependency>
             <groupId>org.javacord</groupId>
             <artifactId>javacord</artifactId>
             <version>3.0.4</version>
@@ -24,6 +29,11 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
         </dependency>
         <dependency>
             <groupId>com.github.shedaniel</groupId>

@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.commands.*;
+import me.shedaniel.linkie.yarn.YarnManager;
 import org.eclipse.egit.github.core.Gist;
 import org.eclipse.egit.github.core.GistFile;
 import org.eclipse.egit.github.core.service.GistService;
@@ -41,6 +42,7 @@ public class LinkieBot {
     public ScheduledExecutorService executors = Executors.newScheduledThreadPool(16);
     public ScheduledExecutorService sendUpdate = Executors.newSingleThreadScheduledExecutor();
     public ScheduledExecutorService updateGitHub = Executors.newScheduledThreadPool(16);
+    public ScheduledExecutorService yarn = Executors.newScheduledThreadPool(16);
     public ScheduledExecutorService singleThreadExecutor = Executors.newSingleThreadScheduledExecutor();
     public CommandApi commandApi;
     public DiscordApi api;
@@ -67,7 +69,8 @@ public class LinkieBot {
         new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
-            if (true) {
+            commandApi.registerCommand(new YarnClassCommand(), "yc");
+            if (false) {
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");
                 commandApi.registerCommand(new UserInfoCommand(), "userinfo", "info", "user", "whois", "who");
@@ -95,6 +98,7 @@ public class LinkieBot {
                 });
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 1, TimeUnit.MINUTES);
             }
+            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0,15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         
