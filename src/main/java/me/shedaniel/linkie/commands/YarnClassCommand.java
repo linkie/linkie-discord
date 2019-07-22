@@ -82,12 +82,12 @@ public class YarnClassCommand implements CommandBase {
                 return mapped;
         }
         if (yarnClass.getServer() != null) {
-            String mapped = getLast(yarnClass.getMapped()).toLowerCase(Locale.ROOT);
+            String mapped = getLast(yarnClass.getServer()).toLowerCase(Locale.ROOT);
             if (mapped.contains(search))
                 return mapped;
         }
         if (yarnClass.getClient() != null) {
-            String mapped = getLast(yarnClass.getMapped()).toLowerCase(Locale.ROOT);
+            String mapped = getLast(yarnClass.getClient()).toLowerCase(Locale.ROOT);
             if (mapped.contains(search))
                 return mapped;
         }
@@ -121,6 +121,8 @@ public class YarnClassCommand implements CommandBase {
     }
     
     public String getLast(String s) {
+        if (!s.contains("/"))
+            return s;
         String[] s1Split = s.split("/");
         return s1Split[s1Split.length - 1];
     }
