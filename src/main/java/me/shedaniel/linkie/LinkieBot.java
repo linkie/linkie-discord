@@ -67,7 +67,7 @@ public class LinkieBot {
         new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
-            if (false) {
+            if (true) {
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");
                 commandApi.registerCommand(new UserInfoCommand(), "userinfo", "info", "user", "whois", "who");
