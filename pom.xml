@@ -11,6 +11,10 @@
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+        <repository>
+            <id>fabricmc</id>
+            <url>https://maven.fabricmc.net</url>
+        </repository>
     </repositories>
 
     <dependencies>
