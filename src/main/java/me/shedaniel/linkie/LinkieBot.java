@@ -69,8 +69,8 @@ public class LinkieBot {
         new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
-            commandApi.registerCommand(new YarnClassCommand(), "yc");
-            if (false) {
+            if (true) {
+                commandApi.registerCommand(new YarnClassCommand(), "yc");
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");
                 commandApi.registerCommand(new UserInfoCommand(), "userinfo", "info", "user", "whois", "who");
@@ -98,7 +98,7 @@ public class LinkieBot {
                 });
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 1, TimeUnit.MINUTES);
             }
-            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0,15, TimeUnit.MINUTES);
+            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         

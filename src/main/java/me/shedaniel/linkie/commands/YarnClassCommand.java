@@ -1,6 +1,7 @@
 package me.shedaniel.linkie.commands;
 
 import me.shedaniel.linkie.CommandBase;
+import me.shedaniel.linkie.InvalidUsageException;
 import me.shedaniel.linkie.yarn.YarnClass;
 import me.shedaniel.linkie.yarn.YarnManager;
 import org.javacord.api.entity.message.MessageAuthor;
@@ -18,6 +19,8 @@ public class YarnClassCommand implements CommandBase {
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (YarnManager.updating)
             throw new RuntimeException("Yarn is being downloaded, please wait for around 10 seconds");
+        if (args.length != 1)
+            throw new InvalidUsageException("+" + cmd + " [search term]");
         event.getChannel().sendMessage(new EmbedBuilder().setTitle("Loading...").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow()).whenComplete((message1, throwable) -> {
             try {
                 String name = args[0];

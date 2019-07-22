@@ -20,6 +20,8 @@ public class HelpCommand implements CommandBase {
                 .addField("UserInfo Command", "Value: +userinfo, +info, +user, +whois, +who\nDisplays user information.")
                 .addField("CurseForge4J CheckStats Command", "Value: +os\nCheck CurseForge mod stats.")
                 .addField("CurseMetaApi CheckStats Command", "Value: +ns\nCheck CurseForge mod stats.")
+                .addField("Fabric Api Versions Command", "Value: +fabricapi\nCheck Fabric API versions for every mc version.")
+                .addField("Yarn Class Command", "Value: +yc\nCheck yarn 1.2.5 mappings.")
                 .setTimestampToNow()
         );
     }
