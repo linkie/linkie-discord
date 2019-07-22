@@ -70,6 +70,7 @@ public class LinkieBot {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
+                commandApi.registerCommand(new YarnFieldCommand(), "yf");
                 commandApi.registerCommand(new YarnClassCommand(), "yc");
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");

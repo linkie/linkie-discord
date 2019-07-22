@@ -64,7 +64,7 @@ public class YarnClassCommand implements CommandBase {
                     String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
                     return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
                 }).collect(Collectors.joining("\n\n"));
-                builder.setDescription(desc);
+                builder.setDescription(desc.substring(0, Math.min(desc.length(), 2000)));
                 message1.edit(builder);
             } catch (Throwable throwable1) {
                 message1.edit(new EmbedBuilder().setTitle("Linkie Error").setColor(Color.red).setFooter("Requested by " + event.getMessageAuthor().getDiscriminatedName(), event.getMessageAuthor().getAvatar()).addField("Error occurred while processing the command:", throwable1.getClass().getSimpleName() + ": " + throwable1.getLocalizedMessage()).setTimestampToNow());
