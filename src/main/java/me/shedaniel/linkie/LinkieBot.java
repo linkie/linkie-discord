@@ -98,7 +98,7 @@ public class LinkieBot {
                             textChannel.sendMessage(new EmbedBuilder().setTitle("Goodbye **" + user.getDiscriminatedName() + "**! Farewell.").setDescription("\"" + bad[new Random().nextInt(bad.length)] + "\" - Linkie").setThumbnail(user.getAvatar()).setTimestampToNow()).join();
                         }));
                 });
-                singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 1, TimeUnit.MINUTES);
+                singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
             yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
