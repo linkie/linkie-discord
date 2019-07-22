@@ -100,8 +100,8 @@ public class LinkieBot {
                 });
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 1, TimeUnit.MINUTES);
             }
+            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
-        yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
         while (true) {
         
         }
