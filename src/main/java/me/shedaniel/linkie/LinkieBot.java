@@ -54,7 +54,7 @@ public class LinkieBot {
         });
         try {
             GistService service = new GistService();
-            service.getClient().setOAuth2Token(System.getProperty("GITHUB"));
+            service.getClient().setOAuth2Token(System.getenv("GITHUB"));
             Gist gist = service.getGist("71e2d88a0f49e6dc2d6895f235e47c99");
             Map<String, GistFile> files = gist.getFiles();
             GistFile messagesJson = files.get("messages.json");
@@ -64,7 +64,7 @@ public class LinkieBot {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        new DiscordApiBuilder().setToken(System.getProperty("TOKEN")).login().thenAccept(api -> {
+        new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (false) {
@@ -116,7 +116,7 @@ public class LinkieBot {
     private String[] getBad() {
         try {
             GistService service = new GistService();
-            service.getClient().setOAuth2Token(System.getProperty("GITHUB"));
+            service.getClient().setOAuth2Token(System.getenv("GITHUB"));
             Gist gist = service.getGist("71e2d88a0f49e6dc2d6895f235e47c99");
             Map<String, GistFile> files = gist.getFiles();
             GistFile messagesJson = files.get("messages.json");
@@ -141,7 +141,7 @@ public class LinkieBot {
         try {
             System.out.println("Starting update!");
             GistService service = new GistService();
-            service.getClient().setOAuth2Token(System.getProperty("GITHUB"));
+            service.getClient().setOAuth2Token(System.getenv("GITHUB"));
             Gist gist = service.getGist("b046fb65b74f297380ec2264b7f28f94");
             Map<String, GistFile> files = gist.getFiles();
             GistFile projectsJson = files.get("projects.json");
