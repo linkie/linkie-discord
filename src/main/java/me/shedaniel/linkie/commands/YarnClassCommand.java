@@ -2,6 +2,7 @@ package me.shedaniel.linkie.commands;
 
 import me.shedaniel.linkie.CommandBase;
 import me.shedaniel.linkie.InvalidUsageException;
+import me.shedaniel.linkie.LinkieBot;
 import me.shedaniel.linkie.yarn.YarnClass;
 import me.shedaniel.linkie.yarn.YarnManager;
 import org.javacord.api.entity.message.MessageAuthor;
@@ -79,50 +80,61 @@ public class YarnClassCommand implements CommandBase {
                     message1.removeAllReactions().get();
                 message1.addReactions("⬅", "❌", "➡").thenRun(() -> {
                     message1.addReactionAddListener(reactionAddEvent -> {
-                        if (reactionAddEvent.getReaction().get().getCount() > 1)
-                            if (reactionAddEvent.getEmoji().equalsEmoji("❌")) {
-                                reactionAddEvent.deleteMessage();
-                            } else if (reactionAddEvent.getEmoji().equalsEmoji("⬅")) {
-                                reactionAddEvent.removeReaction();
-                                if (finalPage[0] > 0) {
-                                    finalPage[0]--;
-                                    EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                    final String[] desc1 = {""};
-                                    files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
-                                        String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
-                                        String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                                        return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
-                                    }).forEach(s -> {
-                                        if (desc1[0].length() + s.length() > 1990)
-                                            return;
-                                        if (!desc1[0].isEmpty())
-                                            desc1[0] += "\n\n";
-                                        desc1[0] += s;
-                                    });
-                                    builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
-                                    message1.edit(builder1);
+                        try {
+                            //                            if (reactionAddEvent.getCount().get() > 1) {
+                            if (true) {
+                                if (!reactionAddEvent.getUser().equals(LinkieBot.getApi().getYourself()) && !reactionAddEvent.getUser().equals(event.getMessageAuthor())) {
+                                    reactionAddEvent.removeReaction();
+                                    return;
                                 }
-                            } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
-                                reactionAddEvent.removeReaction();
-                                if (finalPage[0] < (int) Math.ceil(files.size() / 5d) - 1) {
-                                    finalPage[0]++;
-                                    EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                    final String[] desc1 = {""};
-                                    files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
-                                        String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
-                                        String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                                        return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
-                                    }).forEach(s -> {
-                                        if (desc1[0].length() + s.length() > 1990)
-                                            return;
-                                        if (!desc1[0].isEmpty())
-                                            desc1[0] += "\n\n";
-                                        desc1[0] += s;
-                                    });
-                                    builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
-                                    message1.edit(builder1);
-                                }
+                                if (reactionAddEvent.getUser().equals(event.getMessageAuthor()))
+                                    if (reactionAddEvent.getEmoji().equalsEmoji("❌")) {
+                                        reactionAddEvent.deleteMessage();
+                                    } else if (reactionAddEvent.getEmoji().equalsEmoji("⬅")) {
+                                        reactionAddEvent.removeReaction();
+                                        if (finalPage[0] > 0) {
+                                            finalPage[0]--;
+                                            EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                            final String[] desc1 = {""};
+                                            files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
+                                                String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                                String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
+                                                return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                            }).forEach(s -> {
+                                                if (desc1[0].length() + s.length() > 1990)
+                                                    return;
+                                                if (!desc1[0].isEmpty())
+                                                    desc1[0] += "\n\n";
+                                                desc1[0] += s;
+                                            });
+                                            builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                            message1.edit(builder1);
+                                        }
+                                    } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
+                                        reactionAddEvent.removeReaction();
+                                        if (finalPage[0] < (int) Math.ceil(files.size() / 5d) - 1) {
+                                            finalPage[0]++;
+                                            EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                            final String[] desc1 = {""};
+                                            files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
+                                                String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                                String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
+                                                return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                            }).forEach(s -> {
+                                                if (desc1[0].length() + s.length() > 1990)
+                                                    return;
+                                                if (!desc1[0].isEmpty())
+                                                    desc1[0] += "\n\n";
+                                                desc1[0] += s;
+                                            });
+                                            builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                            message1.edit(builder1);
+                                        }
+                                    }
                             }
+                        } catch (Throwable throwable1) {
+                            throwable1.printStackTrace();
+                        }
                     }).removeAfter(30, TimeUnit.MINUTES);
                 });
             } catch (Throwable throwable1) {
