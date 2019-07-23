@@ -14,7 +14,7 @@ public class HelpCommand implements CommandBase {
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (args.length != 0)
             throw new InvalidUsageException("+" + cmd);
-        String prefix = LinkieBot.getInstance().commandApi.getPrefix(event.isServerMessage() && event.getServer().isPresent() && event.getServer().get().getId() == 595505494408429598l);
+        String prefix = LinkieBot.getInstance().commandApi.getPrefix(!event.isServerMessage() || (event.getServer().isPresent() && event.getServer().get().getId() == 595505494408429598l));
         event.getChannel().sendMessage(new EmbedBuilder()
                 .setTitle("Linkie Help Command")
                 .setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar())

@@ -45,7 +45,7 @@ public class CommandApi implements MessageCreateListener {
             return;
         CompletableFuture.runAsync(() -> {
             String message = event.getMessageContent();
-            String prefix = getPrefix(event.isServerMessage() && event.getServer().isPresent() && event.getServer().get().getId() == 595505494408429598l);
+            String prefix = getPrefix(!event.isServerMessage() || (event.getServer().isPresent() && event.getServer().get().getId() == 595505494408429598l));
             if (message.toLowerCase(Locale.ROOT).startsWith(prefix)) {
                 String content = message.substring(prefix.length());
                 String split[] = content.contains(" ") ? content.split(" ") : new String[]{content}, cmd = split[0].toLowerCase(Locale.ROOT);
