@@ -78,7 +78,7 @@ public class YarnMethodCommand implements CommandBase {
                         files.add(yarnMethod);
                 });
                 if (files.isEmpty())
-                    throw new NullPointerException("null");
+                    throw new NullPointerException("Match methods not found!");
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
