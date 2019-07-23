@@ -18,6 +18,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static me.shedaniel.linkie.LinkieBot.contains;
+
 public class YarnMethodCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
@@ -37,16 +39,16 @@ public class YarnMethodCommand implements CommandBase {
                     EntryTriple intermediary = methodEntry.get("intermediary");
                     EntryTriple server = methodEntry.get("server");
                     EntryTriple client = methodEntry.get("client");
-                    if (clazz == null || intermediary.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz) || (server != null && server.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz)) || (client != null && client.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz))) {
-                        if (getLast(intermediary.getName()).toLowerCase(Locale.ROOT).contains(low) || (server != null && server.getName().contains(low)) || (client != null && client.getName().contains(low)))
+                    if (clazz == null || contains(intermediary.getOwner().toLowerCase(Locale.ROOT), lowClazz) || (server != null && contains(server.getOwner().toLowerCase(Locale.ROOT), lowClazz)) || (client != null && contains(client.getOwner().toLowerCase(Locale.ROOT), lowClazz))) {
+                        if (contains(getLast(intermediary.getName()).toLowerCase(Locale.ROOT), low) || (server != null && contains(server.getName(), low)) || (client != null && contains(client.getName(), low)))
                             files.add(new YarnMethod(intermediary, server, client));
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    boolean matchClass = clazz == null || mappingsFile.getObfClass().toLowerCase(Locale.ROOT).contains(lowClazz) || mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT).contains(lowClazz);
+                    boolean matchClass = clazz == null || contains(mappingsFile.getObfClass().toLowerCase(Locale.ROOT), lowClazz) || contains(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT), lowClazz);
                     if (matchClass)
                         for(MappingsData.MethodMappings methodMapping : mappingsFile.getMethodMappings())
-                            if (methodMapping.getObfName().toLowerCase(Locale.ROOT).contains(low) || methodMapping.getDeobfName().toLowerCase(Locale.ROOT).contains(low))
+                            if (contains(methodMapping.getObfName().toLowerCase(Locale.ROOT), low) || contains(methodMapping.getDeobfName().toLowerCase(Locale.ROOT), low))
                                 files.add(new YarnMethod(new EntryTriple(mappingsFile.getObfClass(), methodMapping.getObfName(), methodMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), methodMapping.getDeobfName(), methodMapping.getDesc())));
                 });
                 files.forEach(yarnMethod -> {
@@ -180,7 +182,7 @@ public class YarnMethodCommand implements CommandBase {
         if (split.length > 2)
             throw new IllegalStateException("Wrong Description!");
         String s = split[0];
-        if (s.contains(";")) {
+        if (s.indexOf(';') > -1) {
             for(String aClass : s.substring(1).split(";")) {
                 int l = aClass.indexOf("L");
                 split[0] = split[0].replace(aClass.substring(l + 1), mapClass(aClass.substring(l + 1)));
@@ -204,21 +206,21 @@ public class YarnMethodCommand implements CommandBase {
     
     public String get(YarnMethod yarnClass, String search) {
         String intermediary = getLast(yarnClass.getIntermediary().getName());
-        if (intermediary.contains(search))
+        if (contains(intermediary, search))
             return intermediary;
         if (yarnClass.getMapped() != null) {
             String mapped = getLast(yarnClass.getMapped().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getServer() != null) {
             String mapped = getLast(yarnClass.getServer().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getClient() != null) {
             String mapped = getLast(yarnClass.getClient().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         return "jdkwjidhwudhuwihduhudwuhiwuhui";
@@ -251,7 +253,7 @@ public class YarnMethodCommand implements CommandBase {
     }
     
     public String getLast(String s) {
-        if (!s.contains("/"))
+        if (s.indexOf('/') <= -1)
             return s;
         String[] s1Split = s.split("/");
         return s1Split[s1Split.length - 1];
