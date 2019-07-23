@@ -39,13 +39,13 @@ public class YarnMethodCommand implements CommandBase {
                     EntryTriple intermediary = methodEntry.get("intermediary");
                     EntryTriple server = methodEntry.get("server");
                     EntryTriple client = methodEntry.get("client");
-                    if (clazz == null || contains(intermediary.getOwner().toLowerCase(Locale.ROOT), lowClazz) || (server != null && contains(server.getOwner().toLowerCase(Locale.ROOT), lowClazz)) || (client != null && contains(client.getOwner().toLowerCase(Locale.ROOT), lowClazz))) {
+                    if (clazz == null || contains(getLast(intermediary.getOwner().toLowerCase(Locale.ROOT)), lowClazz) || (server != null && contains(getLast(server.getOwner().toLowerCase(Locale.ROOT)), lowClazz)) || (client != null && contains(getLast(client.getOwner().toLowerCase(Locale.ROOT)), lowClazz))) {
                         if (contains(getLast(intermediary.getName()).toLowerCase(Locale.ROOT), low) || (server != null && contains(server.getName(), low)) || (client != null && contains(client.getName(), low)))
                             files.add(new YarnMethod(intermediary, server, client));
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    boolean matchClass = clazz == null || contains(mappingsFile.getObfClass().toLowerCase(Locale.ROOT), lowClazz) || contains(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT), lowClazz);
+                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getObfClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT)), lowClazz);
                     if (matchClass)
                         for(MappingsData.MethodMappings methodMapping : mappingsFile.getMethodMappings())
                             if (contains(methodMapping.getObfName().toLowerCase(Locale.ROOT), low) || contains(methodMapping.getDeobfName().toLowerCase(Locale.ROOT), low))
