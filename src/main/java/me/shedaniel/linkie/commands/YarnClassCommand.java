@@ -12,17 +12,19 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class YarnClassCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (YarnManager.updating)
             throw new RuntimeException("Yarn is being downloaded, please wait for around 10 seconds");
-        if (args.length != 1)
-            throw new InvalidUsageException("+" + cmd + " [search term]");
+        if (args.length != 1 && args.length != 2)
+            throw new InvalidUsageException("+" + cmd + " <search> [page]");
         event.getChannel().sendMessage(new EmbedBuilder().setTitle("Loading...").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow()).whenComplete((message1, throwable) -> {
             try {
                 String name = args[0];
+                int page = args.length > 1 ? Integer.parseInt(args[1]) - 1 : 0;
                 String low = name.toLowerCase(Locale.ROOT);
                 List<YarnClass> files = new ArrayList<>();
                 YarnManager.r1_2_5.tiny.getClassEntries().forEach(classEntry -> {
@@ -57,9 +59,9 @@ public class YarnClassCommand implements CommandBase {
                     throw new NullPointerException("null");
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
-                EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                 final String[] desc = {""};
-                files.stream().limit(10).map(yarnClass -> {
+                files.stream().skip(5 * page).limit(5).map(yarnClass -> {
                     String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                     String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
                     return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
@@ -72,6 +74,56 @@ public class YarnClassCommand implements CommandBase {
                 });
                 builder.setDescription(desc[0].substring(0, Math.min(desc[0].length(), 2000)));
                 message1.edit(builder);
+                int finalPage[] = {page};
+                message1.removeAllReactions().get();
+                message1.addReactions("⬅", "❌", "➡").thenRun(() -> {
+                    message1.addReactionAddListener(reactionAddEvent -> {
+                        if (reactionAddEvent.getReaction().get().getCount() > 1)
+                            if (reactionAddEvent.getEmoji().equalsEmoji("❌")) {
+                                reactionAddEvent.deleteMessage();
+                            } else if (reactionAddEvent.getEmoji().equalsEmoji("⬅")) {
+                                reactionAddEvent.removeReaction();
+                                if (finalPage[0] > 0) {
+                                    finalPage[0]--;
+                                    EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                    final String[] desc1 = {""};
+                                    files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
+                                        String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                        String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
+                                        return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                    }).forEach(s -> {
+                                        if (desc1[0].length() + s.length() > 1990)
+                                            return;
+                                        if (!desc1[0].isEmpty())
+                                            desc1[0] += "\n\n";
+                                        desc1[0] += s;
+                                    });
+                                    builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                    message1.edit(builder1);
+                                }
+                            } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
+                                reactionAddEvent.removeReaction();
+                                if (finalPage[0] < (int) Math.ceil(files.size() / 5d) - 1) {
+                                    finalPage[0]++;
+                                    EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                    final String[] desc1 = {""};
+                                    files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
+                                        String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                        String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
+                                        return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                    }).forEach(s -> {
+                                        if (desc1[0].length() + s.length() > 1990)
+                                            return;
+                                        if (!desc1[0].isEmpty())
+                                            desc1[0] += "\n\n";
+                                        desc1[0] += s;
+                                    });
+                                    builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                    message1.edit(builder1);
+                                }
+                            }
+                    }).removeAfter(30, TimeUnit.MINUTES);
+                });
             } catch (Throwable throwable1) {
                 message1.edit(new EmbedBuilder().setTitle("Linkie Error").setColor(Color.red).setFooter("Requested by " + event.getMessageAuthor().getDiscriminatedName(), event.getMessageAuthor().getAvatar()).addField("Error occurred while processing the command:", throwable1.getClass().getSimpleName() + ": " + throwable1.getLocalizedMessage()).setTimestampToNow());
             }
