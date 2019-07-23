@@ -105,7 +105,6 @@ public class LinkieBot {
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
             yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
-            YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         

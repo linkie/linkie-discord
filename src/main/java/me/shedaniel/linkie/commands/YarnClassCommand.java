@@ -61,6 +61,8 @@ public class YarnClassCommand implements CommandBase {
                 });
                 if (files.isEmpty())
                     throw new NullPointerException("Match classes not found!");
+                files.sort(Comparator.comparing(value -> value.getMapped() != null ? value.getMapped() : value.getIntermediary(), String::compareToIgnoreCase));
+                Collections.reverse(files);
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();

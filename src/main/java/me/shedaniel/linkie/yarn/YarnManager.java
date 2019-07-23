@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,7 @@ public class YarnManager {
     public static long nextUpdate = -1;
     
     public static void updateYarn() {
+        nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
         updating = true;
         lastUpdate = System.currentTimeMillis();
         long time = System.currentTimeMillis();
