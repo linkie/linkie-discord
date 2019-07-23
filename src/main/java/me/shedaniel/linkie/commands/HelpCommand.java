@@ -26,6 +26,7 @@ public class HelpCommand implements CommandBase {
                 .addField("Yarn Class Command", "Value: " + prefix + "yc\nCheck yarn 1.2.5 mappings.")
                 .addField("Yarn Field Command", "Value: " + prefix + "yf\nCheck yarn 1.2.5 mappings.")
                 .addField("Yarn Method Command", "Value: " + prefix + "ym\nCheck yarn 1.2.5 mappings.")
+                .addField("Yarn Version Command", "Value: " + prefix + "yv\nCheck yarn 1.2.5 mappings last fetch time.")
                 .setTimestampToNow()
         );
     }

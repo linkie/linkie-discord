@@ -1,6 +1,5 @@
 package me.shedaniel.linkie.yarn;
 
-import net.fabricmc.mappings.ClassEntry;
 import net.fabricmc.mappings.MappingsProvider;
 import org.apache.commons.lang3.StringUtils;
 
@@ -17,9 +16,12 @@ public class YarnManager {
     //    public static MappingsData b1_7_10 = new MappingsData();
     public static MappingsData r1_2_5 = new MappingsData();
     public static boolean updating = true;
+    public static long lastUpdate = System.currentTimeMillis();
+    public static long nextUpdate = -1;
     
     public static void updateYarn() {
         updating = true;
+        lastUpdate = System.currentTimeMillis();
         long time = System.currentTimeMillis();
         try {
             //            updateYarn(new URL("https://github.com/minecraft-cursed-legacy/Minecraft-Cursed-POMF/archive/master.zip"), b1_7_10);
@@ -27,7 +29,8 @@ public class YarnManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        time = System.currentTimeMillis() - time;
+        lastUpdate = System.currentTimeMillis();
+        time = lastUpdate - time;
         System.out.println("Updated Yarn in " + time + "ms");
         updating = false;
     }

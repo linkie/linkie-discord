@@ -24,8 +24,10 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import java.awt.*;
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +73,7 @@ public class LinkieBot {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
+                commandApi.registerCommand(new YarnVersionCommand(), "yv");
                 commandApi.registerCommand(new YarnMethodCommand(), "ym");
                 commandApi.registerCommand(new YarnFieldCommand(), "yf");
                 commandApi.registerCommand(new YarnClassCommand(), "yc");
@@ -102,6 +105,7 @@ public class LinkieBot {
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
             yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
+            YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         
