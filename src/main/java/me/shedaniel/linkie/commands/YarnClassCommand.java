@@ -57,9 +57,6 @@ public class YarnClassCommand implements CommandBase {
                             YarnManager.mapClass(yarnClass.getIntermediary(), YarnManager.r1_2_5).ifPresent(s -> {
                                 yarnClass.setMapped(s);
                             });
-//                            YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-//                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnClass.getIntermediary()));
-//                            }).findAny().ifPresent(mappingsFile -> yarnClass.setMapped(mappingsFile.getYarnClass()));
                         }
                 });
                 if (files.isEmpty())
@@ -71,7 +68,7 @@ public class YarnClassCommand implements CommandBase {
                 files.stream().skip(5 * page).limit(5).map(yarnClass -> {
                     String obf = yarnClass.getClient() == null && yarnClass.getServer() == null ? null : "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                     String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                    return "**MC 1.2.5: " + main + "**\n__Name__: " + (obf == null ? "" : obf + " => ") + "`" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                    return "**MC 1.2.5: " + main + "**\n__Name__: " + (obf == null ? "" : obf + " => ") + "`" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null && !yarnClass.getIntermediary().equals(yarnClass.getMapped()) ? " => `" + yarnClass.getMapped() + "`" : "");
                 }).forEach(s -> {
                     if (desc[0].length() + s.length() > 1990)
                         return;

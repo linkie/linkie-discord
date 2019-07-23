@@ -29,8 +29,8 @@ public class YarnManager {
         long time = System.currentTimeMillis();
         try {
             //            updateYarn(new URL("https://github.com/minecraft-cursed-legacy/Minecraft-Cursed-POMF/archive/master.zip"), b1_7_10);
-            //            updateYarn(new URL("https://github.com/Blayyke/yarn/archive/1.2.5.zip"), new URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"), r1_2_5);
-            updateYarn(new URL("https://github.com/FabricMC/yarn/archive/1.14.4.zip"), null, r1_2_5);
+            updateYarn(new URL("https://github.com/Blayyke/yarn/archive/1.2.5.zip"), new URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"), r1_2_5);
+            //            updateYarn(new URL("https://github.com/FabricMC/yarn/archive/1.14.4.zip"), null, r1_2_5);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,6 +52,7 @@ public class YarnManager {
                 InputStreamReader isr = new InputStreamReader(zipIn);
                 if (!entry.isDirectory() && entry.getName().endsWith(".mapping")) {
                     MappingsData.MappingsFile parentClass = new MappingsData.MappingsFile();
+                    data.mappings.add(parentClass);
                     BufferedReader reader = new BufferedReader(isr);
                     List<String> strings = new ArrayList<>();
                     List<YarnLine> lines = new ArrayList<>();
@@ -68,12 +69,19 @@ public class YarnManager {
                     for(YarnLine line : lines) {
                         if (line.type == MappingsType.CLASS) {
                             String intermediaryName = line.split[1];
-                            String yarnName = line.split.length > 2 ? line.split[2] : null;
+                            String yarnName = line.split.length > 2 ? line.split[2] : intermediaryName;
                             MappingsData.MappingsFile file = line.tab > 0 ? new MappingsData.MappingsFile() : parentClass;
+                            for(int i = line.tab - 1; i >= 0; i--) {
+                                MappingsData.MappingsFile file1 = classesTree.get(i);
+                                if (file1 != file) {
+                                    intermediaryName = file1.getIntermediaryClass() + "$" + intermediaryName;
+                                    yarnName = file1.getYarnClass() + "$" + yarnName;
+                                }
+                            }
                             file.setIntermediaryClass(intermediaryName);
                             file.setYarnClass(yarnName);
                             if (line.tab > 0)
-                                classesTree.get(line.tab - 1).getInnerClasses().add(file);
+                                data.mappings.add(file);
                             if (line.tab <= classesTree.size())
                                 classesTree.add(file);
                             else
@@ -110,7 +118,6 @@ public class YarnManager {
                     }
                     
                     parentClass.test();
-                    data.mappings.add(parentClass);
                 }
             }
         } catch (IOException e) {
@@ -132,18 +139,22 @@ public class YarnManager {
         String s2 = yarnBefore + (yarnBefore.isEmpty() ? "" : "$") + file.getYarnClass();
         if (s1.equalsIgnoreCase(clazz))
             return Optional.of(s2);
-        for(MappingsData.MappingsFile innerClass : file.getInnerClasses()) {
-            Optional<String> s = mapClass(s1, s2, clazz, innerClass);
-            if (s.isPresent())
-                return s;
-        }
+        //        for(MappingsData.MappingsFile innerClass : file.getInnerClasses()) {
+        //            Optional<String> s = mapClass(s1, s2, clazz, innerClass);
+        //            if (s.isPresent())
+        //                return s;
+        //        }
         return Optional.empty();
     }
     
     public static String getLast(String s) {
-        if (s.indexOf('/') <= -1)
+        return getLast(getLast(s, '/'), '$');
+    }
+    
+    private static String getLast(String s, char c) {
+        if (s.indexOf(c) <= -1)
             return s;
-        String[] s1Split = s.split("/");
+        String[] s1Split = s.split(c + "");
         return s1Split[s1Split.length - 1];
     }
     

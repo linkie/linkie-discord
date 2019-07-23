@@ -19,12 +19,6 @@ public class MappingsData {
         private List<FieldMappings> fieldMappings = new ArrayList<>();
         private List<MethodMappings> methodMappings = new ArrayList<>();
         
-        private List<MappingsFile> innerClasses = new ArrayList<>();
-        
-        public List<MappingsFile> getInnerClasses() {
-            return innerClasses;
-        }
-        
         public List<FieldMappings> getFieldMappings() {
             return fieldMappings;
         }
@@ -52,15 +46,13 @@ public class MappingsData {
         public void test() {
             if (intermediaryClass == null)
                 throw new IllegalArgumentException();
-            for(MappingsFile innerClass : getInnerClasses())
-                innerClass.test();
         }
         
         @Override
         public String toString() {
             ArrayList<Object> map = new ArrayList<>(getFieldMappings());
             map.add(getMethodMappings());
-            return String.format("Mappings[%s -> %s]: %s {%s}", getIntermediaryClass(), getYarnClass(), map.stream().map(Object::toString).collect(Collectors.joining(", ")), getInnerClasses().stream().map(MappingsFile::toString).collect(Collectors.joining(", ")));
+            return String.format("Mappings[%s -> %s]: %s {%s}", getIntermediaryClass(), getYarnClass(), map.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
         
     }
