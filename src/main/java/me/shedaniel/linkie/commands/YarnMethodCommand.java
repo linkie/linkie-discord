@@ -167,7 +167,6 @@ public class YarnMethodCommand implements CommandBase {
                     }).removeAfter(30, TimeUnit.MINUTES);
                 });
             } catch (Throwable throwable1) {
-                throwable1.printStackTrace();
                 message1.edit(new EmbedBuilder().setTitle("Linkie Error").setColor(Color.red).setFooter("Requested by " + event.getMessageAuthor().getDiscriminatedName(), event.getMessageAuthor().getAvatar()).addField("Error occurred while processing the command:", throwable1.getClass().getSimpleName() + ": " + throwable1.getLocalizedMessage()).setTimestampToNow());
             }
         });
