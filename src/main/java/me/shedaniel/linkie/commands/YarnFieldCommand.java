@@ -45,11 +45,11 @@ public class YarnFieldCommand implements CommandBase {
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getObfClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT)), lowClazz);
+                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getIntermediaryClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getYarnClass().toLowerCase(Locale.ROOT)), lowClazz);
                     if (matchClass)
                         for(MappingsData.FieldMappings fieldMapping : mappingsFile.getFieldMappings())
-                            if (contains(fieldMapping.getObfName().toLowerCase(Locale.ROOT), low) || contains(fieldMapping.getDeobfName().toLowerCase(Locale.ROOT), low))
-                                files.add(new YarnField(new EntryTriple(mappingsFile.getObfClass(), fieldMapping.getObfName(), fieldMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), fieldMapping.getDeobfName(), fieldMapping.getDesc())));
+                            if (contains(fieldMapping.getIntermediaryName().toLowerCase(Locale.ROOT), low) || contains(fieldMapping.getYarnName().toLowerCase(Locale.ROOT), low))
+                                files.add(new YarnField(new EntryTriple(mappingsFile.getIntermediaryClass(), fieldMapping.getIntermediaryName(), fieldMapping.getIntermediaryDesc()), new EntryTriple(mappingsFile.getYarnClass(), fieldMapping.getYarnName(), fieldMapping.getIntermediaryDesc())));
                 });
                 files.forEach(yarnField -> {
                     if (yarnField.incomplete())
@@ -62,11 +62,11 @@ public class YarnFieldCommand implements CommandBase {
                             });
                         } else if (yarnField.needMapped()) {
                             for(MappingsData.MappingsFile file : YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-                                return getLast(mappingsFile.getObfClass()).equalsIgnoreCase(getLast(yarnField.getIntermediary().getOwner()));
+                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnField.getIntermediary().getOwner()));
                             }).collect(Collectors.toList())) {
                                 for(MappingsData.FieldMappings fieldMapping : file.getFieldMappings()) {
-                                    if (fieldMapping.getObfName().equalsIgnoreCase(yarnField.getIntermediary().getName())) {
-                                        yarnField.setMapped(new EntryTriple(file.getDeobfClass(), fieldMapping.getDeobfName(), fieldMapping.getDesc()));
+                                    if (fieldMapping.getIntermediaryName().equalsIgnoreCase(yarnField.getIntermediary().getName())) {
+                                        yarnField.setMapped(new EntryTriple(file.getYarnClass(), fieldMapping.getYarnName(), fieldMapping.getIntermediaryDesc()));
                                         break;
                                     }
                                 }
@@ -200,15 +200,15 @@ public class YarnFieldCommand implements CommandBase {
     private String mapDesc(String desc) {
         if (desc.startsWith("L")) {
             String substring = desc.substring(1, desc.length() - 1);
-            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(substring)).findAny();
+            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getIntermediaryClass().equals(substring)).findAny();
             if (any.isPresent())
-                return "L" + any.get().getDeobfClass() + ";";
+                return "L" + any.get().getYarnClass() + ";";
         }
         if (desc.startsWith("[[L")) {
             String substring = desc.substring(3, desc.length() - 1);
-            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(substring)).findAny();
+            Optional<MappingsData.MappingsFile> any = YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getIntermediaryClass().equals(substring)).findAny();
             if (any.isPresent())
-                return "[[L" + any.get().getDeobfClass() + ";";
+                return "[[L" + any.get().getYarnClass() + ";";
         }
         return desc;
     }

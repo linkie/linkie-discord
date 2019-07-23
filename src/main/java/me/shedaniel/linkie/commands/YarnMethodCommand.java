@@ -45,11 +45,11 @@ public class YarnMethodCommand implements CommandBase {
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getObfClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT)), lowClazz);
+                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getIntermediaryClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getYarnClass().toLowerCase(Locale.ROOT)), lowClazz);
                     if (matchClass)
                         for(MappingsData.MethodMappings methodMapping : mappingsFile.getMethodMappings())
-                            if (contains(methodMapping.getObfName().toLowerCase(Locale.ROOT), low) || contains(methodMapping.getDeobfName().toLowerCase(Locale.ROOT), low))
-                                files.add(new YarnMethod(new EntryTriple(mappingsFile.getObfClass(), methodMapping.getObfName(), methodMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), methodMapping.getDeobfName(), methodMapping.getDesc())));
+                            if (contains(methodMapping.getIntermediaryName().toLowerCase(Locale.ROOT), low) || contains(methodMapping.getYarnName().toLowerCase(Locale.ROOT), low))
+                                files.add(new YarnMethod(new EntryTriple(mappingsFile.getIntermediaryClass(), methodMapping.getIntermediaryName(), methodMapping.getIntermediaryDesc()), new EntryTriple(mappingsFile.getYarnClass(), methodMapping.getYarnName(), methodMapping.getIntermediaryDesc())));
                 });
                 files.forEach(yarnMethod -> {
                     if (yarnMethod.incomplete())
@@ -62,11 +62,11 @@ public class YarnMethodCommand implements CommandBase {
                             });
                         } else if (yarnMethod.needMapped()) {
                             for(MappingsData.MappingsFile file : YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-                                return getLast(mappingsFile.getObfClass()).equalsIgnoreCase(getLast(yarnMethod.getIntermediary().getOwner()));
+                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnMethod.getIntermediary().getOwner()));
                             }).collect(Collectors.toList())) {
                                 for(MappingsData.MethodMappings methodMapping : file.getMethodMappings()) {
-                                    if (methodMapping.getObfName().equalsIgnoreCase(yarnMethod.getIntermediary().getName())) {
-                                        yarnMethod.setMapped(new EntryTriple(file.getDeobfClass(), methodMapping.getDeobfName(), methodMapping.getDesc()));
+                                    if (methodMapping.getIntermediaryName().equalsIgnoreCase(yarnMethod.getIntermediary().getName())) {
+                                        yarnMethod.setMapped(new EntryTriple(file.getYarnClass(), methodMapping.getYarnName(), methodMapping.getIntermediaryDesc()));
                                         break;
                                     }
                                 }
@@ -200,7 +200,7 @@ public class YarnMethodCommand implements CommandBase {
     }
     
     private String mapClass(String clazz) {
-        return YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getObfClass().equals(clazz)).findAny().map(MappingsData.MappingsFile::getDeobfClass).orElse(clazz);
+        return YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> mappingsFile.getIntermediaryClass().equals(clazz)).findAny().map(MappingsData.MappingsFile::getYarnClass).orElse(clazz);
     }
     
     public String get(YarnMethod yarnClass, String search) {

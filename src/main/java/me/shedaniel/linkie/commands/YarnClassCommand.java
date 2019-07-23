@@ -39,9 +39,9 @@ public class YarnClassCommand implements CommandBase {
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    if (!files.stream().anyMatch(yarnClass -> getLast(yarnClass.getIntermediary()).equalsIgnoreCase(getLast(mappingsFile.getObfClass()))))
-                        if (contains(getLast(mappingsFile.getObfClass()).toLowerCase(Locale.ROOT), low) || contains(getLast(mappingsFile.getDeobfClass()).toLowerCase(Locale.ROOT), low))
-                            files.add(new YarnClass(mappingsFile.getObfClass(), mappingsFile.getDeobfClass()));
+                    if (!files.stream().anyMatch(yarnClass -> getLast(yarnClass.getIntermediary()).equalsIgnoreCase(getLast(mappingsFile.getIntermediaryClass()))))
+                        if (contains(getLast(mappingsFile.getIntermediaryClass()).toLowerCase(Locale.ROOT), low) || contains(getLast(mappingsFile.getYarnClass()).toLowerCase(Locale.ROOT), low))
+                            files.add(new YarnClass(mappingsFile.getIntermediaryClass(), mappingsFile.getYarnClass()));
                 });
                 files.forEach(yarnClass -> {
                     if (yarnClass.incomplete())
@@ -54,8 +54,8 @@ public class YarnClassCommand implements CommandBase {
                             });
                         } else if (yarnClass.needMapped()) {
                             YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-                                return getLast(mappingsFile.getObfClass()).equalsIgnoreCase(getLast(yarnClass.getIntermediary()));
-                            }).findAny().ifPresent(mappingsFile -> yarnClass.setMapped(mappingsFile.getDeobfClass()));
+                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnClass.getIntermediary()));
+                            }).findAny().ifPresent(mappingsFile -> yarnClass.setMapped(mappingsFile.getYarnClass()));
                         }
                 });
                 if (files.isEmpty())

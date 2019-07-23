@@ -14,8 +14,8 @@ public class MappingsData {
     
     public static class MappingsFile {
         
-        private String obfClass;
-        private String deobfClass;
+        private String intermediaryClass;
+        private String yarnClass;
         private List<FieldMappings> fieldMappings = new ArrayList<>();
         private List<MethodMappings> methodMappings = new ArrayList<>();
         
@@ -27,24 +27,24 @@ public class MappingsData {
             return methodMappings;
         }
         
-        public String getObfClass() {
-            return obfClass;
+        public String getIntermediaryClass() {
+            return intermediaryClass;
         }
         
-        public void setObfClass(String obfClass) {
-            this.obfClass = obfClass;
+        public void setIntermediaryClass(String intermediaryClass) {
+            this.intermediaryClass = intermediaryClass;
         }
         
-        public String getDeobfClass() {
-            return deobfClass == null ? getObfClass() : deobfClass;
+        public String getYarnClass() {
+            return yarnClass == null ? getIntermediaryClass() : yarnClass;
         }
         
-        public void setDeobfClass(String deobfClass) {
-            this.deobfClass = deobfClass;
+        public void setYarnClass(String yarnClass) {
+            this.yarnClass = yarnClass;
         }
         
         public void test() {
-            if (obfClass == null)
+            if (intermediaryClass == null)
                 throw new IllegalArgumentException();
         }
         
@@ -52,91 +52,91 @@ public class MappingsData {
         public String toString() {
             ArrayList<Object> map = new ArrayList<>(getFieldMappings());
             map.add(getMethodMappings());
-            return String.format("Mappings[%s -> %s]: %s", getObfClass(), getDeobfClass(), map.stream().map(Object::toString).collect(Collectors.joining(", ")));
+            return String.format("Mappings[%s -> %s]: %s", getIntermediaryClass(), getYarnClass(), map.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
         
     }
     
     public static class FieldMappings {
         
-        private String obfName;
-        private String deobfName;
-        private String desc;
+        private String intermediaryName;
+        private String yarnName;
+        private String intermediaryDesc;
         
-        public String getObfName() {
-            return obfName;
+        public String getIntermediaryName() {
+            return intermediaryName;
         }
         
-        public void setObfName(String obfName) {
-            this.obfName = obfName;
+        public void setIntermediaryName(String intermediaryName) {
+            this.intermediaryName = intermediaryName;
         }
         
-        public String getDeobfName() {
-            return deobfName == null ? getObfName() : deobfName;
+        public String getYarnName() {
+            return yarnName == null ? getIntermediaryName() : yarnName;
         }
         
-        public void setDeobfName(String deobfName) {
-            this.deobfName = deobfName;
+        public void setYarnName(String yarnName) {
+            this.yarnName = yarnName;
         }
         
-        public String getDesc() {
-            return desc;
+        public String getIntermediaryDesc() {
+            return intermediaryDesc;
         }
         
-        public void setDesc(String desc) {
-            this.desc = desc;
+        public void setIntermediaryDesc(String intermediaryDesc) {
+            this.intermediaryDesc = intermediaryDesc;
         }
         
         public void test() {
-            if (obfName == null || deobfName == null || desc == null)
+            if (intermediaryName == null || yarnName == null || intermediaryDesc == null)
                 throw new IllegalArgumentException();
         }
         
         @Override
         public String toString() {
-            return String.format("Field[%s -> %s, %s]", getObfName(), getDeobfName(), getDesc());
+            return String.format("Field[%s -> %s, %s]", getIntermediaryName(), getYarnName(), getIntermediaryDesc());
         }
         
     }
     
     public static class MethodMappings {
         
-        private String obfName;
-        private String deobfName;
-        private String desc;
+        private String intermediaryName;
+        private String yarnName;
+        private String intermediaryDesc;
         
-        public String getObfName() {
-            return obfName;
+        public String getIntermediaryName() {
+            return intermediaryName;
         }
         
-        public void setObfName(String obfName) {
-            this.obfName = obfName;
+        public void setIntermediaryName(String intermediaryName) {
+            this.intermediaryName = intermediaryName;
         }
         
-        public String getDeobfName() {
-            return deobfName == null ? getObfName() : deobfName;
+        public String getYarnName() {
+            return yarnName == null ? getIntermediaryName() : yarnName;
         }
         
-        public void setDeobfName(String deobfName) {
-            this.deobfName = deobfName;
+        public void setYarnName(String yarnName) {
+            this.yarnName = yarnName;
         }
         
-        public String getDesc() {
-            return desc;
+        public String getIntermediaryDesc() {
+            return intermediaryDesc;
         }
         
-        public void setDesc(String desc) {
-            this.desc = desc;
+        public void setIntermediaryDesc(String intermediaryDesc) {
+            this.intermediaryDesc = intermediaryDesc;
         }
         
         public void test() {
-            if (obfName == null || deobfName == null || desc == null)
+            if (intermediaryName == null || yarnName == null || intermediaryDesc == null)
                 throw new IllegalArgumentException();
         }
         
         @Override
         public String toString() {
-            return String.format("Method[%s -> %s, %s]", getObfName(), getDeobfName(), getDesc());
+            return String.format("Method[%s -> %s, %s]", getIntermediaryName(), getYarnName(), getIntermediaryDesc());
         }
         
     }

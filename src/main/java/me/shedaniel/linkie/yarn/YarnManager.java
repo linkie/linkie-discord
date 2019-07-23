@@ -54,34 +54,34 @@ public class YarnManager {
                         String[] split = line.replace("\t", "").split(" ");
                         MappingsType type = MappingsType.getByString(split[0]);
                         if (tab == 0 && lineNum == 0 && type == MappingsType.CLASS) {
-                            String obfName = split[1];
-                            String deobfName = split.length > 2 ? split[2] : null;
-                            file.setObfClass(obfName);
-                            file.setDeobfClass(deobfName);
+                            String intermediaryName = split[1];
+                            String yarnName = split.length > 2 ? split[2] : null;
+                            file.setIntermediaryClass(intermediaryName);
+                            file.setYarnClass(yarnName);
                             lineNum++;
                             continue;
                         } else if (tab == 1) {
                             if (type == MappingsType.FIELD && split.length == 4) {
-                                String obfName = split[1];
-                                String deobfName = split[2];
+                                String intermediary = split[1];
+                                String yarn = split[2];
                                 String desc = split[3];
-                                if (!obfName.equals(deobfName)) {
+                                if (!intermediary.equals(yarn)) {
                                     MappingsData.FieldMappings field = new MappingsData.FieldMappings();
-                                    field.setObfName(obfName);
-                                    field.setDeobfName(deobfName);
-                                    field.setDesc(desc);
+                                    field.setIntermediaryName(intermediary);
+                                    field.setYarnName(yarn);
+                                    field.setIntermediaryDesc(desc);
                                     field.test();
                                     file.getFieldMappings().add(field);
                                 }
                             } else if (type == MappingsType.METHOD && split.length == 4) {
-                                String obfName = split[1];
-                                String deobfName = split[2];
+                                String intermediary = split[1];
+                                String yarn = split[2];
                                 String desc = split[3];
-                                if (!obfName.equals(deobfName)) {
+                                if (!intermediary.equals(yarn)) {
                                     MappingsData.MethodMappings method = new MappingsData.MethodMappings();
-                                    method.setObfName(obfName);
-                                    method.setDeobfName(deobfName);
-                                    method.setDesc(desc);
+                                    method.setIntermediaryName(intermediary);
+                                    method.setYarnName(yarn);
+                                    method.setIntermediaryDesc(desc);
                                     method.test();
                                     file.getMethodMappings().add(method);
                                 }
