@@ -25,8 +25,8 @@ public class YarnVersionCommand implements CommandBase {
                 .setTitle("Mappings for MC 1.2.5")
                 .setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar())
                 .setDescription("We don't have a build versioning thing lol why is this a thing?")
-                .addInlineField("Last Fetch Time", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(YarnManager.lastUpdate), ZoneOffset.UTC)))
-                .addInlineField("Next Fetch Time", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(YarnManager.nextUpdate), ZoneOffset.UTC)))
+                .addInlineField("Last Fetch Time (UTC)", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(YarnManager.lastUpdate), ZoneOffset.UTC)))
+                .addInlineField("Next Fetch Time (UTC)", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(YarnManager.nextUpdate), ZoneOffset.UTC)))
                 .setTimestampToNow()
         );
     }
