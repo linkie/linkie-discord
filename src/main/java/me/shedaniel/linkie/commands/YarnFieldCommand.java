@@ -18,6 +18,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static me.shedaniel.linkie.LinkieBot.contains;
+
 public class YarnFieldCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
@@ -37,16 +39,16 @@ public class YarnFieldCommand implements CommandBase {
                     EntryTriple intermediary = fieldEntry.get("intermediary");
                     EntryTriple server = fieldEntry.get("server");
                     EntryTriple client = fieldEntry.get("client");
-                    if (clazz == null || intermediary.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz) || (server != null && server.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz)) || (client != null && client.getOwner().toLowerCase(Locale.ROOT).contains(lowClazz))) {
-                        if (getLast(intermediary.getName()).toLowerCase(Locale.ROOT).contains(low) || (server != null && server.getName().contains(low)) || (client != null && client.getName().contains(low)))
+                    if (clazz == null || contains(getLast(intermediary.getOwner().toLowerCase(Locale.ROOT)), lowClazz) || (server != null && contains(getLast(server.getOwner().toLowerCase(Locale.ROOT)), lowClazz)) || (client != null && contains(getLast(client.getOwner().toLowerCase(Locale.ROOT)), lowClazz))) {
+                        if (contains(getLast(intermediary.getName()).toLowerCase(Locale.ROOT), low) || (server != null && contains(server.getName(), low)) || (client != null && contains(client.getName(), low)))
                             files.add(new YarnField(intermediary, server, client));
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
-                    boolean matchClass = clazz == null || mappingsFile.getObfClass().toLowerCase(Locale.ROOT).contains(lowClazz) || mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT).contains(lowClazz);
+                    boolean matchClass = clazz == null || contains(getLast(mappingsFile.getObfClass().toLowerCase(Locale.ROOT)), lowClazz) || contains(getLast(mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT)), lowClazz);
                     if (matchClass)
                         for(MappingsData.FieldMappings fieldMapping : mappingsFile.getFieldMappings())
-                            if (fieldMapping.getObfName().toLowerCase(Locale.ROOT).contains(low) || fieldMapping.getDeobfName().toLowerCase(Locale.ROOT).contains(low))
+                            if (contains(fieldMapping.getObfName().toLowerCase(Locale.ROOT), low) || contains(fieldMapping.getDeobfName().toLowerCase(Locale.ROOT), low))
                                 files.add(new YarnField(new EntryTriple(mappingsFile.getObfClass(), fieldMapping.getObfName(), fieldMapping.getDesc()), new EntryTriple(mappingsFile.getDeobfClass(), fieldMapping.getDeobfName(), fieldMapping.getDesc())));
                 });
                 files.forEach(yarnField -> {
@@ -72,7 +74,7 @@ public class YarnFieldCommand implements CommandBase {
                         }
                 });
                 if (files.isEmpty())
-                    throw new NullPointerException("null");
+                    throw new NullPointerException("Match fields not found!");
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
@@ -213,21 +215,21 @@ public class YarnFieldCommand implements CommandBase {
     
     public String get(YarnField yarnClass, String search) {
         String intermediary = getLast(yarnClass.getIntermediary().getName());
-        if (intermediary.contains(search))
+        if (contains(intermediary, search))
             return intermediary;
         if (yarnClass.getMapped() != null) {
             String mapped = getLast(yarnClass.getMapped().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getServer() != null) {
             String mapped = getLast(yarnClass.getServer().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getClient() != null) {
             String mapped = getLast(yarnClass.getClient().getName()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         return "jdkwjidhwudhuwihduhudwuhiwuhui";
@@ -260,7 +262,7 @@ public class YarnFieldCommand implements CommandBase {
     }
     
     public String getLast(String s) {
-        if (!s.contains("/"))
+        if (s.indexOf('/') <= -1)
             return s;
         String[] s1Split = s.split("/");
         return s1Split[s1Split.length - 1];
