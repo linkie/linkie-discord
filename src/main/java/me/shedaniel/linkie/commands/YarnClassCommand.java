@@ -38,7 +38,7 @@ public class YarnClassCommand implements CommandBase {
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
                     if (!files.stream().anyMatch(yarnClass -> getLast(yarnClass.getIntermediary()).equalsIgnoreCase(getLast(mappingsFile.getObfClass()))))
-                        if (mappingsFile.getObfClass().toLowerCase(Locale.ROOT).contains(low) || mappingsFile.getDeobfClass().toLowerCase(Locale.ROOT).contains(low))
+                        if (getLast(mappingsFile.getObfClass()).toLowerCase(Locale.ROOT).contains(low) || getLast(mappingsFile.getDeobfClass()).toLowerCase(Locale.ROOT).contains(low))
                             files.add(new YarnClass(mappingsFile.getObfClass(), mappingsFile.getDeobfClass()));
                 });
                 files.forEach(yarnClass -> {
@@ -57,7 +57,7 @@ public class YarnClassCommand implements CommandBase {
                         }
                 });
                 if (files.isEmpty())
-                    throw new NullPointerException("null");
+                    throw new NullPointerException("Match classes not found!");
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
