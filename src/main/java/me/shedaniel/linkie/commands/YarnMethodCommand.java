@@ -2,6 +2,7 @@ package me.shedaniel.linkie.commands;
 
 import me.shedaniel.linkie.CommandBase;
 import me.shedaniel.linkie.InvalidUsageException;
+import me.shedaniel.linkie.LinkieBot;
 import me.shedaniel.linkie.yarn.MappingsData;
 import me.shedaniel.linkie.yarn.YarnManager;
 import me.shedaniel.linkie.yarn.YarnMethod;
@@ -14,6 +15,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class YarnMethodCommand implements CommandBase {
@@ -21,10 +23,11 @@ public class YarnMethodCommand implements CommandBase {
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (YarnManager.updating)
             throw new RuntimeException("Yarn is being downloaded, please wait for around 10 seconds");
-        if (args.length != 1)
-            throw new InvalidUsageException("+" + cmd + " [search term]");
+        if (args.length != 1 && args.length != 2)
+            throw new InvalidUsageException("+" + cmd + " <search> [page]");
         event.getChannel().sendMessage(new EmbedBuilder().setTitle("Loading...").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow()).whenComplete((message1, throwable) -> {
             try {
+                int page = args.length > 1 ? Integer.parseInt(args[1]) - 1 : 0;
                 String name = args[0].indexOf('.') > -1 ? args[0].split("\\.")[1] : args[0];
                 String clazz = args[0].indexOf('.') > -1 ? args[0].split("\\.")[0] : null;
                 String low = name.toLowerCase(Locale.ROOT);
@@ -78,9 +81,9 @@ public class YarnMethodCommand implements CommandBase {
                     throw new NullPointerException("null");
                 files.sort(Comparator.comparingDouble(value -> similarity(get(value, getLast(low)), getLast(low))));
                 Collections.reverse(files);
-                EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                 final String[] desc = {""};
-                files.stream().limit(10).map(yarnMethod -> {
+                files.stream().skip(page * 5).limit(5).map(yarnMethod -> {
                     if (yarnMethod.needObf())
                         return null;
                     String obf = "client=" + (yarnMethod.getClient() == null ? "null" : yarnMethod.getClient().getName()) + ",server=" + (yarnMethod.getServer() == null ? "null" : yarnMethod.getServer().getName());
@@ -96,6 +99,71 @@ public class YarnMethodCommand implements CommandBase {
                 });
                 builder.setDescription(desc[0].substring(0, Math.min(desc[0].length(), 2000)));
                 message1.edit(builder);
+                int finalPage[] = {page};
+                if (message1.isServerMessage())
+                    message1.removeAllReactions().get();
+                message1.addReactions("⬅", "❌", "➡").thenRun(() -> {
+                    message1.addReactionAddListener(reactionAddEvent -> {
+                        try {
+                            if (!reactionAddEvent.getUser().getDiscriminatedName().equals(LinkieBot.getApi().getYourself().getDiscriminatedName()) && !reactionAddEvent.getUser().getDiscriminatedName().equals(author.getDiscriminatedName())) {
+                                reactionAddEvent.removeReaction();
+                                return;
+                            }
+                            if (reactionAddEvent.getUser().getDiscriminatedName().equals(author.getDiscriminatedName()))
+                                if (reactionAddEvent.getEmoji().equalsEmoji("❌")) {
+                                    reactionAddEvent.deleteMessage();
+                                } else if (reactionAddEvent.getEmoji().equalsEmoji("⬅")) {
+                                    reactionAddEvent.removeReaction();
+                                    if (finalPage[0] > 0) {
+                                        finalPage[0]--;
+                                        EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                        final String[] desc1 = {""};
+                                        files.stream().skip(finalPage[0] * 5).limit(5).map(yarnMethod -> {
+                                            if (yarnMethod.needObf())
+                                                return null;
+                                            String obf = "client=" + (yarnMethod.getClient() == null ? "null" : yarnMethod.getClient().getName()) + ",server=" + (yarnMethod.getServer() == null ? "null" : yarnMethod.getServer().getName());
+                                            String main = yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() + "." + yarnMethod.getMapped().getName() : yarnMethod.getIntermediary().getOwner() + "." + yarnMethod.getIntermediary().getName();
+                                            String methodDesc = (yarnMethod.getMapped() == null ? yarnMethod.getIntermediary().getName() : yarnMethod.getMapped().getName()) + mapDesc(yarnMethod.getIntermediary().getDesc());
+                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnMethod.getIntermediary().getName() + "`" + (yarnMethod.getMapped() != null ? " => `" + yarnMethod.getMapped().getName() + "`" : "") + "\n__Descriptor__: `" + methodDesc + "`\n__Mixin Target__: `" + turnDesc(yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() : yarnMethod.getIntermediary().getOwner()) + methodDesc + "`";
+                                        }).filter(Objects::nonNull).forEach(s -> {
+                                            if (desc1[0].length() + s.length() > 1990)
+                                                return;
+                                            if (!desc1[0].isEmpty())
+                                                desc1[0] += "\n\n";
+                                            desc1[0] += s;
+                                        });
+                                        builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                        message1.edit(builder1);
+                                    }
+                                } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
+                                    reactionAddEvent.removeReaction();
+                                    if (finalPage[0] < (int) Math.ceil(files.size() / 5d) - 1) {
+                                        finalPage[0]++;
+                                        EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
+                                        final String[] desc1 = {""};
+                                        files.stream().skip(finalPage[0] * 5).limit(5).map(yarnMethod -> {
+                                            if (yarnMethod.needObf())
+                                                return null;
+                                            String obf = "client=" + (yarnMethod.getClient() == null ? "null" : yarnMethod.getClient().getName()) + ",server=" + (yarnMethod.getServer() == null ? "null" : yarnMethod.getServer().getName());
+                                            String main = yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() + "." + yarnMethod.getMapped().getName() : yarnMethod.getIntermediary().getOwner() + "." + yarnMethod.getIntermediary().getName();
+                                            String methodDesc = (yarnMethod.getMapped() == null ? yarnMethod.getIntermediary().getName() : yarnMethod.getMapped().getName()) + mapDesc(yarnMethod.getIntermediary().getDesc());
+                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnMethod.getIntermediary().getName() + "`" + (yarnMethod.getMapped() != null ? " => `" + yarnMethod.getMapped().getName() + "`" : "") + "\n__Descriptor__: `" + methodDesc + "`\n__Mixin Target__: `" + turnDesc(yarnMethod.getMapped() != null ? yarnMethod.getMapped().getOwner() : yarnMethod.getIntermediary().getOwner()) + methodDesc + "`";
+                                        }).filter(Objects::nonNull).forEach(s -> {
+                                            if (desc1[0].length() + s.length() > 1990)
+                                                return;
+                                            if (!desc1[0].isEmpty())
+                                                desc1[0] += "\n\n";
+                                            desc1[0] += s;
+                                        });
+                                        builder1.setDescription(desc1[0].substring(0, Math.min(desc1[0].length(), 2000)));
+                                        message1.edit(builder1);
+                                    }
+                                }
+                        } catch (Throwable throwable1) {
+                            throwable1.printStackTrace();
+                        }
+                    }).removeAfter(30, TimeUnit.MINUTES);
+                });
             } catch (Throwable throwable1) {
                 throwable1.printStackTrace();
                 message1.edit(new EmbedBuilder().setTitle("Linkie Error").setColor(Color.red).setFooter("Requested by " + event.getMessageAuthor().getDiscriminatedName(), event.getMessageAuthor().getAvatar()).addField("Error occurred while processing the command:", throwable1.getClass().getSimpleName() + ": " + throwable1.getLocalizedMessage()).setTimestampToNow());
