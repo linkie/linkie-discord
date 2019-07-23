@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static me.shedaniel.linkie.LinkieBot.contains;
+import static me.shedaniel.linkie.yarn.YarnManager.getLast;
 
 public class YarnClassCommand implements CommandBase {
     @Override
@@ -53,9 +54,12 @@ public class YarnClassCommand implements CommandBase {
                                 yarnClass.setServer(classEntry.get("server"));
                             });
                         } else if (yarnClass.needMapped()) {
-                            YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
-                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnClass.getIntermediary()));
-                            }).findAny().ifPresent(mappingsFile -> yarnClass.setMapped(mappingsFile.getYarnClass()));
+                            YarnManager.mapClass(yarnClass.getIntermediary(), YarnManager.r1_2_5).ifPresent(s -> {
+                                yarnClass.setMapped(s);
+                            });
+//                            YarnManager.r1_2_5.mappings.stream().filter(mappingsFile -> {
+//                                return getLast(mappingsFile.getIntermediaryClass()).equalsIgnoreCase(getLast(yarnClass.getIntermediary()));
+//                            }).findAny().ifPresent(mappingsFile -> yarnClass.setMapped(mappingsFile.getYarnClass()));
                         }
                 });
                 if (files.isEmpty())
@@ -188,13 +192,6 @@ public class YarnClassCommand implements CommandBase {
                 costs[s2.length()] = lastValue;
         }
         return costs[s2.length()];
-    }
-    
-    public String getLast(String s) {
-        if (s.indexOf('/') <= -1)
-            return s;
-        String[] s1Split = s.split("/");
-        return s1Split[s1Split.length - 1];
     }
     
     public double similarity(String s1, String s2) {
