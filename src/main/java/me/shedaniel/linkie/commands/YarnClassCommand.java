@@ -75,7 +75,8 @@ public class YarnClassCommand implements CommandBase {
                 builder.setDescription(desc[0].substring(0, Math.min(desc[0].length(), 2000)));
                 message1.edit(builder);
                 int finalPage[] = {page};
-                message1.removeAllReactions().get();
+                if (message1.isServerMessage())
+                    message1.removeAllReactions().get();
                 message1.addReactions("⬅", "❌", "➡").thenRun(() -> {
                     message1.addReactionAddListener(reactionAddEvent -> {
                         if (reactionAddEvent.getReaction().get().getCount() > 1)
