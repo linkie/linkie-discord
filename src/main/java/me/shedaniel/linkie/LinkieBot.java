@@ -1,5 +1,6 @@
 package me.shedaniel.linkie;
 
+import com.google.common.base.CharMatcher;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -105,6 +106,32 @@ public class LinkieBot {
         while (true) {
         
         }
+    }
+    
+    public static boolean contains(CharSequence text, CharSequence pattern) {
+        int patternLength = pattern.length();
+        if (patternLength == 0)
+            return true;
+        if (patternLength > text.length())
+            return false;
+        if (!CharMatcher.ascii().matchesAllOf(text) || !CharMatcher.ascii().matchesAllOf(pattern))
+            return text.toString().indexOf(pattern.toString()) > -1;
+        int shift[] = new int[256];
+        for(int k = 0; k < 256; k++)
+            shift[k] = patternLength;
+        for(int k = 0; k < patternLength - 1; k++)
+            shift[pattern.charAt(k)] = patternLength - 1 - k;
+        int i = 0, j = 0;
+        while ((i + patternLength) <= text.length()) {
+            j = patternLength - 1;
+            while (text.charAt(i + j) == pattern.charAt(j)) {
+                j -= 1;
+                if (j < 0)
+                    return i >= 0;
+            }
+            i = i + shift[text.charAt(i + patternLength - 1)];
+        }
+        return false;
     }
     
     public static DiscordApi getApi() {

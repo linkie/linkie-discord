@@ -19,6 +19,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>28.0-jre</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.Chocohead</groupId>
             <artifactId>Tiny-Mappings-Parser</artifactId>
             <version>337c8b6</version>

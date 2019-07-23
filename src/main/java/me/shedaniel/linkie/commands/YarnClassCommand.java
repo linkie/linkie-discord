@@ -15,6 +15,8 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static me.shedaniel.linkie.LinkieBot.contains;
+
 public class YarnClassCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
@@ -32,13 +34,13 @@ public class YarnClassCommand implements CommandBase {
                     String intermediary = classEntry.get("intermediary");
                     String server = classEntry.get("server");
                     String client = classEntry.get("client");
-                    if (getLast(intermediary).toLowerCase(Locale.ROOT).contains(low) || (server != null && server.contains(low)) || (client != null && client.contains(low))) {
+                    if (contains(getLast(intermediary).toLowerCase(Locale.ROOT), low) || (server != null && contains(server, low)) || (client != null && contains(client, low))) {
                         files.add(new YarnClass(intermediary, server, client));
                     }
                 });
                 YarnManager.r1_2_5.mappings.forEach(mappingsFile -> {
                     if (!files.stream().anyMatch(yarnClass -> getLast(yarnClass.getIntermediary()).equalsIgnoreCase(getLast(mappingsFile.getObfClass()))))
-                        if (getLast(mappingsFile.getObfClass()).toLowerCase(Locale.ROOT).contains(low) || getLast(mappingsFile.getDeobfClass()).toLowerCase(Locale.ROOT).contains(low))
+                        if (contains(getLast(mappingsFile.getObfClass()).toLowerCase(Locale.ROOT), low) || contains(getLast(mappingsFile.getDeobfClass()).toLowerCase(Locale.ROOT), low))
                             files.add(new YarnClass(mappingsFile.getObfClass(), mappingsFile.getDeobfClass()));
                 });
                 files.forEach(yarnClass -> {
@@ -63,9 +65,9 @@ public class YarnClassCommand implements CommandBase {
                 EmbedBuilder builder = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (page + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                 final String[] desc = {""};
                 files.stream().skip(5 * page).limit(5).map(yarnClass -> {
-                    String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                    String obf = yarnClass.getClient() == null && yarnClass.getServer() == null ? null : "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                     String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                    return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                    return "**MC 1.2.5: " + main + "**\n__Name__: " + (obf == null ? "" : obf + " => ") + "`" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
                 }).forEach(s -> {
                     if (desc[0].length() + s.length() > 1990)
                         return;
@@ -95,9 +97,9 @@ public class YarnClassCommand implements CommandBase {
                                         EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                                         final String[] desc1 = {""};
                                         files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
-                                            String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                            String obf = yarnClass.getClient() == null && yarnClass.getServer() == null ? null : "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                                             String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + (obf == null ? "" : obf + " => ") + "`" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
                                         }).forEach(s -> {
                                             if (desc1[0].length() + s.length() > 1990)
                                                 return;
@@ -115,9 +117,9 @@ public class YarnClassCommand implements CommandBase {
                                         EmbedBuilder builder1 = new EmbedBuilder().setTitle("List of Yarn Mappings (Page " + (finalPage[0] + 1) + "/" + (int) Math.ceil(files.size() / 5d) + ")").setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
                                         final String[] desc1 = {""};
                                         files.stream().skip(5 * finalPage[0]).limit(5).map(yarnClass -> {
-                                            String obf = "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
+                                            String obf = yarnClass.getClient() == null && yarnClass.getServer() == null ? null : "client=" + yarnClass.getClient() + ",server=" + yarnClass.getServer();
                                             String main = yarnClass.getMapped() != null ? yarnClass.getMapped() : yarnClass.getIntermediary();
-                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + obf + " => `" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
+                                            return "**MC 1.2.5: " + main + "**\n__Name__: " + (obf == null ? "" : obf + " => ") + "`" + yarnClass.getIntermediary() + "`" + (yarnClass.getMapped() != null ? " => `" + yarnClass.getMapped() + "`" : "");
                                         }).forEach(s -> {
                                             if (desc1[0].length() + s.length() > 1990)
                                                 return;
@@ -142,21 +144,21 @@ public class YarnClassCommand implements CommandBase {
     
     public String get(YarnClass yarnClass, String search) {
         String intermediary = getLast(yarnClass.getIntermediary());
-        if (intermediary.contains(search))
+        if (contains(intermediary, search))
             return intermediary;
         if (yarnClass.getMapped() != null) {
             String mapped = getLast(yarnClass.getMapped()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getServer() != null) {
             String mapped = getLast(yarnClass.getServer()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         if (yarnClass.getClient() != null) {
             String mapped = getLast(yarnClass.getClient()).toLowerCase(Locale.ROOT);
-            if (mapped.contains(search))
+            if (contains(mapped, search))
                 return mapped;
         }
         return "jdkwjidhwudhuwihduhudwuhiwuhui";
@@ -189,7 +191,7 @@ public class YarnClassCommand implements CommandBase {
     }
     
     public String getLast(String s) {
-        if (!s.contains("/"))
+        if (s.indexOf('/') <= -1)
             return s;
         String[] s1Split = s.split("/");
         return s1Split[s1Split.length - 1];
