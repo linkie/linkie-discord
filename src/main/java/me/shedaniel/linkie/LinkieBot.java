@@ -82,6 +82,7 @@ public class LinkieBot {
                 commandApi.registerCommand(new UserInfoCommand(), "userinfo", "info", "user", "whois", "who");
                 commandApi.registerCommand(new OldCheckStatsCommand(), "oldcheckstats", "os");
                 commandApi.registerCommand(new NewCheckStatsCommand(), "newcheckstats", "ns");
+                commandApi.registerCommand(new YarnUpdateCommand(), "yu");
                 commandApi.registerCommand((service, event, author, cmd, args) -> {
                     if (author.getId() == 430615025066049538l)
                         this.runUpdate();
@@ -104,7 +105,10 @@ public class LinkieBot {
                 });
                 singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
-            yarn.scheduleAtFixedRate(YarnManager::updateYarn, 0, 15, TimeUnit.MINUTES);
+            yarn.scheduleAtFixedRate(() -> {
+                YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
+                YarnManager.updateYarn();
+            }, 0, 15, TimeUnit.MINUTES);
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         
