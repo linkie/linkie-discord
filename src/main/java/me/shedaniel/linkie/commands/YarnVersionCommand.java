@@ -20,7 +20,7 @@ public class YarnVersionCommand implements CommandBase {
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
         if (args.length != 0)
             throw new InvalidUsageException("+" + cmd);
-        String prefix = LinkieBot.getInstance().commandApi.getPrefix(!event.isServerMessage() || (event.getServer().isPresent() && event.getServer().get().getId() == 595505494408429598l));
+        String prefix = LinkieBot.getInstance().commandApi.getPrefix(!event.isServerMessage() || (event.getServer().isPresent() && event.getServer().get().getId() != 432055962233470986l));
         event.getChannel().sendMessage(new EmbedBuilder()
                 .setTitle("Mappings for MC 1.2.5")
                 .setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar())

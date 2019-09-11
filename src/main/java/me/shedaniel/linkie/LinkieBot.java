@@ -89,6 +89,11 @@ public class LinkieBot {
                 }, "forcestart");
                 api.setMessageCacheSize(10, 60 * 60);
                 api.addServerMemberJoinListener(event -> {
+                    if (event.getServer().getId() == 621271154019270675l)
+                        event.getServer().getChannelById(621298431855427615l).map(Channel::asTextChannel).ifPresent(tc -> tc.ifPresent(textChannel -> {
+                            User user = event.getUser();
+                            textChannel.sendMessage(new EmbedBuilder().setTitle("Welcome **" + user.getDiscriminatedName() + "**! #" + event.getServer().getMembers().size()).setThumbnail(user.getAvatar()).setTimestampToNow().setDescription("Welcome " + user.getDiscriminatedName() + " to `" + event.getServer().getName() + "`. \n\nEnjoy your stay!")).join();
+                        }));
                     if (event.getServer().getId() == 432055962233470986l)
                         event.getServer().getChannelById(432057546589601792l).map(Channel::asTextChannel).ifPresent(tc -> tc.ifPresent(textChannel -> {
                             User user = event.getUser();
@@ -96,6 +101,11 @@ public class LinkieBot {
                         }));
                 });
                 api.addServerMemberLeaveListener(event -> {
+                    if (event.getServer().getId() == 621271154019270675l)
+                        event.getServer().getChannelById(621298431855427615l).map(Channel::asTextChannel).ifPresent(tc -> tc.ifPresent(textChannel -> {
+                            User user = event.getUser();
+                            textChannel.sendMessage(new EmbedBuilder().setTitle("Goodbye **" + user.getDiscriminatedName() + "**! Farewell.").setThumbnail(user.getAvatar()).setTimestampToNow()).join();
+                        }));
                     if (event.getServer().getId() == 432055962233470986l)
                         event.getServer().getChannelById(432057546589601792l).map(Channel::asTextChannel).ifPresent(tc -> tc.ifPresent(textChannel -> {
                             User user = event.getUser();
