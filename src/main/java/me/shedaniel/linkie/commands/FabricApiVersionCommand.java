@@ -14,8 +14,6 @@ import java.util.stream.Collectors;
 public class FabricApiVersionCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args) {
-        if (!event.isPrivateMessage())
-            throw new InvalidUsageException("Please use this command in a private DM! (I don't want to flood this channel :p)");
         if (args.length > 1)
             throw new InvalidUsageException("+" + cmd + "[page]");
         int page = args.length == 0 ? 0 : Integer.parseInt(args[0]) - 1;
