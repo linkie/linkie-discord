@@ -46,6 +46,7 @@ public class FabricApiVersionCommand implements CommandBase {
             CurseMetaAPI.AddonFile file = map.get(version);
             embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
         });
+        page += 0;
         int finalPage[] = {page};
 //        embedBuilder.setDescription("Use +" + cmd + " [page] for more pages");
         Message message = event.getChannel().sendMessage(embedBuilder).get();
@@ -65,10 +66,9 @@ public class FabricApiVersionCommand implements CommandBase {
                             reactionAddEvent.removeReaction();
                             if (finalPage[0] > 0) {
                                 finalPage[0]--;
-                                List<String> versions1 = new ArrayList<>(old);
-                                versions1 = versions1.stream().skip(25 * finalPage[0]).collect(Collectors.toList());
+                                System.out.println(map.keySet().stream().skip(25 * finalPage[0]).count());
                                 EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / 25f)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                versions1.forEach(version -> {
+                                map.keySet().stream().skip(25 * finalPage[0]).forEach(version -> {
                                     CurseMetaAPI.AddonFile file = map.get(version);
                                     embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
                                 });
@@ -76,12 +76,11 @@ public class FabricApiVersionCommand implements CommandBase {
                             }
                         } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
                             reactionAddEvent.removeReaction();
-                            if (finalPage[0] < ((int) Math.ceil(old.size() / 25f))) {
+                            if (finalPage[0] < ((int) Math.ceil(old.size() / 25f)) - 1) {
                                 finalPage[0]++;
-                                List<String> versions1 = new ArrayList<>(old);
-                                versions1 = versions1.stream().skip(25 * finalPage[0]).collect(Collectors.toList());
+                                System.out.println(map.keySet().stream().skip(25 * finalPage[0]).count());
                                 EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / 25f)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                versions1.forEach(version -> {
+                                map.keySet().stream().skip(25 * finalPage[0]).forEach(version -> {
                                     CurseMetaAPI.AddonFile file = map.get(version);
                                     embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
                                 });
