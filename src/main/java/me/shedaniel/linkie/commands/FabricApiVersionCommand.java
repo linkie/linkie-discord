@@ -61,7 +61,8 @@ public class FabricApiVersionCommand implements CommandBase {
         });
         page += 0;
         int finalPage[] = {page};
-        embedBuilder.setDescription("Tips: Use -r for release only.");
+        if (!showReleaseOnly)
+            embedBuilder.setDescription("Tips: Use -r for release only.");
         Message message = event.getChannel().sendMessage(embedBuilder).get();
         if (message.isServerMessage())
             message.removeAllReactions().get();
