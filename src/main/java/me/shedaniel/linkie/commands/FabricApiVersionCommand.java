@@ -39,7 +39,7 @@ public class FabricApiVersionCommand implements CommandBase {
         EmbedBuilder embedBuilder = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (page + 1) + "/" + ((int) Math.ceil(old.size() / 25f)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
         versions.forEach(version -> {
             CurseMetaAPI.AddonFile file = map.get(version);
-            embedBuilder.addInlineField(version, file.displayName.split(" API ")[1]);
+            embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
         });
         embedBuilder.setDescription("Use +" + cmd + " [page] for more pages");
         event.getChannel().sendMessage(embedBuilder).join();
