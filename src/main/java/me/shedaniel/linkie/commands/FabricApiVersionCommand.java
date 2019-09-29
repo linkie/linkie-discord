@@ -40,13 +40,11 @@ public class FabricApiVersionCommand implements CommandBase {
                     map.put(version, file);
             }
         }
-        List<String> versions = new ArrayList<>(map.keySet());
-        List<String> old = new ArrayList<>(versions);
+        List<String> old = new ArrayList<>(map.keySet());
         if (page > old.size() / ITEMS_PER_PAGE_F)
             throw new IllegalArgumentException("The maximum page is " + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F) + 1) + "!");
-        versions = versions.stream().skip(ITEMS_PER_PAGE * page).collect(Collectors.toList());
         EmbedBuilder embedBuilder = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (page + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-        versions.forEach(version -> {
+        map.keySet().stream().skip(ITEMS_PER_PAGE * page).limit(ITEMS_PER_PAGE).collect(Collectors.toList()).forEach(version -> {
             CurseMetaAPI.AddonFile file = map.get(version);
             embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
         });
@@ -71,7 +69,7 @@ public class FabricApiVersionCommand implements CommandBase {
                             if (finalPage[0] > 0) {
                                 finalPage[0]--;
                                 EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).forEach(version -> {
+                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).forEach(version -> {
                                     CurseMetaAPI.AddonFile file = map.get(version);
                                     embedBuilder1.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
                                 });
@@ -81,9 +79,8 @@ public class FabricApiVersionCommand implements CommandBase {
                             reactionAddEvent.removeReaction();
                             if (finalPage[0] < ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) - 1) {
                                 finalPage[0]++;
-                                System.out.println(map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).count());
                                 EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).forEach(version -> {
+                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).forEach(version -> {
                                     CurseMetaAPI.AddonFile file = map.get(version);
                                     embedBuilder1.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
                                 });
