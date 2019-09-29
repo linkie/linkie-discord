@@ -20,13 +20,21 @@ public class FabricApiVersionCommand implements CommandBase {
     public static final int ITEMS_PER_PAGE = 24;
     public static final float ITEMS_PER_PAGE_F = ITEMS_PER_PAGE;
     
+    public static Integer parseIntOrNull(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+    
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args)
             throws ExecutionException, InterruptedException {
         if (args.length > 2)
             throw new InvalidUsageException("+" + cmd + "[page] [-r]");
-        int page = args.length == 0 ? 0 : Integer.parseInt(args[0]) - 1;
-        boolean showReleaseOnly = args.length == 2 && args[1].equalsIgnoreCase("-r");
+        int page = args.length == 0 ? 0 : (parseIntOrNull(args[0]) == null && args[0].equalsIgnoreCase("-r") ? 0 : parseIntOrNull(args[0]) - 1);
+        boolean showReleaseOnly = (args.length == 2 && args[1].equalsIgnoreCase("-r")) || (args.length == 1 && args[0].equalsIgnoreCase("-r"));
         if (page < 0)
             throw new IllegalArgumentException("The minimum page is 1!");
         List<CurseMetaAPI.AddonFile> files = CurseMetaAPI.getAddonFiles(306612);
