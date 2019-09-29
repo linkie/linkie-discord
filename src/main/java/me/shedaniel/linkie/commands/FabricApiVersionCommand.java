@@ -23,9 +23,10 @@ public class FabricApiVersionCommand implements CommandBase {
     @Override
     public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args)
             throws ExecutionException, InterruptedException {
-        if (args.length > 1)
-            throw new InvalidUsageException("+" + cmd + "[page]");
+        if (args.length > 2)
+            throw new InvalidUsageException("+" + cmd + "[page] [-r]");
         int page = args.length == 0 ? 0 : Integer.parseInt(args[0]) - 1;
+        boolean showReleaseOnly = args.length == 2 && args[1].equalsIgnoreCase("-r");
         if (page < 0)
             throw new IllegalArgumentException("The minimum page is 1!");
         List<CurseMetaAPI.AddonFile> files = CurseMetaAPI.getAddonFiles(306612);
@@ -36,6 +37,8 @@ public class FabricApiVersionCommand implements CommandBase {
             String displayName = file.displayName;
             if (displayName.charAt(0) == '[' && displayName.indexOf(']') > -1) {
                 String version = displayName.substring(1).split("]")[0];
+                if (showReleaseOnly && (version.toLowerCase().contains("pre") || version.toLowerCase().startsWith("19w") || version.toLowerCase().startsWith("20w") || version.toLowerCase().startsWith("18w") || version.toLowerCase().startsWith("21w")))
+                    continue;
                 if (!map.containsKey(version))
                     map.put(version, file);
             }
@@ -50,7 +53,7 @@ public class FabricApiVersionCommand implements CommandBase {
         });
         page += 0;
         int finalPage[] = {page};
-//        embedBuilder.setDescription("Use +" + cmd + " [page] for more pages");
+        embedBuilder.setDescription("Tips: Use -r for release only.");
         Message message = event.getChannel().sendMessage(embedBuilder).get();
         if (message.isServerMessage())
             message.removeAllReactions().get();
