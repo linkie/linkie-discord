@@ -33,3 +33,5 @@ dependencies {
     implementation "org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5"
 }
 
+task stage(dependsOn: ['build', 'clean'])
+build.mustRunAfter clean
