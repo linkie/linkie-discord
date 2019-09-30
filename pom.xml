@@ -114,39 +114,10 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>appassembler-maven-plugin</artifactId>
-                <version>1.1.1</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <assembleDirectory>target</assembleDirectory>
-                    <programs>
-                        <program>
-                            <mainClass>me.shedaniel.linkie.LinkieBot</mainClass>
-                            <name>worker</name>
-                        </program>
-                    </programs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>assemble</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>me.shedaniel.linkie.LinkieBot</mainClass>
-                        </manifest>
-                    </archive>
+                    <mainClass>me.shedaniel.linkie.LinkieBot</mainClass>
                 </configuration>
             </plugin>
         </plugins>
