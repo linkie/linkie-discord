@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.0.3.RELEASE'
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+group 'me.shedaniel'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = targetCompatibility = 1.8
+def vaadin_version = "10.0.1"
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven { url "https://maven.fabricmc.net" }
+    maven { url "https://jitpack.io" }
+    maven { url "https://maven.vaadin.com/vaadin-prereleases" }
+    maven { url "http://maven.vaadin.com/vaadin-addons" }
+}
+
+dependencies {
+    implementation "com.vaadin:vaadin-bom:$vaadin_version"
+    implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
+    implementation "com.google.guava:guava:28.0-jre"
+    implementation "com.github.Chocohead:Tiny-Mappings-Parser:337c8b6"
+    implementation "org.javacord:javacord:3.0.4"
+    implementation "org.apache.logging.log4j:log4j-core:2.11.0"
+    implementation "org.apache.commons:commons-lang3:3.9"
+    implementation "com.github.shedaniel:CurseMetaAPI:0.2"
+    implementation "com.github.Zeitheron:CurseForge4J:1.5.2"
+    implementation "org.eclipse.mylyn.github:org.eclipse.egit.github.core:2.1.5"
+}
+

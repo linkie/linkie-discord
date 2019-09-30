@@ -4,7 +4,7 @@ import java.net.URL;
 
 public class YarnRunner {
     
-    public static void main(String[] args) {
+    public static void run(String[] args) {
         try {
             MappingsData mappingsData = new MappingsData();
             YarnManager.updateYarn(new URL("https://github.com/FabricMC/yarn/archive/1.14.4.zip"), null, mappingsData);
