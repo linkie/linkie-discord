@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.commands.*;
 import me.shedaniel.linkie.spring.LinkieSpringApplication;
+import me.shedaniel.linkie.spring.LoadMeta;
 import me.shedaniel.linkie.yarn.YarnManager;
 import org.eclipse.egit.github.core.Gist;
 import org.eclipse.egit.github.core.GistFile;
@@ -162,8 +163,9 @@ public class LinkieBot {
     }
     
     public static void main(String[] args) {
+        LoadMeta.load();
         SpringApplication.run(LinkieSpringApplication.class, args);
-        new LinkieBot();
+//        new LinkieBot();
     }
     
     private String[] getBad() {
