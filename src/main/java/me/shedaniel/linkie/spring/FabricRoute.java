@@ -11,7 +11,9 @@ import com.vaadin.flow.router.Route;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.Pair;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -62,14 +64,15 @@ public class FabricRoute extends VerticalLayout {
     }
     
     public void updateInfo(LoadMeta.MinecraftVersion version) {
+        List<LoadMeta.MinecraftVersion> minecraftVersions = new ArrayList<>(LoadMeta.minecraftVersions);
         if (version == null)
-            version = LoadMeta.minecraftVersions.stream().filter(LoadMeta.MinecraftVersion::isStable).findFirst().get();
+            version = minecraftVersions.stream().filter(LoadMeta.MinecraftVersion::isStable).findFirst().get();
         String possibleFabricApiVersion = "@API@";
         String possibleCleanFabricApiVersion = "@API@";
         boolean firstOne = true;
         Label123:
-        for(int i = LoadMeta.minecraftVersions.indexOf(version); i < LoadMeta.minecraftVersions.size(); i++) {
-            String s = LoadMeta.minecraftVersions.get(i).version;
+        for(int i = minecraftVersions.indexOf(version); i < minecraftVersions.size(); i++) {
+            String s = minecraftVersions.get(i).version;
             for(Map.Entry<String, Pair<CurseMetaAPI.AddonFile, Boolean>> entry : LoadMeta.fabricApi.entrySet()) {
                 if (s.equalsIgnoreCase(entry.getKey())) {
                     if (entry.getValue().getKey().fileName.startsWith("fabric-api-")) {
@@ -78,7 +81,7 @@ public class FabricRoute extends VerticalLayout {
                         possibleFabricApiVersion = "net.fabricmc:fabric:" + entry.getValue().getKey().fileName.replaceFirst("fabric-", "").replace(".jar", "");
                     }
                     possibleCleanFabricApiVersion = entry.getValue().getKey().fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", "");
-                    firstOne = i == LoadMeta.minecraftVersions.indexOf(version);
+                    firstOne = i == minecraftVersions.indexOf(version);
                     break Label123;
                 }
             }
