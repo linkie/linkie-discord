@@ -7,6 +7,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.commands.*;
+import me.shedaniel.linkie.spring.LinkieSpringApplication;
 import me.shedaniel.linkie.yarn.YarnManager;
 import org.eclipse.egit.github.core.Gist;
 import org.eclipse.egit.github.core.GistFile;
@@ -18,6 +19,7 @@ import org.javacord.api.entity.channel.ServerChannel;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.util.logging.ExceptionLogger;
+import org.springframework.boot.SpringApplication;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -160,6 +162,7 @@ public class LinkieBot {
     }
     
     public static void main(String[] args) {
+        SpringApplication.run(LinkieSpringApplication.class, args);
         new LinkieBot();
     }
     

@@ -21,7 +21,7 @@ public class UserInfoCommand implements CommandBase {
         if (args.length != 1)
             throw new InvalidUsageException("+" + cmd + " <user>");
         if (!event.isServerMessage())
-            throw new InvalidUsageException("This command can be only run on servers!");
+            throw new InvalidUsageException("This command can be only main on servers!");
         Server server = event.getServer().orElseThrow(() -> new NullPointerException("Server not found!"));
         String s = args[0];
         long id = -1;
