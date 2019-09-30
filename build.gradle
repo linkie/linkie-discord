@@ -9,7 +9,7 @@ group 'me.shedaniel'
 version '1.0-SNAPSHOT'
 
 sourceCompatibility = targetCompatibility = 1.8
-def vaadin_version = "10.0.1"
+def vaadin_version = "13.0.13"
 
 repositories {
     jcenter()
