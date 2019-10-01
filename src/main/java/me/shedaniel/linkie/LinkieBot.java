@@ -7,6 +7,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.commands.*;
+import me.shedaniel.linkie.hypixel.HypixelRatjan;
 import me.shedaniel.linkie.spring.LinkieSpringApplication;
 import me.shedaniel.linkie.spring.LoadMeta;
 import me.shedaniel.linkie.yarn.YarnManager;
@@ -74,6 +75,7 @@ public class LinkieBot {
         }
         new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
+            HypixelRatjan.loop();
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
                 commandApi.registerCommand(new YarnVersionCommand(), "yv");

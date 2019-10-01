@@ -21,6 +21,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.github.HypixelDev.PublicAPI:Example:2.0.0'
     implementation "com.vaadin:vaadin-bom:$vaadin_version"
     implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     implementation "com.google.guava:guava:28.0-jre"
