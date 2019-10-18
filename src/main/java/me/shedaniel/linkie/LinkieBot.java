@@ -6,11 +6,13 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
-import me.shedaniel.linkie.commands.*;
-import me.shedaniel.linkie.hypixel.HypixelRatjan;
+import me.shedaniel.linkie.commands.FabricApiVersionCommand;
+import me.shedaniel.linkie.commands.HelpCommand;
+import me.shedaniel.linkie.kcommands.KYarnClassCommand;
+import me.shedaniel.linkie.kcommands.KYarnFieldCommand;
+import me.shedaniel.linkie.kcommands.KYarnMethodCommand;
 import me.shedaniel.linkie.spring.LinkieSpringApplication;
 import me.shedaniel.linkie.spring.LoadMeta;
-import me.shedaniel.linkie.yarn.YarnManager;
 import org.eclipse.egit.github.core.Gist;
 import org.eclipse.egit.github.core.GistFile;
 import org.eclipse.egit.github.core.service.GistService;
@@ -28,16 +30,13 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import java.awt.*;
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -61,37 +60,36 @@ public class LinkieBot {
                 return true;
             }
         });
-        try {
-            GistService service = new GistService();
-            service.getClient().setOAuth2Token(System.getenv("GITHUB"));
-            Gist gist = service.getGist("71e2d88a0f49e6dc2d6895f235e47c99");
-            Map<String, GistFile> files = gist.getFiles();
-            GistFile messagesJson = files.get("messages.json");
-            JsonArray jsonArray = GSON.fromJson(messagesJson.getContent(), JsonArray.class);
-            messagesJson.setContent(GSON.toJson(jsonArray));
-            service.updateGist(gist);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //        try {
+        //            GistService service = new GistService();
+        //            service.getClient().setOAuth2Token(System.getenv("GITHUB"));
+        //            Gist gist = service.getGist("71e2d88a0f49e6dc2d6895f235e47c99");
+        //            Map<String, GistFile> files = gist.getFiles();
+        //            GistFile messagesJson = files.get("messages.json");
+        //            JsonArray jsonArray = GSON.fromJson(messagesJson.getContent(), JsonArray.class);
+        //            messagesJson.setContent(GSON.toJson(jsonArray));
+        //            service.updateGist(gist);
+        //        } catch (Exception e) {
+        //            e.printStackTrace();
+        //        }
         new DiscordApiBuilder().setToken(System.getenv("TOKEN")).login().thenAccept(api -> {
             this.api = api;
-            HypixelRatjan.loop();
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
-                commandApi.registerCommand(new YarnVersionCommand(), "yv");
-                commandApi.registerCommand(new YarnMethodCommand(), "ym");
-                commandApi.registerCommand(new YarnFieldCommand(), "yf");
-                commandApi.registerCommand(new YarnClassCommand(), "yc");
+                //                commandApi.registerCommand(new YarnVersionCommand(), "yv");
+                //                commandApi.registerCommand(new YarnMethodCommand(), "ym");
+                //                commandApi.registerCommand(new YarnFieldCommand(), "yf");
+                //                commandApi.registerCommand(new YarnClassCommand(), "yc");
+                commandApi.registerCommand(KYarnClassCommand.INSTANCE, "yc");
+                commandApi.registerCommand(KYarnMethodCommand.INSTANCE, "ym");
+                commandApi.registerCommand(KYarnFieldCommand.INSTANCE, "yf");
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");
-                commandApi.registerCommand(new UserInfoCommand(), "userinfo", "info", "user", "whois", "who");
-                commandApi.registerCommand(new OldCheckStatsCommand(), "oldcheckstats", "os");
-                commandApi.registerCommand(new NewCheckStatsCommand(), "newcheckstats", "ns");
-                commandApi.registerCommand(new YarnUpdateCommand(), "yu");
-                commandApi.registerCommand((service, event, author, cmd, args) -> {
-                    if (author.getId() == 430615025066049538l)
-                        this.runUpdate();
-                }, "forcestart");
+                //                commandApi.registerCommand(new YarnUpdateCommand(), "yu");
+                //                commandApi.registerCommand((service, event, author, cmd, args) -> {
+                //                    if (author.getId() == 430615025066049538l)
+                //                        this.runUpdate();
+                //                }, "forcestart");
                 api.setMessageCacheSize(10, 60 * 60);
                 api.addServerMemberJoinListener(event -> {
                     if (event.getServer().getId() == 621271154019270675l)
@@ -118,12 +116,13 @@ public class LinkieBot {
                             textChannel.sendMessage(new EmbedBuilder().setTitle("Goodbye **" + user.getDiscriminatedName() + "**! Farewell.").setDescription("\"" + bad[new Random().nextInt(bad.length)] + "\" - Linkie").setThumbnail(user.getAvatar()).setTimestampToNow()).join();
                         }));
                 });
-                singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
+                //                singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
-            yarn.scheduleAtFixedRate(() -> {
-                YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
-                YarnManager.updateYarn();
-            }, 0, 15, TimeUnit.MINUTES);
+            //            yarn.scheduleAtFixedRate(() -> {
+            //                YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
+            //                YarnManager.updateYarn();
+            //            }, 0, 15, TimeUnit.MINUTES);
+            YarnDataKt.startLoop();
         }).exceptionally(ExceptionLogger.get());
         while (true) {
         
