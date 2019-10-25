@@ -84,7 +84,7 @@ public class LoadMeta {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }, 0, 180, TimeUnit.SECONDS);
+        }, 0, 15, TimeUnit.MINUTES);
     }
     
     public static class MinecraftVersion {

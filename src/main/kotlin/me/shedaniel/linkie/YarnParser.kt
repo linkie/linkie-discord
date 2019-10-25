@@ -87,32 +87,34 @@ fun MappingsContainer.loadIntermediaryFromTinyInputStream(stream: InputStream) {
 fun MappingsContainer.loadNamedFromMaven(
         yarnVersion: String,
         repo: String = "https://maven.fabricmc.net",
-        group: String = "net.fabricmc.yarn"
+        group: String = "net.fabricmc.yarn",
+        showError: Boolean = true
 ) =
-        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"))
+        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
 
-fun MappingsContainer.loadNamedFromTinyJar(url: URL) {
+fun MappingsContainer.loadNamedFromTinyJar(url: URL, showError: Boolean = true) {
     val stream = ZipInputStream(url.openStream())
     while (true) {
         val entry = stream.nextEntry ?: break
         if (!entry.isDirectory && entry.name.split("/").lastOrNull() == "mappings.tiny") {
-            loadNamedFromTinyInputStream(stream)
+            loadNamedFromTinyInputStream(stream, showError)
             break
         }
     }
 }
 
-fun MappingsContainer.loadNamedFromTinyFile(url: URL) {
-    loadNamedFromTinyInputStream(url.openStream())
+fun MappingsContainer.loadNamedFromTinyFile(url: URL, showError: Boolean = true) {
+    loadNamedFromTinyInputStream(url.openStream(), showError)
 }
 
-fun MappingsContainer.loadNamedFromTinyInputStream(stream: InputStream) {
+fun MappingsContainer.loadNamedFromTinyInputStream(stream: InputStream, showError: Boolean = true) {
     val mappings = MappingsProvider.readTinyMappings(stream, false)
     mappings.classEntries.forEach { entry ->
         val intermediary = entry["intermediary"]
         val clazz = getClass(intermediary)
         if (clazz == null) {
-            println("Class $intermediary does not have intermediary name! Skipping!")
+            if (showError)
+                println("Class $intermediary does not have intermediary name! Skipping!")
         } else clazz.apply {
             if (mappedName == null)
                 mappedName = entry["named"]
@@ -122,11 +124,13 @@ fun MappingsContainer.loadNamedFromTinyInputStream(stream: InputStream) {
         val intermediaryTriple = entry["intermediary"]
         val clazz = getClass(intermediaryTriple.owner)
         if (clazz == null) {
-            println("Class ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
+            if (showError)
+                println("Class ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
         } else clazz.apply {
             val method = getMethod(intermediaryTriple.name)
             if (method == null) {
-                println("Method ${intermediaryTriple.name} in ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
+                if (showError)
+                    println("Method ${intermediaryTriple.name} in ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
             } else method.apply {
                 val namedTriple = entry["named"]
                 if (mappedName == null)
@@ -140,11 +144,13 @@ fun MappingsContainer.loadNamedFromTinyInputStream(stream: InputStream) {
         val intermediaryTriple = entry["intermediary"]
         val clazz = getClass(intermediaryTriple.owner)
         if (clazz == null) {
-            println("Class ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
+            if (showError)
+                println("Class ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
         } else clazz.apply {
             val field = getField(intermediaryTriple.name)
             if (field == null) {
-                println("Field ${intermediaryTriple.name} in ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
+                if (showError)
+                    println("Field ${intermediaryTriple.name} in ${intermediaryTriple.owner} does not have intermediary name! Skipping!")
             } else field.apply {
                 val namedTriple = entry["named"]
                 if (mappedName == null)
@@ -156,13 +162,13 @@ fun MappingsContainer.loadNamedFromTinyInputStream(stream: InputStream) {
     }
 }
 
-fun MappingsContainer.loadNamedFromGithubRepo(repo: String, branch: String) =
-        loadNamedFromEngimaZip(URL("https://github.com/$repo/archive/$branch.zip"))
+fun MappingsContainer.loadNamedFromGithubRepo(repo: String, branch: String, showError: Boolean = true, ignoreError: Boolean = false) =
+        loadNamedFromEngimaZip(URL("https://github.com/$repo/archive/$branch.zip"), showError, ignoreError)
 
-fun MappingsContainer.loadNamedFromEngimaZip(url: URL) =
-        loadNamedFromEngimaStream(url.openStream())
+fun MappingsContainer.loadNamedFromEngimaZip(url: URL, showError: Boolean = true, ignoreError: Boolean = false) =
+        loadNamedFromEngimaStream(url.openStream(), showError, ignoreError)
 
-fun MappingsContainer.loadNamedFromEngimaStream(stream: InputStream) {
+fun MappingsContainer.loadNamedFromEngimaStream(stream: InputStream, showError: Boolean = true, ignoreError: Boolean = false) {
     val zipInputStream = ZipInputStream(stream)
     while (true) {
         val entry = zipInputStream.nextEntry ?: break
@@ -180,18 +186,21 @@ fun MappingsContainer.loadNamedFromEngimaStream(stream: InputStream) {
                     var className = line.split[1]
                     for (i in 0 until line.indent)
                         className = "${levels[i]!!.intermediaryName}\$$className"
-                    levels[line.indent] = getClass(className)?.apply {
+                    levels[line.indent] = if (ignoreError) getOrCreateClass(className).apply {
+                        mappedName = if (line.split.size >= 3) line.split[2] else null
+                    } else getClass(className)?.apply {
                         mappedName = if (line.split.size >= 3) line.split[2] else null
                     }
-                    if (levels[line.indent] == null)
+                    if (levels[line.indent] == null && showError)
                         println("Class $className does not have intermediary name! Skipping!")
                 } else if (line.type == MappingsType.METHOD) {
-                    if (levels[line.indent - 1] == null)
-                        println("Class of ${line.split[1]} does not have intermediary name! Skipping!")
-                    else {
+                    if (levels[line.indent - 1] == null) {
+                        if (showError)
+                            println("Class of ${line.split[1]} does not have intermediary name! Skipping!")
+                    } else {
                         levels[line.indent - 1]!!.apply {
-                            val method = if (line.split[1] == "<init>") Method("<init>", line.split.last()).also { methods.add(it) } else getMethod(line.split[1])
-                            if (method == null)
+                            val method = if (line.split[1] == "<init>") Method("<init>", line.split.last()).also { methods.add(it) } else if (ignoreError) getOrCreateMethod(line.split[1], line.split.last()) else getMethod(line.split[1])
+                            if (method == null && showError)
                                 println("Method ${line.split[1]} in ${levels[line.indent - 1]!!.intermediaryName} does not have intermediary name! Skipping!")
                             if (line.split.size == 4)
                                 method?.apply {
@@ -200,12 +209,13 @@ fun MappingsContainer.loadNamedFromEngimaStream(stream: InputStream) {
                         }
                     }
                 } else if (line.type == MappingsType.FIELD) {
-                    if (levels[line.indent - 1] == null)
-                        println("Class of ${line.split[1]} does not have intermediary name! Skipping!")
-                    else {
+                    if (levels[line.indent - 1] == null) {
+                        if (showError)
+                            println("Class of ${line.split[1]} does not have intermediary name! Skipping!")
+                    } else {
                         levels[line.indent - 1]!!.apply {
-                            val field = getField(line.split[1])
-                            if (field == null)
+                            val field = if (ignoreError) getOrCreateField(line.split[1], line.split.last()) else getField(line.split[1])
+                            if (field == null && showError)
                                 println("Field ${line.split[1]} in ${levels[line.indent - 1]!!.intermediaryName} does not have intermediary name! Skipping!")
                             if (line.split.size == 4)
                                 field?.apply {

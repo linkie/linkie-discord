@@ -1,9 +1,9 @@
 package me.shedaniel.linkie
 
-import com.google.gson.reflect.TypeToken
-import me.shedaniel.cursemetaapi.CurseMetaAPI
-import me.shedaniel.linkie.spring.LoadMeta
-import java.io.InputStreamReader
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.list
 import java.net.URL
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -93,34 +93,64 @@ data class Obf(
     fun isEmpty(): Boolean = list().isEmpty()
 }
 
+@Serializable
+data class YarnBuild(
+        val gameVersion: String,
+        val separator: String,
+        val build: Int,
+        val maven: String,
+        val version: String,
+        val stable: Boolean
+)
+
 private val executor = Executors.newScheduledThreadPool(16)
 val mappingsContainers = mutableListOf<MappingsContainer>()
+val yarnBuilds = mutableMapOf<String, YarnBuild>()
+val json = Json(JsonConfiguration.Stable.copy(strictMode = false))
 
 fun startLoop() {
-    executor.scheduleAtFixedRate(::updateYarn, 0, 5, TimeUnit.MINUTES)
+    executor.scheduleAtFixedRate(::updateYarn, 0, 20, TimeUnit.MINUTES)
 }
 
 fun getMappingsContainer(version: String): MappingsContainer? = mappingsContainers.firstOrNull { it.version == version }
 
+fun tryLoadMappingContainer(version: String): MappingsContainer {
+    return (getMappingsContainer(version) ?: if (yarnBuilds.containsKey(version)) {
+        version.loadOfficialYarn()
+        getMappingsContainer(version)
+    } else null) ?: getMappingsContainer("1.2.5") ?: throw NullPointerException("Please report this issue!")
+}
+
 fun updateYarn() {
     mappingsContainers.clear()
-    mappingsContainers.add(MappingsContainer("1.14.4").apply {
-        classes.clear()
-        loadIntermediaryFromMaven(version)
-        val list = LinkieBot.GSON.fromJson<List<LoadMeta.YarnBuild>>(
-                InputStreamReader(CurseMetaAPI.InternetUtils.getSiteStream(URL("https://meta.fabricmc.net/v2/versions/yarn"))),
-                object : TypeToken<List<LoadMeta.YarnBuild>>() {}.type
-        )
-        val yarnMaven = list.first { it.gameVersion == version }.maven
-        loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1))
-    })
+    yarnBuilds.clear()
+    val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
+    json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
+    buildMap.forEach { version, builds -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
+    yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn()
+    yarnBuilds.keys.firstOrNull()?.loadOfficialYarn()
     mappingsContainers.add(MappingsContainer("1.2.5").apply {
         classes.clear()
         loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
-        loadNamedFromGithubRepo("minecraft-cursed-legacy/yarn", "1.2.5")
+        loadNamedFromGithubRepo("minecraft-cursed-legacy/yarn", "1.2.5", showError = false)
+    })
+    mappingsContainers.add(MappingsContainer("b1.7.3").apply {
+        classes.clear()
+        loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
     })
     println("Updated KYarn")
 }
+
+internal fun String?.loadOfficialYarn() =
+        this?.also {
+            println("Loading yarn for $it")
+            mappingsContainers.add(MappingsContainer(it).apply {
+                classes.clear()
+                loadIntermediaryFromMaven(version)
+                val yarnMaven = yarnBuilds[version]!!.maven
+                loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
+            })
+        }
 
 fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String {
     if (startsWith('(') && contains(')')) {
@@ -161,7 +191,6 @@ fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): Str
                 else -> returnsUnmapped.add(char.toString())
             }
         }
-        println("$parametersUnmapped $returnsUnmapped")
         return "(" + parametersUnmapped.joinToString("") {
             if (it.length != 1) {
                 "L${mappingsContainer.getClass(it)?.mappedName ?: it};"
@@ -175,9 +204,4 @@ fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): Str
         }
     }
     return this
-}
-
-fun String.onlyClass(c: Char = '/'): String {
-    val indexOf = lastIndexOf(c)
-    return if (indexOf < 0) this else substring(indexOf + 1)
 }

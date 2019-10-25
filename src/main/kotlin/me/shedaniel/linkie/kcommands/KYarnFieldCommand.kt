@@ -1,6 +1,8 @@
 package me.shedaniel.linkie.kcommands
 
 import me.shedaniel.linkie.*
+import me.shedaniel.linkie.utils.onlyClass
+import me.shedaniel.linkie.utils.similarity
 import org.javacord.api.entity.message.MessageAuthor
 import org.javacord.api.entity.message.embed.EmbedBuilder
 import org.javacord.api.event.message.MessageCreateEvent
@@ -12,11 +14,9 @@ object KYarnFieldCommand : CommandBase {
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: MessageAuthor, cmd: String, args: Array<String>) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
-        var mappingsContainer = getMappingsContainer(args.last())
+        val mappingsContainer = tryLoadMappingContainer(args.last())
         var searchTerm = args.joinToString(" ")
-        if (mappingsContainer == null) {
-            mappingsContainer = getMappingsContainer("1.2.5")
-        } else {
+        if (mappingsContainer.version == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
@@ -26,7 +26,7 @@ object KYarnFieldCommand : CommandBase {
         if (hasClass) {
             val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
             println(clazzKey)
-            mappingsContainer!!.classes.forEach { clazz ->
+            mappingsContainer.classes.forEach { clazz ->
                 when {
                     clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
                     clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
@@ -51,14 +51,16 @@ object KYarnFieldCommand : CommandBase {
             }
         }
         val sortedFields = fields.entries.sortedByDescending {
-            similarity(when (it.value) {
+            when (it.value) {
                 FindFieldMethod.MAPPED -> it.key.field.mappedName!!
                 FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
                 FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
                 FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
                 else -> it.key.field.intermediaryName
-            }.onlyClass(), fieldKey)
+            }.onlyClass().similarity(fieldKey)
         }.map { it.key }
+        if (sortedFields.isEmpty())
+            throw NullPointerException("No results found!")
         var page = 0
         val maxPage = ceil(sortedFields.size / 5.0).toInt()
         event.channel.sendMessage(buildMessage(sortedFields, mappingsContainer, page, author, maxPage)).whenComplete { msg, _ ->

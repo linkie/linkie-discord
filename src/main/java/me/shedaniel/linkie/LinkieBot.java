@@ -164,8 +164,8 @@ public class LinkieBot {
     }
     
     public static void main(String[] args) {
-        LoadMeta.load();
-        SpringApplication.run(LinkieSpringApplication.class, args);
+//        LoadMeta.load();
+//        SpringApplication.run(LinkieSpringApplication.class, args);
         new LinkieBot();
     }
     

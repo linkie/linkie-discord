@@ -19,11 +19,10 @@ public class HelpCommand implements CommandBase {
                 .setTitle("Linkie Help Command")
                 .setFooter("Requested by " + author.getDiscriminatedName(), author.getAvatar())
                 .addField("Help Command", "Value: " + prefix + "help, " + prefix + "?, " + prefix + "commands\nDisplays this message.")
-                .addField("Fabric Api Versions Command", "Value: " + prefix + "fabricapi\nCheck Fabric API versions for every mc version.")
-                .addField("Yarn Class Command", "Value: " + prefix + "yc\nCheck yarn 1.2.5 mappings.")
-                .addField("Yarn Field Command", "Value: " + prefix + "yf\nCheck yarn 1.2.5 mappings.")
-                .addField("Yarn Method Command", "Value: " + prefix + "ym\nCheck yarn 1.2.5 mappings.")
-                .addField("Yarn Version Command", "Value: " + prefix + "yv\nCheck yarn 1.2.5 mappings last fetch time.")
+                .addField("Fabric Api Versions Command", "Value: " + prefix + "fabricapi\nList Fabric API versions for every mc version.")
+                .addField("Yarn Class Command", "Value: " + prefix + "yc\nCheck yarn mappings.")
+                .addField("Yarn Field Command", "Value: " + prefix + "yf\nCheck yarn mappings.")
+                .addField("Yarn Method Command", "Value: " + prefix + "ym\nCheck yarn mappings.")
                 .setTimestampToNow()
         );
     }
