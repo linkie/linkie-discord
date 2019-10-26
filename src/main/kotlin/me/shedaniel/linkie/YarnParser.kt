@@ -1,6 +1,5 @@
 package me.shedaniel.linkie
 
-import me.shedaniel.linkie.yarn.MappingsType
 import net.fabricmc.mappings.MappingsProvider
 import org.apache.commons.lang3.StringUtils
 import java.io.BufferedReader
@@ -235,4 +234,16 @@ private data class EngimaLine(
         val type: MappingsType
 ) {
     val split: List<String> by lazy { text.replace("\t", "").split(" ") }
+}
+
+internal enum class MappingsType {
+    CLASS,
+    FIELD,
+    METHOD,
+    UNKNOWN;
+
+    companion object {
+        fun getByString(string: String): MappingsType =
+                MappingsType.values().firstOrNull { it.name.equals(string, true) } ?: UNKNOWN
+    }
 }

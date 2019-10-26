@@ -74,10 +74,6 @@ public class LinkieBot {
             this.api = api;
             api.addMessageCreateListener(commandApi = new CommandApi(api, "+"));
             if (true) {
-                //                commandApi.registerCommand(new YarnVersionCommand(), "yv");
-                //                commandApi.registerCommand(new YarnMethodCommand(), "ym");
-                //                commandApi.registerCommand(new YarnFieldCommand(), "yf");
-                //                commandApi.registerCommand(new YarnClassCommand(), "yc");
                 commandApi.registerCommand(KYarnClassCommand.INSTANCE, "yc");
                 commandApi.registerCommand(POMFClassCommand.INSTANCE, "mcpc");
                 commandApi.registerCommand(KYarnMethodCommand.INSTANCE, "ym");
@@ -86,7 +82,6 @@ public class LinkieBot {
                 commandApi.registerCommand(POMFFieldCommand.INSTANCE, "mcpf");
                 commandApi.registerCommand(new HelpCommand(), "help", "?", "commands");
                 commandApi.registerCommand(new FabricApiVersionCommand(), "fabricapi");
-                //                commandApi.registerCommand(new YarnUpdateCommand(), "yu");
                 //                commandApi.registerCommand((service, event, author, cmd, args) -> {
                 //                    if (author.getId() == 430615025066049538l)
                 //                        this.runUpdate();
@@ -119,10 +114,6 @@ public class LinkieBot {
                 });
                 //                singleThreadExecutor.scheduleAtFixedRate(this::runUpdate, 0, 15, TimeUnit.MINUTES);
             }
-            //            yarn.scheduleAtFixedRate(() -> {
-            //                YarnManager.nextUpdate = Instant.now().plus(15, ChronoUnit.MINUTES).toEpochMilli();
-            //                YarnManager.updateYarn();
-            //            }, 0, 15, TimeUnit.MINUTES);
             YarnDataKt.startLoop();
         }).exceptionally(ExceptionLogger.get());
         while (true) {
