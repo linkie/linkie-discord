@@ -11,11 +11,14 @@ import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
 
-object KYarnClassCommand : CommandBase {
+object KYarnClassCommand : AKYarnClassCommand("1.2.5")
+object POMFClassCommand : AKYarnClassCommand("b1.7.3")
+
+open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase {
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: MessageAuthor, cmd: String, args: Array<String>) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
-        val mappingsContainer = tryLoadMappingContainer(args.last())
+        val mappingsContainer = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
         var searchTerm = args.joinToString(" ")
         if (mappingsContainer.version == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))

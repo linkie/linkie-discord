@@ -114,11 +114,11 @@ fun startLoop() {
 
 fun getMappingsContainer(version: String): MappingsContainer? = mappingsContainers.firstOrNull { it.version == version }
 
-fun tryLoadMappingContainer(version: String): MappingsContainer {
+fun tryLoadMappingContainer(version: String, defaultContainer: MappingsContainer? = getMappingsContainer("1.2.5")): MappingsContainer {
     return (getMappingsContainer(version) ?: if (yarnBuilds.containsKey(version)) {
         version.loadOfficialYarn()
         getMappingsContainer(version)
-    } else null) ?: getMappingsContainer("1.2.5") ?: throw NullPointerException("Please report this issue!")
+    } else null) ?: defaultContainer ?: throw NullPointerException("Please report this issue!")
 }
 
 fun updateYarn() {
