@@ -132,7 +132,7 @@ fun updateYarn() {
     mappingsContainers.add(MappingsContainer("1.2.5").apply {
         classes.clear()
         loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
-        loadNamedFromGithubRepo("minecraft-cursed-legacy/yarn", "1.2.5", showError = false)
+        loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
     })
     mappingsContainers.add(MappingsContainer("b1.7.3").apply {
         classes.clear()
