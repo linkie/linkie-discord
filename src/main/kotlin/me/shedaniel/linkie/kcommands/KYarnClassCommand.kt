@@ -1,12 +1,15 @@
 package me.shedaniel.linkie.kcommands
 
+import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.event.domain.message.ReactionAddEvent
+import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.similarity
 import org.apache.commons.lang3.StringUtils
-import org.javacord.api.entity.message.MessageAuthor
-import org.javacord.api.entity.message.embed.EmbedBuilder
-import org.javacord.api.event.message.MessageCreateEvent
+import java.time.Duration
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
@@ -15,7 +18,7 @@ object KYarnClassCommand : AKYarnClassCommand("1.2.5")
 object POMFClassCommand : AKYarnClassCommand("b1.7.3")
 
 open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase {
-    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: MessageAuthor, cmd: String, args: Array<String>) {
+    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
         val mappingsContainer = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
@@ -53,41 +56,49 @@ open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase 
             throw NullPointerException("No results found!")
         var page = 0
         val maxPage = ceil(sortedClasses.size / 5.0).toInt()
-        event.channel.sendMessage(buildMessage(sortedClasses, mappingsContainer, page, author, maxPage)).whenComplete { msg, _ ->
-            if (msg.isServerMessage)
-                msg.removeAllReactions().get()
-            msg.addReactions("⬅", "❌", "➡").thenRun({
-                msg.addReactionAddListener({ reactionAddEvent ->
-                    if (reactionAddEvent.user.discriminatedName != LinkieBot.getApi().yourself.discriminatedName && reactionAddEvent.user.discriminatedName != author.discriminatedName) {
-                        reactionAddEvent.removeReaction()
-                    } else if (reactionAddEvent.user.discriminatedName == author.discriminatedName) {
-                        if (reactionAddEvent.emoji.equalsEmoji("❌"))
-                            reactionAddEvent.deleteMessage()
-                        else if (reactionAddEvent.emoji.equalsEmoji("⬅")) {
-                            reactionAddEvent.removeReaction()
-                            if (page > 0) {
-                                page--
-                                msg.edit(buildMessage(sortedClasses, mappingsContainer, page, author, maxPage))
-                            }
-                        } else if (reactionAddEvent.emoji.equalsEmoji("➡")) {
-                            reactionAddEvent.removeReaction()
-                            if (page < maxPage - 1) {
-                                page++
-                                msg.edit(buildMessage(sortedClasses, mappingsContainer, page, author, maxPage))
+        channel.createEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) }.subscribe { msg ->
+            if (channel.type.name.startsWith("GUILD_"))
+                msg.removeAllReactions().block()
+            msg.subscribeReactions("⬅", "❌", "➡")
+            api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(30)).subscribe {
+                when {
+                    it.userId == api.selfId.get() -> {
+                    }
+                    it.userId == author.id -> {
+                        if (!it.emoji.asUnicodeEmoji().isPresent) {
+                            msg.removeReaction(it.emoji, it.userId)
+                        } else {
+                            val unicode = it.emoji.asUnicodeEmoji().get()
+                            if (unicode.raw == "❌") {
+                                msg.delete().subscribe()
+                            } else if (unicode.raw == "⬅") {
+                                msg.removeReaction(it.emoji, it.userId)
+                                if (page > 0) {
+                                    page--
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }
+                                }
+                            } else if (unicode.raw == "➡") {
+                                msg.removeReaction(it.emoji, it.userId)
+                                if (page < maxPage - 1) {
+                                    page++
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }
+                                }
+                            } else {
+                                msg.removeReaction(it.emoji, it.userId)
                             }
                         }
                     }
-                })
-            })
+                    else -> msg.removeReaction(it.emoji, it.userId)
+                }
+            }
         }
     }
 }
 
-private fun buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: MessageAuthor, maxPage: Int): EmbedBuilder {
-    val builder = EmbedBuilder()
-            .setFooter("Requested by " + author.discriminatedName, author.avatar)
-            .setTimestampToNow()
-    if (maxPage > 1) builder.setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
+private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: Member, maxPage: Int) {
+    setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
+    setTimestampToNow()
+    if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
     sortedClasses.stream().skip(5.toLong() * page).limit(5).forEach {
         if (!desc.isEmpty())
@@ -101,8 +112,7 @@ private fun buildMessage(sortedClasses: List<Class>, mappingsContainer: Mappings
                 "__Name__: " + (if (it.obfName.isEmpty()) "" else if (it.obfName.isMerged()) "${it.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                 "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
     }
-    builder.setDescription(desc.substring(0, min(desc.length, 2000)))
-    return builder
+    setDescription(desc.substring(0, min(desc.length, 2000)))
 }
 
 private enum class FindClassMethod {

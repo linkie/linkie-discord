@@ -1,18 +1,20 @@
 package me.shedaniel.linkie.commands;
 
+import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.event.domain.message.ReactionAddEvent;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.MessageChannel;
+import discord4j.core.object.reaction.ReactionEmoji;
 import me.shedaniel.cursemetaapi.CurseMetaAPI;
 import me.shedaniel.linkie.CommandBase;
 import me.shedaniel.linkie.InvalidUsageException;
-import me.shedaniel.linkie.LinkieBot;
-import org.javacord.api.entity.message.Message;
-import org.javacord.api.entity.message.MessageAuthor;
-import org.javacord.api.entity.message.embed.EmbedBuilder;
-import org.javacord.api.event.message.MessageCreateEvent;
+import me.shedaniel.linkie.LinkieDiscordKt;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class FabricApiVersionCommand implements CommandBase {
@@ -29,7 +31,7 @@ public class FabricApiVersionCommand implements CommandBase {
     }
     
     @Override
-    public void execute(ScheduledExecutorService service, MessageCreateEvent event, MessageAuthor author, String cmd, String[] args)
+    public void execute(ScheduledExecutorService service, MessageCreateEvent event, Member author, String cmd, String[] args, MessageChannel channel)
             throws ExecutionException, InterruptedException {
         if (args.length > 2)
             throw new InvalidUsageException("+" + cmd + "[page] [-r]");
@@ -54,55 +56,70 @@ public class FabricApiVersionCommand implements CommandBase {
         List<String> old = new ArrayList<>(map.keySet());
         if (page > old.size() / ITEMS_PER_PAGE_F)
             throw new IllegalArgumentException("The maximum page is " + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F) + 1) + "!");
-        EmbedBuilder embedBuilder = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (page + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-        map.keySet().stream().skip(ITEMS_PER_PAGE * page).limit(ITEMS_PER_PAGE).collect(Collectors.toList()).forEach(version -> {
-            CurseMetaAPI.AddonFile file = map.get(version);
-            embedBuilder.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
-        });
-        page += 0;
-        int finalPage[] = {page};
-        if (!showReleaseOnly)
-            embedBuilder.setDescription("Tips: Use -r for release only.");
-        Message message = event.getChannel().sendMessage(embedBuilder).get();
-        if (message.isServerMessage())
-            message.removeAllReactions().get();
-        message.addReactions("⬅", "❌", "➡").thenRun(() -> {
-            message.addReactionAddListener(reactionAddEvent -> {
-                try {
-                    if (!reactionAddEvent.getUser().getDiscriminatedName().equals(LinkieBot.getApi().getYourself().getDiscriminatedName()) && !reactionAddEvent.getUser().getDiscriminatedName().equals(author.getDiscriminatedName())) {
-                        reactionAddEvent.removeReaction();
-                        return;
-                    }
-                    if (reactionAddEvent.getUser().getDiscriminatedName().equals(author.getDiscriminatedName()))
-                        if (reactionAddEvent.getEmoji().equalsEmoji("❌")) {
-                            reactionAddEvent.deleteMessage();
-                        } else if (reactionAddEvent.getEmoji().equalsEmoji("⬅")) {
-                            reactionAddEvent.removeReaction();
+        int cp[] = {page};
+        channel.createEmbed(emd -> {
+            emd.setTitle("Fabric API Versions");
+            emd.setFooter("Page " + (cp[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getUsername() + "#" + author.getDiscriminator(), author.getAvatarUrl());
+            emd.setTimestamp(Instant.now());
+            map.keySet().stream().skip(ITEMS_PER_PAGE * cp[0]).limit(ITEMS_PER_PAGE).collect(Collectors.toList()).forEach(version -> {
+                CurseMetaAPI.AddonFile file = map.get(version);
+                emd.addField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""), true);
+            });
+            if (!showReleaseOnly)
+                emd.setDescription("Tips: Use -r for release only.");
+        }).subscribe(msg -> {
+            int finalPage[] = {cp[0]};
+            if (channel.getType().name().startsWith("GUILD_"))
+                msg.removeAllReactions().block();
+            msg.addReaction(ReactionEmoji.unicode("⬅")).subscribe();
+            msg.addReaction(ReactionEmoji.unicode("❌")).subscribe();
+            msg.addReaction(ReactionEmoji.unicode("➡")).subscribe();
+            LinkieDiscordKt.getApi().getEventDispatcher().on(ReactionAddEvent.class).filter(e -> e.getMessageId().equals(msg.getId())).take(Duration.ofMinutes(30)).subscribe(reactionAddEvent -> {
+                if (reactionAddEvent.getUserId().equals(LinkieDiscordKt.getApi().getSelfId().get())) {
+                
+                } else if (reactionAddEvent.getUserId().equals(author.getId())) {
+                    if (!reactionAddEvent.getEmoji().asUnicodeEmoji().isPresent()) {
+                        msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                    } else {
+                        ReactionEmoji.Unicode unicode = reactionAddEvent.getEmoji().asUnicodeEmoji().get();
+                        if (unicode.getRaw().equals("❌")) {
+                            msg.delete().subscribe();
+                        } else if (unicode.getRaw().equals("⬅")) {
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
                             if (finalPage[0] > 0) {
                                 finalPage[0]--;
-                                EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).forEach(version -> {
-                                    CurseMetaAPI.AddonFile file = map.get(version);
-                                    embedBuilder1.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
-                                });
-                                message.edit(embedBuilder1);
+                                msg.edit(spec -> spec.setEmbed(emd -> {
+                                    emd.setTitle("Fabric API Versions");
+                                    emd.setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getUsername() + "#" + author.getDiscriminator(), author.getAvatarUrl());
+                                    emd.setTimestamp(Instant.now());
+                                    map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).collect(Collectors.toList()).forEach(version -> {
+                                        CurseMetaAPI.AddonFile file = map.get(version);
+                                        emd.addField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""), true);
+                                    });
+                                })).subscribe();
                             }
-                        } else if (reactionAddEvent.getEmoji().equalsEmoji("➡")) {
-                            reactionAddEvent.removeReaction();
+                        } else if (unicode.getRaw().equals("➡")) {
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
                             if (finalPage[0] < ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) - 1) {
                                 finalPage[0]++;
-                                EmbedBuilder embedBuilder1 = new EmbedBuilder().setTitle("Fabric API Versions").setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getDiscriminatedName(), author.getAvatar()).setTimestampToNow();
-                                map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).forEach(version -> {
-                                    CurseMetaAPI.AddonFile file = map.get(version);
-                                    embedBuilder1.addInlineField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""));
-                                });
-                                message.edit(embedBuilder1);
+                                msg.edit(spec -> spec.setEmbed(emd -> {
+                                    emd.setTitle("Fabric API Versions");
+                                    emd.setFooter("Page " + (finalPage[0] + 1) + "/" + ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) + ". Requested by " + author.getUsername() + "#" + author.getDiscriminator(), author.getAvatarUrl());
+                                    emd.setTimestamp(Instant.now());
+                                    map.keySet().stream().skip(ITEMS_PER_PAGE * finalPage[0]).limit(ITEMS_PER_PAGE).collect(Collectors.toList()).forEach(version -> {
+                                        CurseMetaAPI.AddonFile file = map.get(version);
+                                        emd.addField(version, file.fileName.replaceFirst("fabric-api-", "").replaceFirst("fabric-", "").replace(".jar", ""), true);
+                                    });
+                                })).subscribe();
                             }
+                        } else {
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
                         }
-                } catch (Throwable throwable1) {
-                    throwable1.printStackTrace();
+                    }
+                } else {
+                    msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
                 }
-            }).removeAfter(30, TimeUnit.MINUTES);
+            });
         });
     }
 }
