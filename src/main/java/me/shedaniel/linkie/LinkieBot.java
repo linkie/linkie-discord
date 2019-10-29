@@ -22,7 +22,7 @@ public class LinkieBot {
     public static void main(String[] args) {
         LoadMeta.load();
         SpringApplication.run(LinkieSpringApplication.class, args);
-        LinkieDiscordKt.start();
+//        LinkieDiscordKt.start();
     }
     
     public LocalDateTime parse(String s) {
