@@ -51,16 +51,16 @@ class FabricRoute : VerticalLayout() {
 
     private fun updateComboBox(showSnapshots: Boolean) {
         if (!showSnapshots) {
-            versionSelect.setItems(minecraftVersions.filter(MinecraftVersion::isStable))
+            versionSelect.setItems(minecraftVersions.filter(MinecraftVersion::stable))
         } else {
-            versionSelect.setItems(minecraftVersions.toList())
+            versionSelect.setItems(minecraftVersions.toMutableList())
         }
-        versionSelect.value = minecraftVersions.first(MinecraftVersion::isStable)
+        versionSelect.value = minecraftVersions.firstOrNull(MinecraftVersion::stable)
     }
 
     private fun updateInfo(versionNullable: MinecraftVersion?) {
         val minecraftVersions = minecraftVersions.toMutableList()
-        val version = versionNullable ?: minecraftVersions.first(MinecraftVersion::isStable)
+        val version = versionNullable ?: minecraftVersions.firstOrNull(MinecraftVersion::stable) ?: return
         var possibleFabricApiVersion = "@API@"
         var possibleCleanFabricApiVersion = "@API@"
         var firstOne = true

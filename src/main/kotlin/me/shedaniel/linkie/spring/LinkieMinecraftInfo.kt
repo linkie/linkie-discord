@@ -76,7 +76,7 @@ fun startInfoSync() {
 @Serializable
 data class MinecraftVersion(
         val version: String,
-        val isStable: Boolean = false,
+        val stable: Boolean,
         var yarnMaven: String? = null
 )
 
