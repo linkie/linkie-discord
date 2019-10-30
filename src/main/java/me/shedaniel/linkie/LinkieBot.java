@@ -20,8 +20,8 @@ public class LinkieBot {
     public ScheduledExecutorService singleThreadExecutor = Executors.newSingleThreadScheduledExecutor();
     
     public static void main(String[] args) {
-//        LoadMeta.load();
-//        SpringApplication.run(LinkieSpringApplication.class, args);
+        LoadMeta.load();
+        SpringApplication.run(LinkieSpringApplication.class, args);
         LinkieDiscordKt.start();
     }
     
