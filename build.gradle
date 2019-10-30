@@ -27,7 +27,9 @@ dependencies {
     implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     implementation "com.google.guava:guava:28.0-jre"
     implementation "com.github.Chocohead:Tiny-Mappings-Parser:337c8b6"
-    implementation 'com.discord4j:discord4j-core:3.0.10'
+    implementation ('com.discord4j:discord4j-core:3.0.10') {
+        force = true
+    }
     implementation ('io.projectreactor:reactor-core:3.2.3.RELEASE') {
         force = true
     }

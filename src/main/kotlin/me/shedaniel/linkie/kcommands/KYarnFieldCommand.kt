@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
+import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.similarity
 import java.time.Duration
@@ -73,35 +74,35 @@ open class AKYarnFieldCommand(private val defaultVersion: String) : CommandBase 
             if (channel.type.name.startsWith("GUILD_"))
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")
-            api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(30)).subscribe {
+            api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
                 when {
                     it.userId == api.selfId.get() -> {
                     }
                     it.userId == author.id -> {
                         if (!it.emoji.asUnicodeEmoji().isPresent) {
-                            msg.removeReaction(it.emoji, it.userId)
+                            msg.removeReaction(it.emoji, it.userId).subscribe()
                         } else {
                             val unicode = it.emoji.asUnicodeEmoji().get()
                             if (unicode.raw == "❌") {
                                 msg.delete().subscribe()
                             } else if (unicode.raw == "⬅") {
-                                msg.removeReaction(it.emoji, it.userId)
+                                msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page > 0) {
                                     page--
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, author, maxPage) } }
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, author, maxPage) } }.subscribe()
                                 }
                             } else if (unicode.raw == "➡") {
-                                msg.removeReaction(it.emoji, it.userId)
+                                msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page < maxPage - 1) {
                                     page++
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, author, maxPage) } }
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, author, maxPage) } }.subscribe()
                                 }
                             } else {
-                                msg.removeReaction(it.emoji, it.userId)
+                                msg.removeReaction(it.emoji, it.userId).subscribe()
                             }
                         }
                     }
-                    else -> msg.removeReaction(it.emoji, it.userId)
+                    else -> msg.removeReaction(it.emoji, it.userId).subscribe()
                 }
             }
         }
@@ -123,7 +124,7 @@ private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mapp
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
-    sortedMethods.stream().skip(5.toLong() * page).limit(5).forEach {
+    sortedMethods.dropAndTake(5 * page,5).forEach {
         if (!desc.isEmpty())
             desc += "\n\n"
         val obfMap = LinkedHashMap<String, String>()

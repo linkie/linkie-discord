@@ -2,6 +2,9 @@ package me.shedaniel.linkie.utils
 
 import kotlin.math.min
 
+fun <T> Iterable<T>.dropAndTake(drop: Int, take: Int): List<T> =
+        drop(drop).take(take)
+
 private fun editDistance(s11: String, s22: String): Int {
     val costs = IntArray(s22.length + 1)
     for (i in 0..s11.length) {
