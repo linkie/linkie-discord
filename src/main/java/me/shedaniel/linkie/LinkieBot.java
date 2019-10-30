@@ -2,8 +2,8 @@ package me.shedaniel.linkie;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import me.shedaniel.linkie.spring.LinkieMinecraftInfoKt;
 import me.shedaniel.linkie.spring.LinkieSpringApplication;
-import me.shedaniel.linkie.spring.LoadMeta;
 import org.springframework.boot.SpringApplication;
 
 import java.time.LocalDateTime;
@@ -20,7 +20,7 @@ public class LinkieBot {
     public ScheduledExecutorService singleThreadExecutor = Executors.newSingleThreadScheduledExecutor();
     
     public static void main(String[] args) {
-        LoadMeta.load();
+        LinkieMinecraftInfoKt.startInfoSync();
         SpringApplication.run(LinkieSpringApplication.class, args);
         LinkieDiscordKt.start();
     }

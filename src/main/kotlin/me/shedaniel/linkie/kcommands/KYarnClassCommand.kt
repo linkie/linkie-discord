@@ -14,6 +14,7 @@ import java.time.Duration
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
+import kotlin.Pair
 
 object KYarnClassCommand : AKYarnClassCommand("1.2.5")
 object POMFClassCommand : AKYarnClassCommand("b1.7.3")
@@ -45,13 +46,13 @@ open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase 
             }
         }
         val sortedClasses = classes.entries.sortedByDescending {
-            when (it.value.key) {
+            when (it.value.first) {
                 FindClassMethod.MAPPED -> it.key.mappedName!!
                 FindClassMethod.OBF_CLIENT -> it.key.obfName.client!!
                 FindClassMethod.OBF_SERVER -> it.key.obfName.server!!
                 FindClassMethod.OBF_MERGED -> it.key.obfName.merged!!
                 else -> it.key.intermediaryName
-            }.onlyClass().similarity(it.value.value.onlyClass())
+            }.onlyClass().similarity(it.value.second.onlyClass())
         }.map { it.key }
         if (sortedClasses.isEmpty())
             throw NullPointerException("No results found!")

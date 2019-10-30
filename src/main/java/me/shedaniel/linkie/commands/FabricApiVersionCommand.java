@@ -79,13 +79,13 @@ public class FabricApiVersionCommand implements CommandBase {
                 
                 } else if (reactionAddEvent.getUserId().equals(author.getId())) {
                     if (!reactionAddEvent.getEmoji().asUnicodeEmoji().isPresent()) {
-                        msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                        msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId()).subscribe();
                     } else {
                         ReactionEmoji.Unicode unicode = reactionAddEvent.getEmoji().asUnicodeEmoji().get();
                         if (unicode.getRaw().equals("❌")) {
                             msg.delete().subscribe();
                         } else if (unicode.getRaw().equals("⬅")) {
-                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId()).subscribe();
                             if (finalPage[0] > 0) {
                                 finalPage[0]--;
                                 msg.edit(spec -> spec.setEmbed(emd -> {
@@ -99,7 +99,7 @@ public class FabricApiVersionCommand implements CommandBase {
                                 })).subscribe();
                             }
                         } else if (unicode.getRaw().equals("➡")) {
-                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId()).subscribe();
                             if (finalPage[0] < ((int) Math.ceil(old.size() / ITEMS_PER_PAGE_F)) - 1) {
                                 finalPage[0]++;
                                 msg.edit(spec -> spec.setEmbed(emd -> {
@@ -113,11 +113,11 @@ public class FabricApiVersionCommand implements CommandBase {
                                 })).subscribe();
                             }
                         } else {
-                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                            msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId()).subscribe();
                         }
                     }
                 } else {
-                    msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId());
+                    msg.removeReaction(reactionAddEvent.getEmoji(), reactionAddEvent.getUserId()).subscribe();
                 }
             });
         });
