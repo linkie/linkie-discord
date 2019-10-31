@@ -122,25 +122,29 @@ fun tryLoadMappingContainer(version: String, defaultContainer: MappingsContainer
 }
 
 fun updateYarn() {
-    mappingsContainers.clear()
-    yarnBuilds.clear()
-    val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
-    json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
-    buildMap.forEach { version, builds -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
-    yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn()
-    yarnBuilds.keys.firstOrNull()?.loadOfficialYarn()
-    mappingsContainers.add(MappingsContainer("1.2.5").apply {
-        classes.clear()
-        loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
-        loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
-    })
-    mappingsContainers.add(MappingsContainer("b1.7.3").apply {
-        classes.clear()
-        // loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
-        loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta 1.7.3 Merge.tiny"))
-        loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "rugby", showError = false)
-    })
-    println("Updated KYarn")
+    try {
+        mappingsContainers.clear()
+        yarnBuilds.clear()
+        val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
+        json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
+        buildMap.forEach { version, builds -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
+        yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn()
+        yarnBuilds.keys.firstOrNull()?.loadOfficialYarn()
+        mappingsContainers.add(MappingsContainer("1.2.5").apply {
+            classes.clear()
+            loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
+            loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
+        })
+        mappingsContainers.add(MappingsContainer("b1.7.3").apply {
+            classes.clear()
+            // loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
+            loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta 1.7.3 Merge.tiny"))
+            loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "rugby", showError = false)
+        })
+        println("Updated KYarn")
+    } catch (t: Throwable) {
+        t.printStackTrace()
+    }
 }
 
 internal fun String?.loadOfficialYarn() =
