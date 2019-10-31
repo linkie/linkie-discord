@@ -136,7 +136,9 @@ fun updateYarn() {
     })
     mappingsContainers.add(MappingsContainer("b1.7.3").apply {
         classes.clear()
-        loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
+        // loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
+        loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta 1.7.3 Merge.tiny"))
+        loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "rugby", showError = false)
     })
     println("Updated KYarn")
 }
