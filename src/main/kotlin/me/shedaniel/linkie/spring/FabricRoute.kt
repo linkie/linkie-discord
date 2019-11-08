@@ -12,7 +12,7 @@ import com.vaadin.flow.component.select.Select
 import com.vaadin.flow.component.textfield.TextArea
 import com.vaadin.flow.router.Route
 
-@Route
+@Route("")
 class FabricRoute : VerticalLayout() {
     private val buildGradleText = "dependencies {\n    minecraft \"com.mojang:minecraft:@MC@\"\n    mappings \"@YARN@\"\n    modCompile \"@LOADER@\"\n    \n    // Optional Fabric API\n    modCompile \"@API@\"\n}"
     private val gradlePropertiesText = "minecraft_version=@MC@\nyarn_mappings=@YARN@\nloader_version=@LOADER@\n\n# Optional Fabric API\nfabric_version=@API@"
