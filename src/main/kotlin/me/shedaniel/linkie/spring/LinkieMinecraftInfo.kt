@@ -52,11 +52,11 @@ fun startInfoSync() {
         try {
             val map = mutableMapOf<String, Pair<CurseMetaAPI.AddonFile, Boolean>>()
             val files = CurseMetaAPI.getAddonFiles(306612)
-            files.sortByDescending { it.fileId }
+            files.sortByDescending(CurseMetaAPI.AddonFile::fileId)
             for (file in files) {
                 val displayName = file.displayName
                 if (displayName[0] == '[' && displayName.indexOf(']') > -1) {
-                    var version = displayName.substring(1).split("]".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
+                    var version = displayName.substring(1).split("]").first { !it.isEmpty() }
                     if (version.contains("/"))
                         version = version.substring(0, version.indexOf("/"))
                     val isSnapshot = version.toLowerCase().contains("pre") || version.toLowerCase().startsWith("1.14_combat-") || version.toLowerCase().startsWith("19w") || version.toLowerCase().startsWith("20w") || version.toLowerCase().startsWith("18w") || version.toLowerCase().startsWith("21w")

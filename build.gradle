@@ -4,6 +4,7 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "1.3.50"
     id "org.jetbrains.kotlin.plugin.serialization" version "1.3.50"
     id "org.jetbrains.kotlin.plugin.spring" version "1.3.50"
+    id 'com.devsoap.vaadin-flow' version '1.2'
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -23,18 +24,23 @@ repositories {
     maven { url "http://maven.vaadin.com/vaadin-addons" }
 }
 
+vaadin {
+    productionMode = true
+    submitStatistics = false
+}
+
 dependencies {
     implementation "com.vaadin:vaadin-bom:$vaadin_version"
     implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     implementation "com.google.guava:guava:28.0-jre"
     implementation "com.github.Chocohead:Tiny-Mappings-Parser:337c8b6"
-    implementation ('com.discord4j:discord4j-core:3.0.10') {
+    implementation('com.discord4j:discord4j-core:3.0.10') {
         force = true
     }
-    implementation ('io.projectreactor:reactor-core:3.2.3.RELEASE') {
+    implementation('io.projectreactor:reactor-core:3.2.3.RELEASE') {
         force = true
     }
-    implementation ('io.projectreactor.addons:reactor-extra:3.2.3.RELEASE') {
+    implementation('io.projectreactor.addons:reactor-extra:3.2.3.RELEASE') {
         force = true
     }
     implementation "org.apache.logging.log4j:log4j-core:2.11.0"
