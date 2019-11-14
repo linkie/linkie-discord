@@ -15,7 +15,6 @@ import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.commands.FabricApiVersionCommand
 import me.shedaniel.linkie.kcommands.*
 import reactor.core.publisher.Mono
 import java.time.Instant
@@ -38,7 +37,7 @@ fun start() {
     commandApi.registerCommand(KYarnFieldCommand, "yf")
     commandApi.registerCommand(POMFFieldCommand, "mcpf")
     commandApi.registerCommand(KHelpCommand, "help", "?", "commands")
-    commandApi.registerCommand(FabricApiVersionCommand(), "fabricapi")
+    commandApi.registerCommand(KFabricApiVersionCommand, "fabricapi")
     api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 621271154019270675L)
             api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
