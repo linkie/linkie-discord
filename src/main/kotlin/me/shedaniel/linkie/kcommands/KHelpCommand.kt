@@ -14,12 +14,12 @@ object KHelpCommand : CommandBase {
         channel.createEmbed {
             it.setTitle("Linkie Help Command")
             it.setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
-            it.addField("Help Command", "Value: " + prefix + "help, " + prefix + "?, " + prefix + "commands\nDisplays this message.")
-            it.addField("Fabric Api Versions Command", "Value: " + prefix + "fabricapi\nList Fabric API versions for every mc version.")
-            it.addField("Yarn Class Command", "Value: " + prefix + "yc\nCheck yarn mappings.")
-            it.addField("Yarn Field Command", "Value: " + prefix + "yf\nCheck yarn mappings.")
-            it.addField("Yarn Method Command", "Value: " + prefix + "ym\nCheck yarn mappings.")
+            it.addField("Help Command", "Value: ${prefix}help, ${prefix}?, ${prefix}commands\nDisplays this message.")
+            it.addField("Fabric Api Versions Command", "Value: ${prefix}fabricapi\nList Fabric API versions for every mc version.")
+            it.addField("Yarn Class Command", "Value: ${prefix}yc\nCheck yarn mappings.")
+            it.addField("Yarn Field Command", "Value: ${prefix}yf\nCheck yarn mappings.")
+            it.addField("Yarn Method Command", "Value: ${prefix}ym\nCheck yarn mappings.")
             it.setTimestampToNow()
-        }
+        }.subscribe()
     }
 }
