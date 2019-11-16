@@ -28,7 +28,6 @@ class CommandApi(private val prefix: String) {
         val channel = event.message.channel.block()
         if (user == null || user.isBot || message == null || channel == null)
             return
-        println("a")
         val prefix = getPrefix(event.guildId.orElse(null)?.asLong() == 432055962233470986L)
         if (message.toLowerCase().startsWith(prefix)) {
             val content = message.substring(prefix.length)

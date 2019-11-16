@@ -61,7 +61,7 @@ fun start() {
                     it.setEmbed {
                         it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
                         it.setThumbnail(member.avatarUrl)
-                        it.setTimestamp(Instant.now())
+                        it.setTimestampToNow()
                         it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
                                 "\n" +
                                 "Anyways, enjoy your stay!")
@@ -77,7 +77,7 @@ fun start() {
                     it.setEmbed {
                         it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
                         it.setThumbnail(member.avatarUrl)
-                        it.setTimestamp(Instant.now())
+                        it.setTimestampToNow()
                     }
                 }.subscribe()
             }
@@ -88,7 +88,7 @@ fun start() {
                     it.setEmbed {
                         it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
                         it.setThumbnail(member.avatarUrl)
-                        it.setTimestamp(Instant.now())
+                        it.setTimestampToNow()
                     }
                 }.subscribe()
             }
