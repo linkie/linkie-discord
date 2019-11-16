@@ -15,7 +15,7 @@ import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.kcommands.*
+import me.shedaniel.linkie.commands.*
 import reactor.core.publisher.Mono
 import java.time.Instant
 
@@ -30,14 +30,15 @@ fun start() {
         api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
     }
     api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
-    commandApi.registerCommand(KYarnClassCommand, "yc")
+    commandApi.registerCommand(YarnClassCommand, "yc")
     commandApi.registerCommand(POMFClassCommand, "mcpc")
-    commandApi.registerCommand(KYarnMethodCommand, "ym")
+    commandApi.registerCommand(YarnMethodCommand, "ym")
     commandApi.registerCommand(POMFMethodCommand, "mcpm")
-    commandApi.registerCommand(KYarnFieldCommand, "yf")
+    commandApi.registerCommand(YarnFieldCommand, "yf")
     commandApi.registerCommand(POMFFieldCommand, "mcpf")
-    commandApi.registerCommand(KHelpCommand, "help", "?", "commands")
-    commandApi.registerCommand(KFabricApiVersionCommand, "fabricapi")
+    commandApi.registerCommand(HelpCommand, "help", "?", "commands")
+    commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
+    commandApi.registerCommand(AboutCommand, "about")
     api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 621271154019270675L)
             api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->

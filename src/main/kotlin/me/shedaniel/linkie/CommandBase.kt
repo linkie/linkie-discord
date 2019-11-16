@@ -11,4 +11,7 @@ interface CommandBase {
     @Throws(ExecutionException::class, InterruptedException::class)
     fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel)
 
+    fun getName(): String? = null
+    fun getDescription(): String? = null
+
 }

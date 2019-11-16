@@ -131,6 +131,8 @@ fun tryLoadMappingContainer(version: String, defaultContainer: MappingsContainer
     throw NullPointerException("Please report this issue!")
 }
 
+var latestYarn = ""
+
 fun updateYarn() {
     try {
         val c = mutableListOf<MappingsContainer>()
@@ -140,6 +142,7 @@ fun updateYarn() {
         buildMap.forEach { version, builds -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
         yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn(c)
         yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(c)
+        yarnBuilds.keys.firstOrNull()?.apply { latestYarn = this }
         c.add(MappingsContainer("1.2.5").apply {
             classes.clear()
             loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))

@@ -1,4 +1,4 @@
-package me.shedaniel.linkie.kcommands
+package me.shedaniel.linkie.commands
 
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
@@ -14,14 +14,21 @@ import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
 
-object KYarnMethodCommand : AKYarnMethodCommand("1.2.5")
-object POMFMethodCommand : AKYarnMethodCommand("b1.7.3")
+object YarnMethodCommand : AYarnMethodCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else latestYarn }) {
+    override fun getName(): String? = "Yarn Method Command"
+    override fun getDescription(): String? = "Query yarn methods."
+}
 
-open class AKYarnMethodCommand(private val defaultVersion: String) : CommandBase {
+object POMFMethodCommand : AYarnMethodCommand({ "b1.7.3" }) {
+    override fun getName(): String? = "POMF Method Command"
+    override fun getDescription(): String? = "Query pomf methods."
+}
+
+open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
-        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
+        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
         var searchTerm = args.joinToString(" ")
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
@@ -60,11 +67,11 @@ open class AKYarnMethodCommand(private val defaultVersion: String) : CommandBase
                     }
                 }
             }
-        } else  mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
+        } else mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
         val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
         val methodKey = searchTerm.onlyClass('.')
         if (methodKey == "*") {
-            classes.forEach {(clazz, cm) ->
+            classes.forEach { (clazz, cm) ->
                 clazz.methods.forEach { method ->
                     if (methods.none { it.key.method == method })
                         methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.WILDCARD

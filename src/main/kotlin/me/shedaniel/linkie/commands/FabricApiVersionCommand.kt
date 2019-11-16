@@ -1,4 +1,4 @@
-package me.shedaniel.linkie.kcommands
+package me.shedaniel.linkie.commands
 
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
@@ -12,7 +12,7 @@ import java.time.Duration
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 
-object KFabricApiVersionCommand : CommandBase {
+object FabricApiVersionCommand : CommandBase {
 
     private const val itemsPerPage = 24f
 
@@ -82,5 +82,8 @@ object KFabricApiVersionCommand : CommandBase {
         }
         if (!showReleaseOnly) setDescription("Tips: Use -r for release only.")
     }
+
+    override fun getDescription(): String? = "Displays a list of Fabric APIs"
+    override fun getName(): String? = "Fabric API Command"
 
 }

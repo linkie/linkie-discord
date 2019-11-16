@@ -1,4 +1,4 @@
-package me.shedaniel.linkie.kcommands
+package me.shedaniel.linkie.commands
 
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
@@ -14,15 +14,22 @@ import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
 
-object KYarnFieldCommand : AKYarnFieldCommand("1.2.5")
-object POMFFieldCommand : AKYarnFieldCommand("b1.7.3")
+object YarnFieldCommand : AYarnFieldCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else latestYarn }) {
+    override fun getName(): String? = "Yarn Field Command"
+    override fun getDescription(): String? = "Query yarn fields."
+}
 
-open class AKYarnFieldCommand(private val defaultVersion: String) : CommandBase {
+object POMFFieldCommand : AYarnFieldCommand({ "b1.7.3" }) {
+    override fun getName(): String? = "POMF Field Command"
+    override fun getDescription(): String? = "Query pomf fields."
+}
+
+open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
 
-        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
+        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
 
         var searchTerm = args.joinToString(" ")
         if (mappingsContainerGetter.first == args.last()) {

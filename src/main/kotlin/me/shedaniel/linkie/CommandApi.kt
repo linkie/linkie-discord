@@ -9,6 +9,7 @@ import java.util.concurrent.Executors
 class CommandApi(private val prefix: String) {
     private val executors = Executors.newScheduledThreadPool(16)
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
+    internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
 
     fun getPrefix(isSpecial: Boolean): String {
         return if (isSpecial) "!" else prefix
@@ -17,6 +18,7 @@ class CommandApi(private val prefix: String) {
     fun registerCommand(command: CommandBase, vararg l: String): CommandApi {
         for (ll in l)
             commandMap[ll.toLowerCase()] = command
+        commands.getOrPut(command, ::mutableSetOf).addAll(l)
         return this
     }
 
