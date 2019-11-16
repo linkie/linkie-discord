@@ -21,57 +21,87 @@ open class AKYarnMethodCommand(private val defaultVersion: String) : CommandBase
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
-        val mappingsContainer = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
+        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
         var searchTerm = args.joinToString(" ")
-        if (mappingsContainer.version == args.last()) {
+        if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
             throw InvalidUsageException("+$cmd <search> [version]")
         val hasClass = searchTerm.contains('.')
-        val classes = mutableSetOf<Class>()
+        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") || searchTerm.onlyClass('.') == "*"
+
+        val message = channel.createEmbed {
+            it.apply {
+                setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
+                setTimestampToNow()
+                var desc = "Searching up methods for **${mappingsContainerGetter.first}**."
+                if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
+                if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                setDescription(desc)
+            }
+        }.block() ?: throw NullPointerException("Unknown Message!")
+
+        val mappingsContainer = mappingsContainerGetter.third.invoke()
+
+        val classes = mutableMapOf<Class, FindMethodMethod>()
         if (hasClass) {
             val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
             if (clazzKey == "*") {
-                classes.addAll(mappingsContainer.classes)
+                mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
             } else {
                 mappingsContainer.classes.forEach { clazz ->
                     when {
-                        clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
-                        clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                        clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                        clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes[clazz] = FindMethodMethod.INTERMEDIARY
+                        clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.MAPPED
+                        clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_CLIENT
+                        clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_SERVER
+                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_MERGED
                     }
                 }
             }
-        } else classes.addAll(mappingsContainer.classes)
+        } else  mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
         val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
         val methodKey = searchTerm.onlyClass('.')
         if (methodKey == "*") {
-            classes.forEach {
-                it.methods.forEach { method ->
+            classes.forEach {(clazz, cm) ->
+                clazz.methods.forEach { method ->
                     if (methods.none { it.key.method == method })
-                        methods[MethodWrapper(method, it)] = FindMethodMethod.WILDCARD
+                        methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.WILDCARD
                 }
             }
         } else {
-            classes.forEach {
-                it.methods.forEach { method ->
+            classes.forEach { (clazz, cm) ->
+                clazz.methods.forEach { method ->
                     if (methods.none { it.key.method == method })
                         when {
-                            method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, it)] = FindMethodMethod.INTERMEDIARY
-                            method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.MAPPED
-                            method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_CLIENT
-                            method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_SERVER
-                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_MERGED
+                            method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.INTERMEDIARY
+                            method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.MAPPED
+                            method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_CLIENT
+                            method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_SERVER
+                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_MERGED
                         }
                 }
             }
         }
-        val sortedMethods = if (methodKey == "*")
-            methods.entries.sortedBy { it.key.method.intermediaryName }.map { it.key }
-        else
+        val sortedMethods = if (methodKey == "*") {
+            if (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") {
+                methods.entries.sortedBy { it.key.method.intermediaryName }.sortedBy {
+                    it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                }.map { it.key }
+            } else {
+                val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                methods.entries.sortedBy { it.key.method.intermediaryName }.sortedByDescending {
+                    when (it.key.cm) {
+                        FindMethodMethod.MAPPED -> it.key.parent.mappedName!!
+                        FindMethodMethod.OBF_CLIENT -> it.key.parent.obfName.client!!
+                        FindMethodMethod.OBF_SERVER -> it.key.parent.obfName.server!!
+                        FindMethodMethod.OBF_MERGED -> it.key.parent.obfName.merged!!
+                        else -> it.key.parent.intermediaryName
+                    }.onlyClass().similarity(classKey)
+                }.map { it.key }
+            }
+        } else
             methods.entries.sortedByDescending {
                 when (it.value) {
                     FindMethodMethod.MAPPED -> it.key.method.mappedName!!
@@ -80,12 +110,14 @@ open class AKYarnMethodCommand(private val defaultVersion: String) : CommandBase
                     FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
                     else -> it.key.method.intermediaryName
                 }.onlyClass().similarity(methodKey)
+            }.sortedBy {
+                it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
             }.map { it.key }
         if (sortedMethods.isEmpty())
             throw NullPointerException("No results found!")
         var page = 0
         val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-        channel.createEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, author, maxPage) }.subscribe { msg ->
+        message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, author, maxPage) } }.subscribe { msg ->
             if (channel.type.name.startsWith("GUILD_"))
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")
@@ -133,7 +165,7 @@ private enum class FindMethodMethod {
     WILDCARD
 }
 
-data class MethodWrapper(val method: Method, val parent: Class)
+private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
 private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: Member, maxPage: Int) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)

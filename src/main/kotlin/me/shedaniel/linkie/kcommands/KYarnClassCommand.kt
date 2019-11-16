@@ -23,11 +23,24 @@ open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase 
     override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
-        val mappingsContainer = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
+        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion))
         var searchTerm = args.joinToString(" ")
-        if (mappingsContainer.version == args.last()) {
+        if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
+
+        val message = channel.createEmbed {
+            it.apply {
+                setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
+                setTimestampToNow()
+                var desc = "Searching up classes for **${mappingsContainerGetter.first}**."
+                if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                setDescription(desc)
+            }
+        }.block() ?: throw NullPointerException("Unknown Message!")
+
+        val mappingsContainer = mappingsContainerGetter.third.invoke()
+
         val classes = mutableMapOf<Class, Pair<FindClassMethod, String>>()
         StringUtils.splitByWholeSeparatorPreserveAllTokens(searchTerm, " ").forEach { searchKey ->
             val searchKeyOnly = searchKey.onlyClass()
@@ -58,7 +71,7 @@ open class AKYarnClassCommand(private val defaultVersion: String) : CommandBase 
             throw NullPointerException("No results found!")
         var page = 0
         val maxPage = ceil(sortedClasses.size / 5.0).toInt()
-        channel.createEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) }.subscribe { msg ->
+        message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }.subscribe { msg ->
             if (channel.type.name.startsWith("GUILD_"))
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")

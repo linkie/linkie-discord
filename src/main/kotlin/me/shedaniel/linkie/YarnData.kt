@@ -114,11 +114,21 @@ fun startLoop() {
 
 fun getMappingsContainer(version: String): MappingsContainer? = mappingsContainers.firstOrNull { it.version == version }
 
-fun tryLoadMappingContainer(version: String, defaultContainer: MappingsContainer? = getMappingsContainer("1.2.5")): MappingsContainer {
-    return (getMappingsContainer(version) ?: if (yarnBuilds.containsKey(version)) {
-        version.loadOfficialYarn(mappingsContainers)
-        getMappingsContainer(version)
-    } else null) ?: defaultContainer ?: throw NullPointerException("Please report this issue!")
+@Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+fun tryLoadMappingContainer(version: String, defaultContainer: MappingsContainer? = getMappingsContainer("1.2.5")): Triple<String, Boolean, () -> MappingsContainer> {
+    val mightBeCached = getMappingsContainer(version)
+    if (mightBeCached != null)
+        return Triple(mightBeCached.version, true, { mightBeCached!! })
+    if (yarnBuilds.containsKey(version)) {
+        return Triple(version.toLowerCase(), false, {
+            version.loadOfficialYarn(mappingsContainers)
+            getMappingsContainer(version)!!
+        })
+    }
+    if (defaultContainer != null) {
+        return Triple(defaultContainer.version, true, { defaultContainer!! })
+    }
+    throw NullPointerException("Please report this issue!")
 }
 
 fun updateYarn() {
