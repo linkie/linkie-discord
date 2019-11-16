@@ -9,14 +9,13 @@ import me.shedaniel.cursemetaapi.CurseMetaAPI
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
-import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 
 object FabricApiVersionCommand : CommandBase {
 
     private const val itemsPerPage = 24f
 
-    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.size > 2)
             throw InvalidUsageException("+$cmd [page] [-r]")
         var page = if (args.isEmpty()) 0 else if (args.size == 1 && args[0].equals("-r", ignoreCase = true)) 0 else args[0].toInt() - 1

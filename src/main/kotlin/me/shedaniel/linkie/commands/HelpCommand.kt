@@ -5,10 +5,9 @@ import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.*
 import java.util.*
-import java.util.concurrent.ScheduledExecutorService
 
 object HelpCommand : CommandBase {
-    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isNotEmpty())
             throw InvalidUsageException("+$cmd")
         val prefix = commandApi.getPrefix(event.guildId.orElse(null)?.asLong() == 432055962233470986L)

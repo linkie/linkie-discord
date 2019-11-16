@@ -4,15 +4,14 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.*
-import java.util.concurrent.ScheduledExecutorService
 
 object AboutCommand : CommandBase {
-    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isNotEmpty())
             throw InvalidUsageException("+$cmd")
         channel.createEmbed {
             it.setTitle("About Linkie")
-            api.self.block()?.avatarUrl?.also { url -> it.setThumbnail(url) }
+            api.self.map { it.avatarUrl }.subscribe { url -> it.setThumbnail(url) }
             it.setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
             it.setThumbnail("i play g o o d games and i search mappings when i am bored")
             it.addField("Source", "https://github.com/shedaniel/LinkieBot")

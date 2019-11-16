@@ -10,7 +10,6 @@ import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.similarity
 import java.time.Duration
-import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -25,7 +24,7 @@ object POMFMethodCommand : AYarnMethodCommand({ "b1.7.3" }) {
 }
 
 open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
-    override fun execute(service: ScheduledExecutorService, event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
