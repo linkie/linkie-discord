@@ -22,7 +22,7 @@ import java.time.Instant
 val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
-var commandApi: CommandApi = CommandApi("+")
+var commandApi: CommandApi = CommandApi("!")
 
 fun start() {
     startLoop()
