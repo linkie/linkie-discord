@@ -11,9 +11,9 @@ object AboutCommand : CommandBase {
             throw InvalidUsageException("+$cmd")
         channel.createEmbed {
             it.setTitle("About Linkie")
-            api.self.map { it.avatarUrl }.subscribe { url -> it.setThumbnail(url) }
+            api.self.map { it.avatarUrl }.block()?.also { url -> it.setThumbnail(url) }
             it.setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
-            it.setThumbnail("i play g o o d games and i search mappings when i am bored")
+            it.setDescription("i play g o o d games and i search mappings when i am bored ok?")
             it.addField("Source", "https://github.com/shedaniel/LinkieBot")
             it.setTimestampToNow()
         }.subscribe()

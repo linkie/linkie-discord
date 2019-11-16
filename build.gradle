@@ -34,16 +34,16 @@ dependencies {
 //    implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     implementation "com.google.guava:guava:28.0-jre"
     implementation "com.github.Chocohead:Tiny-Mappings-Parser:337c8b6"
-    implementation('com.discord4j:discord4j-core:3.0.10') {
+    implementation('com.discord4j:discord4j-core:3.0.11') {
         force = true
     }
-    implementation('io.projectreactor:reactor-core:3.2.3.RELEASE') {
-        force = true
-    }
-    implementation('io.projectreactor.addons:reactor-extra:3.2.3.RELEASE') {
-        force = true
-    }
-    implementation "org.apache.logging.log4j:log4j-core:2.11.0"
+//    implementation('io.projectreactor:reactor-core:3.2.3.RELEASE') {
+//        force = true
+//    }
+//    implementation('io.projectreactor.addons:reactor-extra:3.2.3.RELEASE') {
+//        force = true
+//    }
+//    implementation "org.apache.logging.log4j:log4j-core:2.11.0"
     implementation "org.apache.commons:commons-lang3:3.9"
     implementation "com.github.shedaniel:CurseMetaAPI:0.2"
     implementation "com.github.Zeitheron:CurseForge4J:1.5.2"
