@@ -32,40 +32,55 @@ open class AKYarnMethodCommand(private val defaultVersion: String) : CommandBase
         val classes = mutableSetOf<Class>()
         if (hasClass) {
             val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
-            println(clazzKey)
-            mappingsContainer.classes.forEach { clazz ->
-                when {
-                    clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
-                    clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+            if (clazzKey == "*") {
+                classes.addAll(mappingsContainer.classes)
+            } else {
+                mappingsContainer.classes.forEach { clazz ->
+                    when {
+                        clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
+                        clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                    }
                 }
             }
         } else classes.addAll(mappingsContainer.classes)
         val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
         val methodKey = searchTerm.onlyClass('.')
-        classes.forEach {
-            it.methods.forEach { method ->
-                if (methods.none { it.key.method == method })
-                    when {
-                        method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, it)] = FindMethodMethod.INTERMEDIARY
-                        method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.MAPPED
-                        method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_CLIENT
-                        method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_SERVER
-                        method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_MERGED
-                    }
+        if (methodKey == "*") {
+            classes.forEach {
+                it.methods.forEach { method ->
+                    if (methods.none { it.key.method == method })
+                        methods[MethodWrapper(method, it)] = FindMethodMethod.WILDCARD
+                }
+            }
+        } else {
+            classes.forEach {
+                it.methods.forEach { method ->
+                    if (methods.none { it.key.method == method })
+                        when {
+                            method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, it)] = FindMethodMethod.INTERMEDIARY
+                            method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.MAPPED
+                            method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_CLIENT
+                            method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_SERVER
+                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, it)] = FindMethodMethod.OBF_MERGED
+                        }
+                }
             }
         }
-        val sortedMethods = methods.entries.sortedByDescending {
-            when (it.value) {
-                FindMethodMethod.MAPPED -> it.key.method.mappedName!!
-                FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
-                FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
-                FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
-                else -> it.key.method.intermediaryName
-            }.onlyClass().similarity(methodKey)
-        }.map { it.key }
+        val sortedMethods = if (methodKey == "*")
+            methods.entries.sortedBy { it.key.method.intermediaryName }.map { it.key }
+        else
+            methods.entries.sortedByDescending {
+                when (it.value) {
+                    FindMethodMethod.MAPPED -> it.key.method.mappedName!!
+                    FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
+                    FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
+                    FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
+                    else -> it.key.method.intermediaryName
+                }.onlyClass().similarity(methodKey)
+            }.map { it.key }
         if (sortedMethods.isEmpty())
             throw NullPointerException("No results found!")
         var page = 0
@@ -115,6 +130,7 @@ private enum class FindMethodMethod {
     OBF_CLIENT,
     OBF_SERVER,
     OBF_MERGED,
+    WILDCARD
 }
 
 data class MethodWrapper(val method: Method, val parent: Class)
@@ -124,7 +140,7 @@ private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, map
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
-    sortedMethods.dropAndTake(5 * page,5).forEach {
+    sortedMethods.dropAndTake(5 * page, 5).forEach {
         if (!desc.isEmpty())
             desc += "\n\n"
         val obfMap = LinkedHashMap<String, String>()

@@ -19,6 +19,9 @@ object KHelpCommand : CommandBase {
             it.addField("Yarn Class Command", "Value: ${prefix}yc\nCheck yarn mappings.")
             it.addField("Yarn Field Command", "Value: ${prefix}yf\nCheck yarn mappings.")
             it.addField("Yarn Method Command", "Value: ${prefix}ym\nCheck yarn mappings.")
+            it.addField("MCPF Class Command", "Value: ${prefix}mcpc\nCheck yarn mappings.")
+            it.addField("MCPF Field Command", "Value: ${prefix}mcpf\nCheck yarn mappings.")
+            it.addField("MCPF Method Command", "Value: ${prefix}mcpm\nCheck yarn mappings.")
             it.setTimestampToNow()
         }.subscribe()
     }

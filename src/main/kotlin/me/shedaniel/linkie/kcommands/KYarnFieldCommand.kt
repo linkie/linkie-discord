@@ -32,40 +32,55 @@ open class AKYarnFieldCommand(private val defaultVersion: String) : CommandBase 
         val classes = mutableSetOf<Class>()
         if (hasClass) {
             val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
-            println(clazzKey)
-            mappingsContainer.classes.forEach { clazz ->
-                when {
-                    clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
-                    clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
-                    clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+            if (clazzKey == "*") {
+                classes.addAll(mappingsContainer.classes)
+            } else {
+                mappingsContainer.classes.forEach { clazz ->
+                    when {
+                        clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes.add(clazz)
+                        clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes.add(clazz)
+                    }
                 }
             }
         } else classes.addAll(mappingsContainer.classes)
         val fields = mutableMapOf<FieldWrapper, FindFieldMethod>()
         val fieldKey = searchTerm.onlyClass('.')
-        classes.forEach {
-            it.fields.forEach { field ->
-                if (fields.none { it.key.field == field })
-                    when {
-                        field.intermediaryName.contains(fieldKey, true) -> fields[FieldWrapper(field, it)] = FindFieldMethod.INTERMEDIARY
-                        field.mappedName?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.MAPPED
-                        field.obfName.client?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_CLIENT
-                        field.obfName.server?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_SERVER
-                        field.obfName.merged?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_MERGED
-                    }
+        if (fieldKey == "*") {
+            classes.forEach {
+                it.fields.forEach { field ->
+                    if (fields.none { it.key.field == field })
+                        fields[FieldWrapper(field, it)] = FindFieldMethod.WILDCARD
+                }
+            }
+        } else {
+            classes.forEach {
+                it.fields.forEach { field ->
+                    if (fields.none { it.key.field == field })
+                        when {
+                            field.intermediaryName.contains(fieldKey, true) -> fields[FieldWrapper(field, it)] = FindFieldMethod.INTERMEDIARY
+                            field.mappedName?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.MAPPED
+                            field.obfName.client?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_CLIENT
+                            field.obfName.server?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_SERVER
+                            field.obfName.merged?.contains(fieldKey, true) == true -> fields[FieldWrapper(field, it)] = FindFieldMethod.OBF_MERGED
+                        }
+                }
             }
         }
-        val sortedFields = fields.entries.sortedByDescending {
-            when (it.value) {
-                FindFieldMethod.MAPPED -> it.key.field.mappedName!!
-                FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
-                FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
-                FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
-                else -> it.key.field.intermediaryName
-            }.onlyClass().similarity(fieldKey)
-        }.map { it.key }
+        val sortedFields = if (fieldKey == "*")
+            fields.entries.sortedBy { it.key.field.intermediaryName }.map { it.key }
+        else
+            fields.entries.sortedByDescending {
+                when (it.value) {
+                    FindFieldMethod.MAPPED -> it.key.field.mappedName!!
+                    FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
+                    FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
+                    FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
+                    else -> it.key.field.intermediaryName
+                }.onlyClass().similarity(fieldKey)
+            }.map { it.key }
         if (sortedFields.isEmpty())
             throw NullPointerException("No results found!")
         var page = 0
@@ -115,6 +130,7 @@ private enum class FindFieldMethod {
     OBF_CLIENT,
     OBF_SERVER,
     OBF_MERGED,
+    WILDCARD
 }
 
 data class FieldWrapper(val field: Field, val parent: Class)
@@ -124,7 +140,7 @@ private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mapp
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
-    sortedMethods.dropAndTake(5 * page,5).forEach {
+    sortedMethods.dropAndTake(5 * page, 5).forEach {
         if (!desc.isEmpty())
             desc += "\n\n"
         val obfMap = LinkedHashMap<String, String>()
