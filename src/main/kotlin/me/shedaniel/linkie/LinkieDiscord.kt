@@ -26,21 +26,22 @@ val api: DiscordClient by lazy {
 var commandApi: CommandApi = CommandApi("!")
 
 fun start() {
+//    LinkieMusic.setupMusic()
     startLoop()
     api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
         api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
     }
     api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
-//    commandApi.registerCommand(YarnClassCommand, "yc")
-//    commandApi.registerCommand(POMFClassCommand, "mcpc")
-//    commandApi.registerCommand(YarnMethodCommand, "ym")
-//    commandApi.registerCommand(POMFMethodCommand, "mcpm")
-//    commandApi.registerCommand(YarnFieldCommand, "yf")
-//    commandApi.registerCommand(POMFFieldCommand, "mcpf")
-//    commandApi.registerCommand(HelpCommand, "help", "?", "commands")
-//    commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
-//    commandApi.registerCommand(AboutCommand, "about")
-    LinkieMusic.setupCommands()
+    commandApi.registerCommand(YarnClassCommand, "yc")
+    commandApi.registerCommand(POMFClassCommand, "mcpc")
+    commandApi.registerCommand(YarnMethodCommand, "ym")
+    commandApi.registerCommand(POMFMethodCommand, "mcpm")
+    commandApi.registerCommand(YarnFieldCommand, "yf")
+    commandApi.registerCommand(POMFFieldCommand, "mcpf")
+    commandApi.registerCommand(HelpCommand, "help", "?", "commands")
+    commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
+    commandApi.registerCommand(AboutCommand, "about")
+//    LinkieMusic.setupCommands()
     api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 621271154019270675L)
             api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->

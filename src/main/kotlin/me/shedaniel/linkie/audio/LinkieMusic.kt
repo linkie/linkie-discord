@@ -19,8 +19,13 @@ import discord4j.core.event.domain.VoiceStateUpdateEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.voice.AudioProvider
 import discord4j.voice.VoiceConnection
+import kotlinx.serialization.json.JsonObject
+import me.shedaniel.cursemetaapi.CurseMetaAPI
 import me.shedaniel.linkie.*
 import java.awt.Color
+import java.io.InputStreamReader
+import java.net.URL
+import java.net.URLEncoder
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.BlockingQueue
@@ -40,7 +45,7 @@ object LinkieMusic {
         }
         commandApi.registerCommand(object : CommandBase {
             override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-                if (args.size != 1)
+                if (args.isEmpty())
                     throw InvalidUsageException("+$cmd <link>")
                 val guildId = event.guildId.orElse(null)?.asLong()
                 if (guildId == 591645350016712709 || guildId == 432055962233470986) {
@@ -50,7 +55,22 @@ object LinkieMusic {
                     val voiceChannel = voiceState.channel.block()
                             ?: throw IllegalStateException("Failed to locate the voice channel used by the user!")
                     val musicManager = getGuildAudioPlayer(member.guild.block()!!, voiceChannel)
-                    playerManager.loadItem(args[0], OurAudioLoadResultHandler(channel, member, musicManager, args[0])).get()
+                    val url = args.joinToString(" ")
+                    if (url.contains(" ")) {
+                        val obj = CurseMetaAPI.GSON.fromJson(InputStreamReader(URL("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&order=rating&q=" + URLEncoder.encode(url, null) + "&key=" + System.getenv("GOOGLEAPI")).openStream()), JsonObject::class.java)
+                        println(obj)
+                    } else
+                        playerManager.loadItem(url, OurAudioLoadResultHandler(channel, member, musicManager) {
+                            channel.createEmbed {
+                                it.apply {
+                                    setTitle("Linkie Error")
+                                    setColor(Color.red)
+                                    setFooter("Requested by " + member.discriminatedName, member.avatarUrl)
+                                    setTimestamp(Instant.now())
+                                    addField("Error occurred while processing the URL:", "Invaild Track URL: $url", false)
+                                }
+                            }.subscribe()
+                        }).get()
                 }
             }
         }, "play", "p")
@@ -74,7 +94,6 @@ object LinkieMusic {
                     channel.createEmbed {
                         it.setTitle("Disconnected!")
                         it.setColor(Color.red)
-                        it.setTimestamp(Instant.now())
                     }.subscribe()
                 }
             }
@@ -102,7 +121,6 @@ object LinkieMusic {
                             it.setTitle("Disconnected!")
                             it.setDescription("There isn't any tracks left!")
                             it.setColor(Color.red)
-                            it.setTimestamp(Instant.now())
                         }.subscribe()
                     } else {
                         channel.createEmbed {
@@ -157,7 +175,7 @@ object LinkieMusic {
     }
 }
 
-class OurAudioLoadResultHandler(val channel: MessageChannel, val member: Member, val musicManager: GuildMusicManager, val url: String) : AudioLoadResultHandler {
+class OurAudioLoadResultHandler(val channel: MessageChannel, val member: Member, val musicManager: GuildMusicManager, inline val noMatch: () -> Unit) : AudioLoadResultHandler {
     override fun trackLoaded(track: AudioTrack) {
         channel.createEmbed {
             it.apply {
@@ -173,15 +191,7 @@ class OurAudioLoadResultHandler(val channel: MessageChannel, val member: Member,
     }
 
     override fun noMatches() {
-        channel.createEmbed {
-            it.apply {
-                setTitle("Linkie Error")
-                setColor(Color.red)
-                setFooter("Requested by " + member.discriminatedName, member.avatarUrl)
-                setTimestamp(Instant.now())
-                addField("Error occurred while processing the URL:", "Invaild Track URL: " + url, false)
-            }
-        }.subscribe()
+        noMatch.invoke()
     }
 
     override fun playlistLoaded(playlist: AudioPlaylist) {
@@ -199,14 +209,14 @@ class OurAudioLoadResultHandler(val channel: MessageChannel, val member: Member,
         LinkieMusic.play(musicManager, firstTrack)
     }
 
-    override fun loadFailed(exception: FriendlyException?) {
+    override fun loadFailed(exception: FriendlyException) {
         channel.createEmbed {
             it.apply {
                 setTitle("Linkie Error")
                 setColor(Color.red)
                 setFooter("Requested by " + member.discriminatedName, member.avatarUrl)
                 setTimestamp(Instant.now())
-                addField("Error occurred while processing the track:", exception?.localizedMessage
+                addField("Error occurred while processing the track:", exception.localizedMessage
                         ?: "", false)
             }
         }.subscribe()
