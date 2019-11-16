@@ -1,5 +1,6 @@
 package me.shedaniel.linkie.audio
 
+import com.google.gson.GsonBuilder
 import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
@@ -57,7 +58,7 @@ object LinkieMusic {
                     val musicManager = getGuildAudioPlayer(member.guild.block()!!, voiceChannel)
                     val url = args.joinToString(" ")
                     if (url.contains(" ")) {
-                        val obj = CurseMetaAPI.GSON.fromJson(InputStreamReader(URL("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&order=rating&q=" + URLEncoder.encode(url, null) + "&key=" + System.getenv("GOOGLEAPI")).openStream()), JsonObject::class.java)
+                        val obj = GsonBuilder().create().fromJson(InputStreamReader(URL("https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&order=rating&q=" + URLEncoder.encode(url) + "&key=" + System.getenv("GOOGLEAPI")).openStream()), JsonObject::class.java)
                         println(obj)
                     } else
                         playerManager.loadItem(url, OurAudioLoadResultHandler(channel, member, musicManager) {

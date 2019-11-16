@@ -40,6 +40,7 @@ class CommandApi(private val prefix: String) {
                     try {
                         commandMap[cmd]!!.execute(event, user, cmd, args, channel)
                     } catch (throwable: Throwable) {
+                        throwable.printStackTrace()
                         try {
                             channel.createEmbed { emd ->
                                 emd.setTitle("Linkie Error")
