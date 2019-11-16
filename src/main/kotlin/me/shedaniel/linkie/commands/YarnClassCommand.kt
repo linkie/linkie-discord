@@ -1,7 +1,7 @@
 package me.shedaniel.linkie.commands
 
-import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
@@ -25,7 +25,7 @@ object POMFClassCommand : AYarnClassCommand({ "b1.7.3" }) {
 }
 
 open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
-    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("+$cmd <search> [version]")
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
@@ -36,7 +36,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
 
         val message = channel.createEmbed {
             it.apply {
-                setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
+                setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
                 var desc = "Searching up classes for **${mappingsContainerGetter.first}**."
                 if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
@@ -76,7 +76,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             throw NullPointerException("No results found!")
         var page = 0
         val maxPage = ceil(sortedClasses.size / 5.0).toInt()
-        message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }.subscribe { msg ->
+        message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
             if (channel.type.name.startsWith("GUILD_"))
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")
@@ -84,7 +84,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
                 when {
                     it.userId == api.selfId.get() -> {
                     }
-                    it.userId == author.id -> {
+                    it.userId == user.id -> {
                         if (!it.emoji.asUnicodeEmoji().isPresent) {
                             msg.removeReaction(it.emoji, it.userId).subscribe()
                         } else {
@@ -95,13 +95,13 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page > 0) {
                                     page--
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }.subscribe()
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
                                 }
                             } else if (unicode.raw == "➡") {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page < maxPage - 1) {
                                     page++
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, author, maxPage) } }.subscribe()
+                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
                                 }
                             } else {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -115,7 +115,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
     }
 }
 
-private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: Member, maxPage: Int) {
+private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")

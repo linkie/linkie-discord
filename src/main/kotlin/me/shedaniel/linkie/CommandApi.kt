@@ -1,6 +1,6 @@
 package me.shedaniel.linkie
 
-import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import java.awt.Color
 import java.time.Instant
@@ -23,11 +23,12 @@ class CommandApi(private val prefix: String) {
     }
 
     fun onMessageCreate(event: MessageCreateEvent) {
-        val member: Member? = event.member.orElse(null)
+        val user: User? = event.message.author.orElse(null)
         val message: String? = event.message.content.orElse(null)
         val channel = event.message.channel.block()
-        if (member == null || member.isBot || message == null || channel == null)
+        if (user == null || user.isBot || message == null || channel == null)
             return
+        println("a")
         val prefix = getPrefix(event.guildId.orElse(null)?.asLong() == 432055962233470986L)
         if (message.toLowerCase().startsWith(prefix)) {
             val content = message.substring(prefix.length)
@@ -36,13 +37,13 @@ class CommandApi(private val prefix: String) {
             val args = split.drop(1).toTypedArray()
             if (cmd in commandMap)
                 try {
-                    commandMap[cmd]!!.execute(event, member, cmd, args, channel)
+                    commandMap[cmd]!!.execute(event, user, cmd, args, channel)
                 } catch (throwable: Throwable) {
                     try {
                         channel.createEmbed { emd ->
                             emd.setTitle("Linkie Error")
                             emd.setColor(Color.red)
-                            emd.setFooter("Requested by " + member.discriminatedName, member.avatarUrl)
+                            emd.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                             emd.setTimestamp(Instant.now())
                             emd.addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage, false)
                         }.subscribe()

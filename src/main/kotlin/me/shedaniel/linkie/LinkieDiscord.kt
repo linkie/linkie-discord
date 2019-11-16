@@ -3,9 +3,9 @@ package me.shedaniel.linkie
 import discord4j.core.DiscordClient
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.Channel
-import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.TextChannel
+import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.`object`.reaction.ReactionEmoji
@@ -96,7 +96,7 @@ fun start() {
     api.login().block()
 }
 
-val Member.discriminatedName: String
+val User.discriminatedName: String
     get() = "${username}#${discriminator}"
 
 fun EmbedCreateSpec.setTimestampToNow(): EmbedCreateSpec =

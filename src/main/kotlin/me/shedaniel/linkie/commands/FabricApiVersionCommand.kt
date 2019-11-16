@@ -1,7 +1,7 @@
 package me.shedaniel.linkie.commands
 
-import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
@@ -15,7 +15,7 @@ object FabricApiVersionCommand : CommandBase {
 
     private const val itemsPerPage = 24f
 
-    override fun execute(event: MessageCreateEvent, author: Member, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.size > 2)
             throw InvalidUsageException("+$cmd [page] [-r]")
         var page = if (args.isEmpty()) 0 else if (args.size == 1 && args[0].equals("-r", ignoreCase = true)) 0 else args[0].toInt() - 1
@@ -34,7 +34,7 @@ object FabricApiVersionCommand : CommandBase {
         }
         require(page <= map.size / itemsPerPage) { "The maximum page is ${ceil(map.size / itemsPerPage).toInt() + 1}!" }
 
-        channel.createEmbed { it.buildMessage(map, page, author, showReleaseOnly) }.subscribe { msg ->
+        channel.createEmbed { it.buildMessage(map, page, user, showReleaseOnly) }.subscribe { msg ->
             if (channel.type.name.startsWith("GUILD_"))
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")
@@ -42,7 +42,7 @@ object FabricApiVersionCommand : CommandBase {
                 when {
                     it.userId == api.selfId.get() -> {
                     }
-                    it.userId == author.id -> {
+                    it.userId == user.id -> {
                         if (!it.emoji.asUnicodeEmoji().isPresent) {
                             msg.removeReaction(it.emoji, it.userId).subscribe()
                         } else {
@@ -53,13 +53,13 @@ object FabricApiVersionCommand : CommandBase {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page > 0) {
                                     page--
-                                    msg.edit { it.setEmbed { it.buildMessage(map, page, author, showReleaseOnly) } }.subscribe()
+                                    msg.edit { it.setEmbed { it.buildMessage(map, page, user, showReleaseOnly) } }.subscribe()
                                 }
                             } else if (unicode.raw == "➡") {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                                 if (page < ceil(map.size / itemsPerPage).toInt() - 1) {
                                     page++
-                                    msg.edit { it.setEmbed { it.buildMessage(map, page, author, showReleaseOnly) } }.subscribe()
+                                    msg.edit { it.setEmbed { it.buildMessage(map, page, user, showReleaseOnly) } }.subscribe()
                                 }
                             } else {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -72,7 +72,7 @@ object FabricApiVersionCommand : CommandBase {
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(map: MutableMap<String, CurseMetaAPI.AddonFile>, page: Int, author: Member, showReleaseOnly: Boolean) {
+    private fun EmbedCreateSpec.buildMessage(map: MutableMap<String, CurseMetaAPI.AddonFile>, page: Int, author: User, showReleaseOnly: Boolean) {
         setTitle("Fabric API Versions")
         setFooter("Page ${page + 1}/${ceil(map.size / itemsPerPage).toInt()}. Requested by ${author.discriminatedName}", author.avatarUrl)
         setTimestampToNow()
