@@ -17,11 +17,11 @@ object HelpCommand : CommandBase {
         commandCategories.forEachIndexed { index, category ->
             channel.createEmbed {
                 if (index == 0) it.setTitle("Linkie Help Command")
+                else  category.description?.let(it::setTitle)
                 if (index == commandCategories.size - 1) {
                     it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                     it.setTimestampToNow()
                 }
-                category.description?.let(it::setDescription)
                 commandApi.commands.filter { it.key.getCategory() == category && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }
                         .toSortedMap(Comparator.comparing<CommandBase, String> { it.getName()!! })
                         .forEach { cmd, values ->
