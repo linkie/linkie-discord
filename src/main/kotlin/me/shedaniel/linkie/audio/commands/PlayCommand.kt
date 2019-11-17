@@ -3,6 +3,7 @@ package me.shedaniel.linkie.audio.commands
 import discord4j.core.`object`.entity.*
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.CommandBase
+import me.shedaniel.linkie.CommandCategory
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.audio.GuildMusicManager
 import me.shedaniel.linkie.audio.LinkieMusic
@@ -58,6 +59,7 @@ object PlayCommand : CommandBase {
         }
     }
 
+    override fun getCategory(): CommandCategory = CommandCategory.MUSIC
     override fun getName(): String = "Play Music Command"
     override fun getDescription(): String = "Play / Queue a track."
 }

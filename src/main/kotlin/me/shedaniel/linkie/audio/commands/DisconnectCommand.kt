@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.gateway.json.GatewayPayload
 import discord4j.gateway.json.VoiceStateUpdate
 import me.shedaniel.linkie.CommandBase
+import me.shedaniel.linkie.CommandCategory
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.api
 import me.shedaniel.linkie.audio.LinkieMusic
@@ -35,6 +36,7 @@ object DisconnectCommand : CommandBase {
         }
     }
 
+    override fun getCategory(): CommandCategory = CommandCategory.MUSIC
     override fun getName(): String = "Disconnect Music Command"
     override fun getDescription(): String = "Disconnect the music bot."
 }

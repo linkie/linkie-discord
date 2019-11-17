@@ -42,6 +42,7 @@ object LoopCommand : CommandBase {
         }
     }
 
+    override fun getCategory(): CommandCategory = CommandCategory.MUSIC
     override fun getName(): String = "Loop Queue Command"
     override fun getDescription(): String = "Toggles looping in the queue."
 }
