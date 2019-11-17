@@ -24,77 +24,83 @@ val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
 var commandApi: CommandApi = CommandApi("!")
+const val music: Boolean = true
+const val commands: Boolean = true
 
 fun start() {
-//    LinkieMusic.setupMusic()
-    startLoop()
-    api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
-        api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
-    }
     api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
-    commandApi.registerCommand(YarnClassCommand, "yc")
-    commandApi.registerCommand(POMFClassCommand, "mcpc")
-    commandApi.registerCommand(YarnMethodCommand, "ym")
-    commandApi.registerCommand(POMFMethodCommand, "mcpm")
-    commandApi.registerCommand(YarnFieldCommand, "yf")
-    commandApi.registerCommand(POMFFieldCommand, "mcpf")
-    commandApi.registerCommand(HelpCommand, "help", "?", "commands")
-    commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
-    commandApi.registerCommand(AboutCommand, "about")
-//    LinkieMusic.setupCommands()
-    api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
-        if (event.guildId.asLong() == 621271154019270675L)
-            api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
-                val member = event.member
-                val guild = event.guild.block()
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestamp(Instant.now())
-                        it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. \n\nEnjoy your stay!")
-                    }
-                }.subscribe()
-            }
-        else if (event.guildId.asLong() == 432055962233470986L)
-            api.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
-                val member = event.member
-                val guild = event.guild.block()
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestampToNow()
-                        it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
-                                "\n" +
-                                "Anyways, enjoy your stay!")
-                    }
-                }.subscribe()
-            }
+    if (music) {
+        LinkieMusic.setupMusic()
+        LinkieMusic.setupCommands()
     }
-    api.eventDispatcher.on(MemberLeaveEvent::class.java).subscribe { event ->
-        if (event.guildId.asLong() == 621271154019270675L)
-            api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
-                val member = event.member.orElse(null) ?: return@send
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestampToNow()
-                    }
-                }.subscribe()
-            }
-        else if (event.guildId.asLong() == 432055962233470986L)
-            api.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
-                val member = event.member.orElse(null) ?: return@send
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestampToNow()
-                    }
-                }.subscribe()
-            }
+    if (commands) {
+        startLoop()
+        api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+            api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
+        }
+        commandApi.registerCommand(YarnClassCommand, "yc")
+        commandApi.registerCommand(POMFClassCommand, "mcpc")
+        commandApi.registerCommand(YarnMethodCommand, "ym")
+        commandApi.registerCommand(POMFMethodCommand, "mcpm")
+        commandApi.registerCommand(YarnFieldCommand, "yf")
+        commandApi.registerCommand(POMFFieldCommand, "mcpf")
+        commandApi.registerCommand(HelpCommand, "help", "?", "commands")
+        commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
+        commandApi.registerCommand(AboutCommand, "about")
+        api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
+            if (event.guildId.asLong() == 621271154019270675L)
+                api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
+                    val member = event.member
+                    val guild = event.guild.block()
+                    (textChannel as TextChannel).createMessage {
+                        it.setEmbed {
+                            it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
+                            it.setThumbnail(member.avatarUrl)
+                            it.setTimestamp(Instant.now())
+                            it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. \n\nEnjoy your stay!")
+                        }
+                    }.subscribe()
+                }
+            else if (event.guildId.asLong() == 432055962233470986L)
+                api.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
+                    val member = event.member
+                    val guild = event.guild.block()
+                    (textChannel as TextChannel).createMessage {
+                        it.setEmbed {
+                            it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
+                            it.setThumbnail(member.avatarUrl)
+                            it.setTimestampToNow()
+                            it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
+                                    "\n" +
+                                    "Anyways, enjoy your stay!")
+                        }
+                    }.subscribe()
+                }
+        }
+        api.eventDispatcher.on(MemberLeaveEvent::class.java).subscribe { event ->
+            if (event.guildId.asLong() == 621271154019270675L)
+                api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
+                    val member = event.member.orElse(null) ?: return@send
+                    (textChannel as TextChannel).createMessage {
+                        it.setEmbed {
+                            it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
+                            it.setThumbnail(member.avatarUrl)
+                            it.setTimestampToNow()
+                        }
+                    }.subscribe()
+                }
+            else if (event.guildId.asLong() == 432055962233470986L)
+                api.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
+                    val member = event.member.orElse(null) ?: return@send
+                    (textChannel as TextChannel).createMessage {
+                        it.setEmbed {
+                            it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
+                            it.setThumbnail(member.avatarUrl)
+                            it.setTimestampToNow()
+                        }
+                    }.subscribe()
+                }
+        }
     }
     api.login().block()
 }

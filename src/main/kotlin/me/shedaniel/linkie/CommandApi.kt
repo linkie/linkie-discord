@@ -47,7 +47,9 @@ class CommandApi(private val prefix: String) {
                                 emd.setColor(Color.red)
                                 emd.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                                 emd.setTimestamp(Instant.now())
-                                emd.addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage, false)
+                                emd.addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage
+                                        .replace(System.getenv("GOOGLEAPI"), "*")
+                                        , false)
                             }.subscribe()
                         } catch (throwable2: Throwable) {
                             throwable2.addSuppressed(throwable)
