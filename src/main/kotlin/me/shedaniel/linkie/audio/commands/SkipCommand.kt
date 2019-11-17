@@ -50,4 +50,7 @@ object SkipCommand : CommandBase {
             }
         }
     }
+
+    override fun getName(): String = "Skip Track Command"
+    override fun getDescription(): String = "Skip the current track played."
 }

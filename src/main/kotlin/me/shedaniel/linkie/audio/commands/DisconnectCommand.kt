@@ -34,4 +34,7 @@ object DisconnectCommand : CommandBase {
             }.subscribe()
         }
     }
+
+    override fun getName(): String = "Disconnect Music Command"
+    override fun getDescription(): String = "Disconnect the music bot."
 }

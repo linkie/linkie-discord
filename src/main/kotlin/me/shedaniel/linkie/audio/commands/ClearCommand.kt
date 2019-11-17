@@ -33,4 +33,7 @@ object ClearCommand : CommandBase {
             }.subscribe()
         }
     }
+
+    override fun getName(): String = "Clear Queue Command"
+    override fun getDescription(): String = "Clears the music queue."
 }

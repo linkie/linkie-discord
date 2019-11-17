@@ -28,7 +28,7 @@ object LinkieMusic {
             }
         }
         commandApi.registerCommand(PlayCommand, "play", "p")
-        commandApi.registerCommand(DisconnectCommand, "dc", "disconnect", "fuckoff", "stop", "shutdown")
+        commandApi.registerCommand(DisconnectCommand, "dc", "disconnect", "stop", "shutdown")
         commandApi.registerCommand(SkipCommand, "skip")
         commandApi.registerCommand(ClearCommand, "clear")
         commandApi.registerCommand(LoopCommand, "loop")

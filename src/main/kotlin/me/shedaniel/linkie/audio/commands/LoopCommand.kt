@@ -41,4 +41,7 @@ object LoopCommand : CommandBase {
             }
         }
     }
+
+    override fun getName(): String = "Loop Queue Command"
+    override fun getDescription(): String = "Toggles looping in the queue."
 }

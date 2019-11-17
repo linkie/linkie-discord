@@ -57,4 +57,7 @@ object PlayCommand : CommandBase {
                 }
         }
     }
+
+    override fun getName(): String = "Play Music Command"
+    override fun getDescription(): String = "Play / Queue a track."
 }
