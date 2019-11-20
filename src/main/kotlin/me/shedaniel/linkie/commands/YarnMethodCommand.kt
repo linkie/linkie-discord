@@ -185,7 +185,7 @@ private data class MethodWrapper(val method: Method, val parent: Class, val cm: 
 private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
-    if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
+    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
     sortedMethods.dropAndTake(5 * page, 5).forEach {
         if (!desc.isEmpty())

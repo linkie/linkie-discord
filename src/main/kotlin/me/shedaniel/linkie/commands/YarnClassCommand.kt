@@ -128,7 +128,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
 private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
-    if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
+    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
     sortedClasses.dropAndTake(5 * page, 5).forEach {
         if (!desc.isEmpty())

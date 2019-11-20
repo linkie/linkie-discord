@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit
 
 data class MappingsContainer(
         val version: String,
-        val classes: MutableList<Class> = mutableListOf()
+        val classes: MutableList<Class> = mutableListOf(),
+        val name: String = "Yarn"
 ) {
     fun getClass(intermediaryName: String): Class? =
             classes.firstOrNull { it.intermediaryName == intermediaryName }
@@ -148,11 +149,11 @@ fun updateYarn() {
             loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
             loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
         })
-        c.add(MappingsContainer("b1.7.3").apply {
+        c.add(MappingsContainer("b1.7.3", name = "POMF").apply {
             classes.clear()
             // loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", ignoreError = true)
             loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta%201.7.3%20Merge.tiny"))
-            loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "rugby", showError = false)
+            loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", showError = false)
         })
         mappingsContainers.clear()
         mappingsContainers.addAll(c)
@@ -162,16 +163,15 @@ fun updateYarn() {
     }
 }
 
-internal fun String?.loadOfficialYarn(c: MutableList<MappingsContainer>) =
-        this?.also {
-            println("Loading yarn for $it")
-            c.add(MappingsContainer(it).apply {
-                classes.clear()
-                loadIntermediaryFromMaven(version)
-                val yarnMaven = yarnBuilds[version]!!.maven
-                loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
-            })
-        }
+internal fun String.loadOfficialYarn(c: MutableList<MappingsContainer>) {
+    println("Loading yarn for $this")
+    c.add(MappingsContainer(this).apply {
+        classes.clear()
+        loadIntermediaryFromMaven(version)
+        val yarnMaven = yarnBuilds[version]!!.maven
+        loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
+    })
+}
 
 fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String {
     if (startsWith('(') && contains(')')) {

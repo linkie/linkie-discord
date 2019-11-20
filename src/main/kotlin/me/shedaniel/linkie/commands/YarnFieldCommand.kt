@@ -188,7 +188,7 @@ private data class FieldWrapper(val field: Field, val parent: Class, val cm: Fin
 private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
-    if (maxPage > 1) setTitle("List of Yarn Mappings (Page ${page + 1}/$maxPage)")
+    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
     sortedMethods.dropAndTake(5 * page, 5).forEach {
         if (!desc.isEmpty())
