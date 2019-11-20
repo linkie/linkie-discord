@@ -36,7 +36,7 @@ object PlayCommand : CommandBase {
 
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
-            throw InvalidUsageException("+$cmd <link>")
+            throw InvalidUsageException("!$cmd <link>")
         val guildId = event.guildId.orElse(null)?.asLong()
         if (guildId == 591645350016712709 || guildId == 432055962233470986) {
             val member = event.member.get()

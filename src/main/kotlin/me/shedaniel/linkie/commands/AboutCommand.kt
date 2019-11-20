@@ -8,7 +8,7 @@ import me.shedaniel.linkie.*
 object AboutCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isNotEmpty())
-            throw InvalidUsageException("+$cmd")
+            throw InvalidUsageException("!$cmd")
         channel.createEmbed {
             it.setTitle("About Linkie")
             api.self.map { it.avatarUrl }.block()?.also { url -> it.setThumbnail(url) }

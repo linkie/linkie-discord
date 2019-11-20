@@ -26,14 +26,14 @@ object POMFMethodCommand : AYarnMethodCommand({ "b1.7.3" }) {
 open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
-            throw InvalidUsageException("+$cmd <search> [version]")
+            throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
         var searchTerm = args.joinToString(" ")
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
-            throw InvalidUsageException("+$cmd <search> [version]")
+            throw InvalidUsageException("!$cmd <search> [version]")
         val hasClass = searchTerm.contains('.')
         val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") || searchTerm.onlyClass('.') == "*"
 
@@ -48,115 +48,124 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
             }
         }.block() ?: throw NullPointerException("Unknown Message!")
 
-        val mappingsContainer = mappingsContainerGetter.third.invoke()
+        try {
+            val mappingsContainer = mappingsContainerGetter.third.invoke()
 
-        val classes = mutableMapOf<Class, FindMethodMethod>()
-        if (hasClass) {
-            val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
-            if (clazzKey == "*") {
-                mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
+            val classes = mutableMapOf<Class, FindMethodMethod>()
+            if (hasClass) {
+                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                if (clazzKey == "*") {
+                    mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
+                } else {
+                    mappingsContainer.classes.forEach { clazz ->
+                        when {
+                            clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes[clazz] = FindMethodMethod.INTERMEDIARY
+                            clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.MAPPED
+                            clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_CLIENT
+                            clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_SERVER
+                            clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_MERGED
+                        }
+                    }
+                }
+            } else mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
+            val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
+            val methodKey = searchTerm.onlyClass('.')
+            if (methodKey == "*") {
+                classes.forEach { (clazz, cm) ->
+                    clazz.methods.forEach { method ->
+                        if (methods.none { it.key.method == method })
+                            methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.WILDCARD
+                    }
+                }
             } else {
-                mappingsContainer.classes.forEach { clazz ->
-                    when {
-                        clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes[clazz] = FindMethodMethod.INTERMEDIARY
-                        clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.MAPPED
-                        clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_CLIENT
-                        clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_SERVER
-                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = FindMethodMethod.OBF_MERGED
+                classes.forEach { (clazz, cm) ->
+                    clazz.methods.forEach { method ->
+                        if (methods.none { it.key.method == method })
+                            when {
+                                method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.INTERMEDIARY
+                                method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.MAPPED
+                                method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_CLIENT
+                                method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_SERVER
+                                method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_MERGED
+                            }
                     }
                 }
             }
-        } else mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
-        val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
-        val methodKey = searchTerm.onlyClass('.')
-        if (methodKey == "*") {
-            classes.forEach { (clazz, cm) ->
-                clazz.methods.forEach { method ->
-                    if (methods.none { it.key.method == method })
-                        methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.WILDCARD
+            val sortedMethods = if (methodKey == "*") {
+                if (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") {
+                    methods.entries.sortedBy { it.key.method.intermediaryName }.sortedBy {
+                        it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                    }.map { it.key }
+                } else {
+                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                    methods.entries.sortedBy { it.key.method.intermediaryName }.sortedByDescending {
+                        when (it.key.cm) {
+                            FindMethodMethod.MAPPED -> it.key.parent.mappedName!!
+                            FindMethodMethod.OBF_CLIENT -> it.key.parent.obfName.client!!
+                            FindMethodMethod.OBF_SERVER -> it.key.parent.obfName.server!!
+                            FindMethodMethod.OBF_MERGED -> it.key.parent.obfName.merged!!
+                            else -> it.key.parent.intermediaryName
+                        }.onlyClass().similarity(classKey)
+                    }.map { it.key }
                 }
-            }
-        } else {
-            classes.forEach { (clazz, cm) ->
-                clazz.methods.forEach { method ->
-                    if (methods.none { it.key.method == method })
-                        when {
-                            method.intermediaryName.contains(methodKey, true) -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.INTERMEDIARY
-                            method.mappedName?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.MAPPED
-                            method.obfName.client?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_CLIENT
-                            method.obfName.server?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_SERVER
-                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodWrapper(method, clazz, cm)] = FindMethodMethod.OBF_MERGED
-                        }
-                }
-            }
-        }
-        val sortedMethods = if (methodKey == "*") {
-            if (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") {
-                methods.entries.sortedBy { it.key.method.intermediaryName }.sortedBy {
+            } else
+                methods.entries.sortedByDescending {
+                    when (it.value) {
+                        FindMethodMethod.MAPPED -> it.key.method.mappedName!!
+                        FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
+                        FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
+                        FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
+                        else -> it.key.method.intermediaryName
+                    }.onlyClass().similarity(methodKey)
+                }.sortedBy {
                     it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
                 }.map { it.key }
-            } else {
-                val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
-                methods.entries.sortedBy { it.key.method.intermediaryName }.sortedByDescending {
-                    when (it.key.cm) {
-                        FindMethodMethod.MAPPED -> it.key.parent.mappedName!!
-                        FindMethodMethod.OBF_CLIENT -> it.key.parent.obfName.client!!
-                        FindMethodMethod.OBF_SERVER -> it.key.parent.obfName.server!!
-                        FindMethodMethod.OBF_MERGED -> it.key.parent.obfName.merged!!
-                        else -> it.key.parent.intermediaryName
-                    }.onlyClass().similarity(classKey)
-                }.map { it.key }
-            }
-        } else
-            methods.entries.sortedByDescending {
-                when (it.value) {
-                    FindMethodMethod.MAPPED -> it.key.method.mappedName!!
-                    FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
-                    FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
-                    FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
-                    else -> it.key.method.intermediaryName
-                }.onlyClass().similarity(methodKey)
-            }.sortedBy {
-                it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
-            }.map { it.key }
-        if (sortedMethods.isEmpty())
-            throw NullPointerException("No results found!")
-        var page = 0
-        val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-        message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
-            if (channel.type.name.startsWith("GUILD_"))
-                msg.removeAllReactions().block()
-            msg.subscribeReactions("⬅", "❌", "➡")
-            api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                when {
-                    it.userId == api.selfId.get() -> {
-                    }
-                    it.userId == user.id -> {
-                        if (!it.emoji.asUnicodeEmoji().isPresent) {
-                            msg.removeReaction(it.emoji, it.userId).subscribe()
-                        } else {
-                            val unicode = it.emoji.asUnicodeEmoji().get()
-                            if (unicode.raw == "❌") {
-                                msg.delete().subscribe()
-                            } else if (unicode.raw == "⬅") {
+            if (sortedMethods.isEmpty())
+                throw NullPointerException("No results found!")
+            var page = 0
+            val maxPage = ceil(sortedMethods.size / 5.0).toInt()
+            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+                if (channel.type.name.startsWith("GUILD_"))
+                    msg.removeAllReactions().block()
+                msg.subscribeReactions("⬅", "❌", "➡")
+                api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
+                    when {
+                        it.userId == api.selfId.get() -> {
+                        }
+                        it.userId == user.id -> {
+                            if (!it.emoji.asUnicodeEmoji().isPresent) {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
-                                if (page > 0) {
-                                    page--
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                }
-                            } else if (unicode.raw == "➡") {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
-                                if (page < maxPage - 1) {
-                                    page++
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                }
                             } else {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
+                                val unicode = it.emoji.asUnicodeEmoji().get()
+                                if (unicode.raw == "❌") {
+                                    msg.delete().subscribe()
+                                } else if (unicode.raw == "⬅") {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                    if (page > 0) {
+                                        page--
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                    }
+                                } else if (unicode.raw == "➡") {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                    if (page < maxPage - 1) {
+                                        page++
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                    }
+                                } else {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                }
                             }
                         }
+                        else -> msg.removeReaction(it.emoji, it.userId).subscribe()
                     }
-                    else -> msg.removeReaction(it.emoji, it.userId).subscribe()
                 }
+            }
+        } catch (t: Throwable) {
+            try {
+                message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
+            } catch (throwable2: Throwable) {
+                throwable2.addSuppressed(t)
+                throw throwable2
             }
         }
     }

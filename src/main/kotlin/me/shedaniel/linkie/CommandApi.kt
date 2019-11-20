@@ -2,6 +2,7 @@ package me.shedaniel.linkie
 
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.spec.EmbedCreateSpec
 import java.awt.Color
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
@@ -12,9 +13,10 @@ class CommandApi(private val prefix: String) {
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
     internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
 
-    fun getPrefix(isSpecial: Boolean): String {
-        return (if (isSpecial) "+" else prefix).toLowerCase()
-    }
+    @Suppress("UNUSED_PARAMETER")
+    fun getPrefix(isSpecial: Boolean = false): String =
+//            (if (isSpecial) "+" else prefix).toLowerCase()
+            prefix.toLowerCase()
 
     fun registerCommand(command: CommandBase, vararg l: String): CommandApi {
         for (ll in l)
@@ -40,17 +42,8 @@ class CommandApi(private val prefix: String) {
                     try {
                         commandMap[cmd]!!.execute(event, user, cmd, args, channel)
                     } catch (throwable: Throwable) {
-                        throwable.printStackTrace()
                         try {
-                            channel.createEmbed { emd ->
-                                emd.setTitle("Linkie Error")
-                                emd.setColor(Color.red)
-                                emd.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                                emd.setTimestamp(Instant.now())
-                                emd.addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage
-                                        .replace(System.getenv("GOOGLEAPI"), "*")
-                                        , false)
-                            }.subscribe()
+                            channel.createEmbed { it.generateThrowable(throwable, user) }.subscribe()
                         } catch (throwable2: Throwable) {
                             throwable2.addSuppressed(throwable)
                             throwable2.printStackTrace()
@@ -61,4 +54,14 @@ class CommandApi(private val prefix: String) {
         }, executors)
     }
 
+}
+
+fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {
+    setTitle("Linkie Error")
+    setColor(Color.red)
+    user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
+    setTimestamp(Instant.now())
+    addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage
+            .replace(System.getenv("GOOGLEAPI"), "*")
+            , false)
 }

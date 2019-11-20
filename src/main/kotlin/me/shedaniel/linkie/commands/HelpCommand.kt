@@ -9,7 +9,7 @@ import java.util.*
 object HelpCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isNotEmpty())
-            throw InvalidUsageException("+$cmd")
+            throw InvalidUsageException("!$cmd")
         val prefix = commandApi.getPrefix(event.guildId.orElse(null)?.asLong() == 432055962233470986L)
         val commandCategories = CommandCategory.getValues(event.guildId.orElse(null)).filter { c ->
             commandApi.commands.filter { it.key.getCategory() == c && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }.isNotEmpty()

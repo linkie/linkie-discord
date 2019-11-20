@@ -27,7 +27,7 @@ object POMFClassCommand : AYarnClassCommand({ "b1.7.3" }) {
 open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
-            throw InvalidUsageException("+$cmd <search> [version]")
+            throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
         var searchTerm = args.joinToString(" ")
         if (mappingsContainerGetter.first == args.last()) {
@@ -44,72 +44,82 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             }
         }.block() ?: throw NullPointerException("Unknown Message!")
 
-        val mappingsContainer = mappingsContainerGetter.third.invoke()
+        try {
+            val mappingsContainer = mappingsContainerGetter.third.invoke()
 
-        val classes = mutableMapOf<Class, Pair<FindClassMethod, String>>()
-        StringUtils.splitByWholeSeparatorPreserveAllTokens(searchTerm, " ").forEach { searchKey ->
-            val searchKeyOnly = searchKey.onlyClass()
-            mappingsContainer.classes.forEach { clazz ->
-                if (!classes.contains(clazz))
-                    if (clazz.intermediaryName.onlyClass().contains(searchKeyOnly, true))
-                        classes[clazz] = Pair(FindClassMethod.INTERMEDIARY, searchKeyOnly)
-                    else if (clazz.mappedName != null && clazz.mappedName!!.onlyClass().contains(searchKeyOnly, true))
-                        classes[clazz] = Pair(FindClassMethod.MAPPED, searchKeyOnly)
-                    else if (clazz.obfName.client != null && clazz.obfName.client!!.contains(searchKeyOnly, true))
-                        classes[clazz] = Pair(FindClassMethod.OBF_CLIENT, searchKeyOnly)
-                    else if (clazz.obfName.server != null && clazz.obfName.server!!.contains(searchKeyOnly, true))
-                        classes[clazz] = Pair(FindClassMethod.OBF_SERVER, searchKeyOnly)
-                    else if (clazz.obfName.merged != null && clazz.obfName.merged!!.contains(searchKeyOnly, true))
-                        classes[clazz] = Pair(FindClassMethod.OBF_MERGED, searchKeyOnly)
+            val classes = mutableMapOf<Class, Pair<FindClassMethod, String>>()
+            StringUtils.splitByWholeSeparatorPreserveAllTokens(searchTerm, " ").forEach { searchKey ->
+                val searchKeyOnly = searchKey.onlyClass()
+                mappingsContainer.classes.forEach { clazz ->
+                    if (!classes.contains(clazz))
+                        if (clazz.intermediaryName.onlyClass().contains(searchKeyOnly, true))
+                            classes[clazz] = Pair(FindClassMethod.INTERMEDIARY, searchKeyOnly)
+                        else if (clazz.mappedName != null && clazz.mappedName!!.onlyClass().contains(searchKeyOnly, true))
+                            classes[clazz] = Pair(FindClassMethod.MAPPED, searchKeyOnly)
+                        else if (clazz.obfName.client != null && clazz.obfName.client!!.contains(searchKeyOnly, true))
+                            classes[clazz] = Pair(FindClassMethod.OBF_CLIENT, searchKeyOnly)
+                        else if (clazz.obfName.server != null && clazz.obfName.server!!.contains(searchKeyOnly, true))
+                            classes[clazz] = Pair(FindClassMethod.OBF_SERVER, searchKeyOnly)
+                        else if (clazz.obfName.merged != null && clazz.obfName.merged!!.contains(searchKeyOnly, true))
+                            classes[clazz] = Pair(FindClassMethod.OBF_MERGED, searchKeyOnly)
+                }
             }
-        }
-        val sortedClasses = classes.entries.sortedByDescending {
-            when (it.value.first) {
-                FindClassMethod.MAPPED -> it.key.mappedName!!
-                FindClassMethod.OBF_CLIENT -> it.key.obfName.client!!
-                FindClassMethod.OBF_SERVER -> it.key.obfName.server!!
-                FindClassMethod.OBF_MERGED -> it.key.obfName.merged!!
-                else -> it.key.intermediaryName
-            }.onlyClass().similarity(it.value.second.onlyClass())
-        }.map { it.key }
-        if (sortedClasses.isEmpty())
-            throw NullPointerException("No results found!")
-        var page = 0
-        val maxPage = ceil(sortedClasses.size / 5.0).toInt()
-        message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
-            if (channel.type.name.startsWith("GUILD_"))
-                msg.removeAllReactions().block()
-            msg.subscribeReactions("⬅", "❌", "➡")
-            api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                when {
-                    it.userId == api.selfId.get() -> {
-                    }
-                    it.userId == user.id -> {
-                        if (!it.emoji.asUnicodeEmoji().isPresent) {
-                            msg.removeReaction(it.emoji, it.userId).subscribe()
-                        } else {
-                            val unicode = it.emoji.asUnicodeEmoji().get()
-                            if (unicode.raw == "❌") {
-                                msg.delete().subscribe()
-                            } else if (unicode.raw == "⬅") {
+            val sortedClasses = classes.entries.sortedByDescending {
+                when (it.value.first) {
+                    FindClassMethod.MAPPED -> it.key.mappedName!!
+                    FindClassMethod.OBF_CLIENT -> it.key.obfName.client!!
+                    FindClassMethod.OBF_SERVER -> it.key.obfName.server!!
+                    FindClassMethod.OBF_MERGED -> it.key.obfName.merged!!
+                    else -> it.key.intermediaryName
+                }.onlyClass().similarity(it.value.second.onlyClass())
+            }.map { it.key }
+            if (sortedClasses.isEmpty())
+                throw NullPointerException("No results found!")
+            var page = 0
+            val maxPage = ceil(sortedClasses.size / 5.0).toInt()
+            message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+                if (channel.type.name.startsWith("GUILD_"))
+                    msg.removeAllReactions().block()
+                msg.subscribeReactions("⬅", "❌", "➡")
+                api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
+                    when {
+                        it.userId == api.selfId.get() -> {
+                        }
+                        it.userId == user.id -> {
+                            if (!it.emoji.asUnicodeEmoji().isPresent) {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
-                                if (page > 0) {
-                                    page--
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                }
-                            } else if (unicode.raw == "➡") {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
-                                if (page < maxPage - 1) {
-                                    page++
-                                    msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                }
                             } else {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
+                                val unicode = it.emoji.asUnicodeEmoji().get()
+                                if (unicode.raw == "❌") {
+                                    msg.delete().subscribe()
+                                } else if (unicode.raw == "⬅") {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                    if (page > 0) {
+                                        page--
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                    }
+                                } else if (unicode.raw == "➡") {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                    if (page < maxPage - 1) {
+                                        page++
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                    }
+                                } else {
+                                    msg.removeReaction(it.emoji, it.userId).subscribe()
+                                }
                             }
                         }
+                        else -> msg.removeReaction(it.emoji, it.userId).subscribe()
                     }
-                    else -> msg.removeReaction(it.emoji, it.userId).subscribe()
                 }
+            }
+
+        } catch (t: Throwable) {
+            try {
+                message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
+            } catch (throwable2: Throwable) {
+                throwable2.addSuppressed(t)
+                throw throwable2
             }
         }
     }

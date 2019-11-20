@@ -17,7 +17,7 @@ object FabricApiVersionCommand : CommandBase {
 
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.size > 2)
-            throw InvalidUsageException("+$cmd [page] [-r]")
+            throw InvalidUsageException("!$cmd [page] [-r]")
         var page = if (args.isEmpty()) 0 else if (args.size == 1 && args[0].equals("-r", ignoreCase = true)) 0 else args[0].toInt() - 1
         val showReleaseOnly = args.size == 2 && args[1].equals("-r", ignoreCase = true) || args.size == 1 && args[0].equals("-r", ignoreCase = true)
         require(page >= 0) { "The minimum page is 1!" }
