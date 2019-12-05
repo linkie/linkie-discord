@@ -28,6 +28,8 @@ private fun editDistance(s11: String, s22: String): Int {
     return costs[s22.length]
 }
 
+fun String?.similarityOnNull(other: String?): Double = if (this == null || other == null) 0.0 else similarity(other)
+
 fun String.similarity(other: String): Double {
     val s11 = this.onlyClass().toLowerCase()
     val s22 = other.onlyClass().toLowerCase()
@@ -47,3 +49,13 @@ fun String.onlyClass(c: Char = '/'): String {
     val indexOf = lastIndexOf(c)
     return if (indexOf < 0) this else substring(indexOf + 1)
 }
+
+fun String?.containsOrMatchWildcard(searchTerm: String): MatchResult {
+    return when {
+        this == null -> MatchResult(false)
+        searchTerm.contains('/') -> MatchResult(contains(searchTerm, true), searchTerm, this)
+        else -> MatchResult(onlyClass().contains(searchTerm.onlyClass(), true), searchTerm.onlyClass(), onlyClass())
+    }
+}
+
+data class MatchResult(val matched: Boolean, val matchStr: String? = null, val selfTerm: String? = null)

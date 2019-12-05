@@ -1,3 +1,5 @@
+@file:Suppress("ConstantConditionIf")
+
 package me.shedaniel.linkie
 
 import discord4j.core.DiscordClient
@@ -24,20 +26,12 @@ val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
 var commandApi: CommandApi = CommandApi("!")
-const val music: Boolean = true
-const val commands: Boolean = true
+val music: Boolean = System.getenv("linkie-music") != "false"
+val commands: Boolean = System.getenv("linkie-commands") != "false"
 
-fun start() {
-    api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
-    if (music) {
-        LinkieMusic.setupMusic()
-        LinkieMusic.setupCommands()
-    }
+fun registerCommands(commandApi: CommandApi) {
+    if (music) LinkieMusic.setupCommands(commandApi)
     if (commands) {
-        startLoop()
-        api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
-            api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
-        }
         commandApi.registerCommand(YarnClassCommand, "yc")
         commandApi.registerCommand(POMFClassCommand, "mcpc")
         commandApi.registerCommand(YarnMethodCommand, "ym")
@@ -47,6 +41,18 @@ fun start() {
         commandApi.registerCommand(HelpCommand, "help", "?", "commands")
         commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
         commandApi.registerCommand(AboutCommand, "about")
+    }
+}
+
+fun start() {
+    api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
+    if (music) LinkieMusic.setupMusic()
+    registerCommands(commandApi)
+    if (commands) {
+        startLoop()
+        api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+            api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
+        }
         api.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
             if (event.guildId.asLong() == 621271154019270675L)
                 api.getChannelById(Snowflake.of(621298431855427615L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->

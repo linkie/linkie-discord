@@ -12,11 +12,12 @@ class CommandApi(private val prefix: String) {
     private val executors = Executors.newScheduledThreadPool(64)
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
     internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
+    private val prefixMap: Map<Long, String> = mapOf(
+//            Pair(432055962233470986L, "+")
+    )
 
-    @Suppress("UNUSED_PARAMETER")
-    fun getPrefix(isSpecial: Boolean = false): String =
-//            (if (isSpecial) "+" else prefix).toLowerCase()
-            prefix.toLowerCase()
+    fun getPrefix(guildId: Long?): String =
+            guildId?.let { prefixMap[it] } ?: prefix.toLowerCase()
 
     fun registerCommand(command: CommandBase, vararg l: String): CommandApi {
         for (ll in l)
@@ -32,7 +33,7 @@ class CommandApi(private val prefix: String) {
             val channel = event.message.channel.block()
             if (user == null || user.isBot || message == null || channel == null)
                 return@Runnable
-            val prefix = getPrefix(event.guildId.orElse(null)?.asLong() == 432055962233470986L)
+            val prefix = getPrefix(event.guildId.orElse(null)?.asLong())
             if (message.toLowerCase().startsWith(prefix)) {
                 val content = message.substring(prefix.length)
                 val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)

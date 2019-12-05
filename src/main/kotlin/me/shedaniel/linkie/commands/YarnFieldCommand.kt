@@ -9,6 +9,7 @@ import me.shedaniel.linkie.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.similarity
+import me.shedaniel.linkie.utils.similarityOnNull
 import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
@@ -30,14 +31,14 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
 
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
 
-        var searchTerm = args.joinToString(" ")
+        var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
             throw InvalidUsageException("!$cmd <search> [version]")
-        val hasClass = searchTerm.contains('.')
-        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") || searchTerm.onlyClass('.') == "*"
+        val hasClass = searchTerm.contains('/')
+        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
 
         val message = channel.createEmbed {
             it.apply {
@@ -56,7 +57,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
             val classes = mutableMapOf<Class, FindFieldMethod>()
 
             if (hasClass) {
-                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
                 if (clazzKey == "*") {
                     mappingsContainer.classes.forEach { classes[it] = FindFieldMethod.WILDCARD }
                 } else {
@@ -72,7 +73,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
             } else mappingsContainer.classes.forEach { classes[it] = FindFieldMethod.WILDCARD }
             val fields = mutableMapOf<FieldWrapper, FindFieldMethod>()
-            val fieldKey = searchTerm.onlyClass('.')
+            val fieldKey = searchTerm.onlyClass('/')
             if (fieldKey == "*") {
                 classes.forEach { (clazz, cm) ->
                     clazz.fields.forEach { field ->
@@ -94,35 +95,55 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                     }
                 }
             }
-            val sortedFields = if (fieldKey == "*") {
-                if (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") {
+            val sortedFields = when {
+                fieldKey == "*" && (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") -> {
+                    // Class and field both wildcard
                     fields.entries.sortedBy { it.key.field.intermediaryName }.sortedBy {
                         it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
                     }.map { it.key }
-                } else {
-                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                }
+                fieldKey == "*" -> {
+                    // Only field wildcard
+                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
                     fields.entries.sortedBy { it.key.field.intermediaryName }.sortedByDescending {
                         when (it.key.cm) {
-                            FindFieldMethod.MAPPED -> it.key.parent.mappedName!!
-                            FindFieldMethod.OBF_CLIENT -> it.key.parent.obfName.client!!
-                            FindFieldMethod.OBF_SERVER -> it.key.parent.obfName.server!!
-                            FindFieldMethod.OBF_MERGED -> it.key.parent.obfName.merged!!
-                            else -> it.key.parent.intermediaryName
-                        }.onlyClass().similarity(classKey)
+                            FindFieldMethod.MAPPED -> it.key.parent.mappedName!!.onlyClass()
+                            FindFieldMethod.OBF_CLIENT -> it.key.parent.obfName.client!!.onlyClass()
+                            FindFieldMethod.OBF_SERVER -> it.key.parent.obfName.server!!.onlyClass()
+                            FindFieldMethod.OBF_MERGED -> it.key.parent.obfName.merged!!.onlyClass()
+                            FindFieldMethod.INTERMEDIARY -> it.key.parent.intermediaryName.onlyClass()
+                            else -> null
+                        }.similarityOnNull(classKey)
                     }.map { it.key }
                 }
-            } else
-                fields.entries.sortedByDescending {
-                    when (it.value) {
-                        FindFieldMethod.MAPPED -> it.key.field.mappedName!!
-                        FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
-                        FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
-                        FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
-                        else -> it.key.field.intermediaryName
-                    }.onlyClass().similarity(fieldKey)
-                }.sortedBy {
-                    it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
-                }.map { it.key }
+                hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() != "*" -> {
+                    // has class
+                    fields.entries.sortedByDescending {
+                        when (it.value) {
+                            FindFieldMethod.MAPPED -> it.key.field.mappedName!!
+                            FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
+                            FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
+                            FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
+                            else -> it.key.field.intermediaryName
+                        }.onlyClass().similarity(fieldKey)
+                    }.sortedBy {
+                        it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                    }.map { it.key }
+                }
+                else -> {
+                    fields.entries.sortedBy {
+                        it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                    }.sortedByDescending {
+                        when (it.value) {
+                            FindFieldMethod.MAPPED -> it.key.field.mappedName!!
+                            FindFieldMethod.OBF_CLIENT -> it.key.field.obfName.client!!
+                            FindFieldMethod.OBF_SERVER -> it.key.field.obfName.server!!
+                            FindFieldMethod.OBF_MERGED -> it.key.field.obfName.merged!!
+                            else -> it.key.field.intermediaryName
+                        }.onlyClass().similarity(fieldKey)
+                    }.map { it.key }
+                }
+            }
             if (sortedFields.isEmpty())
                 throw NullPointerException("No results found!")
             var page = 0
@@ -132,10 +153,10 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
                 api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when {
-                        it.userId == api.selfId.get() -> {
+                    when (it.userId) {
+                        api.selfId.get() -> {
                         }
-                        it.userId == user.id -> {
+                        user.id -> {
                             if (!it.emoji.asUnicodeEmoji().isPresent) {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                             } else {

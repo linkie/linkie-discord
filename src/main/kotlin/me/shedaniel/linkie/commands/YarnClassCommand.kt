@@ -6,10 +6,10 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
+import me.shedaniel.linkie.utils.MatchResult
+import me.shedaniel.linkie.utils.containsOrMatchWildcard
 import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.similarity
-import org.apache.commons.lang3.StringUtils
+import me.shedaniel.linkie.utils.similarityOnNull
 import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
@@ -33,7 +33,8 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
-
+        if (searchTerm.contains(' '))
+            throw InvalidUsageException("!$cmd <search> [version]")
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
@@ -47,32 +48,22 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
         try {
             val mappingsContainer = mappingsContainerGetter.third.invoke()
 
-            val classes = mutableMapOf<Class, Pair<FindClassMethod, String>>()
-            StringUtils.splitByWholeSeparatorPreserveAllTokens(searchTerm, " ").forEach { searchKey ->
-                val searchKeyOnly = searchKey.onlyClass()
-                mappingsContainer.classes.forEach { clazz ->
-                    if (!classes.contains(clazz))
-                        if (clazz.intermediaryName.onlyClass().contains(searchKeyOnly, true))
-                            classes[clazz] = Pair(FindClassMethod.INTERMEDIARY, searchKeyOnly)
-                        else if (clazz.mappedName != null && clazz.mappedName!!.onlyClass().contains(searchKeyOnly, true))
-                            classes[clazz] = Pair(FindClassMethod.MAPPED, searchKeyOnly)
-                        else if (clazz.obfName.client != null && clazz.obfName.client!!.contains(searchKeyOnly, true))
-                            classes[clazz] = Pair(FindClassMethod.OBF_CLIENT, searchKeyOnly)
-                        else if (clazz.obfName.server != null && clazz.obfName.server!!.contains(searchKeyOnly, true))
-                            classes[clazz] = Pair(FindClassMethod.OBF_SERVER, searchKeyOnly)
-                        else if (clazz.obfName.merged != null && clazz.obfName.merged!!.contains(searchKeyOnly, true))
-                            classes[clazz] = Pair(FindClassMethod.OBF_MERGED, searchKeyOnly)
+            val classes = mutableMapOf<Class, MatchResult>()
+            val searchKeyOnly = searchTerm.replace('.', '/')
+            mappingsContainer.classes.forEach { clazz ->
+                if (!classes.contains(clazz)) {
+                    if (clazz.intermediaryName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                        if (clazz.mappedName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
+                            if (clazz.obfName.client.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
+                                if (clazz.obfName.server.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
+                                    clazz.obfName.merged.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            val sortedClasses = classes.entries.sortedByDescending {
-                when (it.value.first) {
-                    FindClassMethod.MAPPED -> it.key.mappedName!!
-                    FindClassMethod.OBF_CLIENT -> it.key.obfName.client!!
-                    FindClassMethod.OBF_SERVER -> it.key.obfName.server!!
-                    FindClassMethod.OBF_MERGED -> it.key.obfName.merged!!
-                    else -> it.key.intermediaryName
-                }.onlyClass().similarity(it.value.second.onlyClass())
-            }.map { it.key }
+            val sortedClasses = classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }.map { it.key }
             if (sortedClasses.isEmpty())
                 throw NullPointerException("No results found!")
             var page = 0
@@ -82,10 +73,10 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
                 api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when {
-                        it.userId == api.selfId.get() -> {
+                    when (it.userId) {
+                        api.selfId.get() -> {
                         }
-                        it.userId == user.id -> {
+                        user.id -> {
                             if (!it.emoji.asUnicodeEmoji().isPresent) {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                             } else {

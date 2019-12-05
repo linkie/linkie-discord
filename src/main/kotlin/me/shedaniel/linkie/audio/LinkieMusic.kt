@@ -8,9 +8,9 @@ import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.VoiceChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.VoiceStateUpdateEvent
+import me.shedaniel.linkie.CommandApi
 import me.shedaniel.linkie.api
 import me.shedaniel.linkie.audio.commands.*
-import me.shedaniel.linkie.commandApi
 
 
 object LinkieMusic {
@@ -18,7 +18,7 @@ object LinkieMusic {
     val playerManager = DefaultAudioPlayerManager()
     internal val musicManagers: MutableMap<Snowflake, GuildMusicManager> = mutableMapOf()
 
-    fun setupCommands() {
+    fun setupCommands(commandApi: CommandApi) {
         api.eventDispatcher.on(VoiceStateUpdateEvent::class.java).subscribe {
             if (it.current.userId == api.selfId.orElse(null)) {
                 val guild = it.current.guild.block()!!

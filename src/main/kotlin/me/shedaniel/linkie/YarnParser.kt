@@ -233,7 +233,7 @@ private data class EngimaLine(
         val indent: Int,
         val type: MappingsType
 ) {
-    val split: List<String> by lazy { text.replace("\t", "").split(" ") }
+    val split: List<String> by lazy { text.trimStart('\t').split(" ") }
 }
 
 internal enum class MappingsType {

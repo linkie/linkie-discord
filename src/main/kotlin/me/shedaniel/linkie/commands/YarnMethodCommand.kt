@@ -9,6 +9,7 @@ import me.shedaniel.linkie.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.similarity
+import me.shedaniel.linkie.utils.similarityOnNull
 import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
@@ -28,14 +29,14 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
         if (args.isEmpty())
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
-        var searchTerm = args.joinToString(" ")
+        var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
             throw InvalidUsageException("!$cmd <search> [version]")
-        val hasClass = searchTerm.contains('.')
-        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") || searchTerm.onlyClass('.') == "*"
+        val hasClass = searchTerm.contains('/')
+        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
 
         val message = channel.createEmbed {
             it.apply {
@@ -53,7 +54,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
 
             val classes = mutableMapOf<Class, FindMethodMethod>()
             if (hasClass) {
-                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
                 if (clazzKey == "*") {
                     mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
                 } else {
@@ -69,7 +70,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 }
             } else mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
             val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
-            val methodKey = searchTerm.onlyClass('.')
+            val methodKey = searchTerm.onlyClass('/')
             if (methodKey == "*") {
                 classes.forEach { (clazz, cm) ->
                     clazz.methods.forEach { method ->
@@ -91,35 +92,55 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                     }
                 }
             }
-            val sortedMethods = if (methodKey == "*") {
-                if (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass() == "*") {
+            val sortedMethods = when {
+                methodKey == "*" && (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") -> {
+                    // Class and method both wildcard
                     methods.entries.sortedBy { it.key.method.intermediaryName }.sortedBy {
                         it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
                     }.map { it.key }
-                } else {
-                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('.')).onlyClass()
+                }
+                methodKey == "*" -> {
+                    // Only method wildcard
+                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
                     methods.entries.sortedBy { it.key.method.intermediaryName }.sortedByDescending {
                         when (it.key.cm) {
-                            FindMethodMethod.MAPPED -> it.key.parent.mappedName!!
-                            FindMethodMethod.OBF_CLIENT -> it.key.parent.obfName.client!!
-                            FindMethodMethod.OBF_SERVER -> it.key.parent.obfName.server!!
-                            FindMethodMethod.OBF_MERGED -> it.key.parent.obfName.merged!!
-                            else -> it.key.parent.intermediaryName
-                        }.onlyClass().similarity(classKey)
+                            FindMethodMethod.MAPPED -> it.key.parent.mappedName!!.onlyClass()
+                            FindMethodMethod.OBF_CLIENT -> it.key.parent.obfName.client!!.onlyClass()
+                            FindMethodMethod.OBF_SERVER -> it.key.parent.obfName.server!!.onlyClass()
+                            FindMethodMethod.OBF_MERGED -> it.key.parent.obfName.merged!!.onlyClass()
+                            FindMethodMethod.INTERMEDIARY -> it.key.parent.intermediaryName.onlyClass()
+                            else -> null
+                        }.similarityOnNull(classKey)
                     }.map { it.key }
                 }
-            } else
-                methods.entries.sortedByDescending {
-                    when (it.value) {
-                        FindMethodMethod.MAPPED -> it.key.method.mappedName!!
-                        FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
-                        FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
-                        FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
-                        else -> it.key.method.intermediaryName
-                    }.onlyClass().similarity(methodKey)
-                }.sortedBy {
-                    it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
-                }.map { it.key }
+                hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() != "*" -> {
+                    // has class
+                    methods.entries.sortedByDescending {
+                        when (it.value) {
+                            FindMethodMethod.MAPPED -> it.key.method.mappedName!!
+                            FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
+                            FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
+                            FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
+                            else -> it.key.method.intermediaryName
+                        }.onlyClass().similarity(methodKey)
+                    }.sortedBy {
+                        it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                    }.map { it.key }
+                }
+                else -> {
+                    methods.entries.sortedBy {
+                        it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
+                    }.sortedByDescending {
+                        when (it.value) {
+                            FindMethodMethod.MAPPED -> it.key.method.mappedName!!
+                            FindMethodMethod.OBF_CLIENT -> it.key.method.obfName.client!!
+                            FindMethodMethod.OBF_SERVER -> it.key.method.obfName.server!!
+                            FindMethodMethod.OBF_MERGED -> it.key.method.obfName.merged!!
+                            else -> it.key.method.intermediaryName
+                        }.onlyClass().similarity(methodKey)
+                    }.map { it.key }
+                }
+            }
             if (sortedMethods.isEmpty())
                 throw NullPointerException("No results found!")
             var page = 0
@@ -129,10 +150,10 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
                 api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when {
-                        it.userId == api.selfId.get() -> {
+                    when (it.userId) {
+                        api.selfId.get() -> {
                         }
-                        it.userId == user.id -> {
+                        user.id -> {
                             if (!it.emoji.asUnicodeEmoji().isPresent) {
                                 msg.removeReaction(it.emoji, it.userId).subscribe()
                             } else {
