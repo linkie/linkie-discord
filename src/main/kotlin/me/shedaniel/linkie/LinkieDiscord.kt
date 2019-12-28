@@ -26,18 +26,21 @@ val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
 var commandApi: CommandApi = CommandApi("!")
-val music: Boolean = System.getenv("linkie-music") != "false"
-val commands: Boolean = System.getenv("linkie-commands") != "false"
+val music: Boolean = System.getProperty("linkie-music") != "false"
+val commands: Boolean = System.getProperty("linkie-commands") != "false"
 
 fun registerCommands(commandApi: CommandApi) {
     if (music) LinkieMusic.setupCommands(commandApi)
     if (commands) {
         commandApi.registerCommand(YarnClassCommand, "yc")
-        commandApi.registerCommand(POMFClassCommand, "mcpc")
+        commandApi.registerCommand(POMFClassCommand, "pomfc")
+        commandApi.registerCommand(MCPClassCommand, "mcpc")
         commandApi.registerCommand(YarnMethodCommand, "ym")
-        commandApi.registerCommand(POMFMethodCommand, "mcpm")
+        commandApi.registerCommand(POMFMethodCommand, "pomfm")
+        commandApi.registerCommand(MCPMethodCommand, "mcpm")
         commandApi.registerCommand(YarnFieldCommand, "yf")
-        commandApi.registerCommand(POMFFieldCommand, "mcpf")
+        commandApi.registerCommand(POMFFieldCommand, "pomff")
+        commandApi.registerCommand(MCPFieldCommand, "mcpf")
         commandApi.registerCommand(HelpCommand, "help", "?", "commands")
         commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
         commandApi.registerCommand(AboutCommand, "about")
@@ -48,8 +51,8 @@ fun start() {
     api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
     if (music) LinkieMusic.setupMusic()
     registerCommands(commandApi)
+    startLoop()
     if (commands) {
-        startLoop()
         api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
             api.updatePresence(Presence.online(Activity.playing("c o o l gamez"))).subscribe()
         }

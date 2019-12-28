@@ -24,12 +24,14 @@ object POMFFieldCommand : AYarnFieldCommand({ "b1.7.3" }) {
     override fun getDescription(): String? = "Query pomf fields."
 }
 
-open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
+open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("!$cmd <search> [version]")
 
-        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
+        val mappingsContainerGetter = if (isYarn)
+            tryLoadYarnMappingContainer(args.last(), getYarnMappingsContainer(defaultVersion.invoke(channel)))
+        else tryLoadMCPMappingContainer(args.last(), getMCPMappingsContainer(defaultVersion.invoke(channel)))
 
         var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {
@@ -148,7 +150,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 throw NullPointerException("No results found!")
             var page = 0
             val maxPage = ceil(sortedFields.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -167,13 +169,13 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -206,7 +208,7 @@ private enum class FindFieldMethod {
 
 private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
 
-private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
@@ -223,11 +225,16 @@ private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mapp
                 ?: it.parent.intermediaryName}.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
                 "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                 "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
-        desc += "\n__Type__: `${(it.field.mappedDesc
-                ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
-        desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
-                "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+        if (isYarn) {
+            desc += "\n__Type__: `${(it.field.mappedDesc
+                    ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
+            desc += "\n__Mixin Target__: `L${it.parent.mappedName
+                    ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
+                    "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+        } else {
+            desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+                    " ${it.field.intermediaryName} # ${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}`"
+        }
     }
     setDescription(desc.substring(0, min(desc.length, 2000)))
 }

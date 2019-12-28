@@ -24,11 +24,13 @@ object POMFMethodCommand : AYarnMethodCommand({ "b1.7.3" }) {
     override fun getDescription(): String? = "Query pomf methods."
 }
 
-open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
+open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("!$cmd <search> [version]")
-        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
+        val mappingsContainerGetter = if (isYarn)
+            tryLoadYarnMappingContainer(args.last(), getYarnMappingsContainer(defaultVersion.invoke(channel)))
+        else tryLoadMCPMappingContainer(args.last(), getMCPMappingsContainer(defaultVersion.invoke(channel)))
         var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
@@ -145,7 +147,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 throw NullPointerException("No results found!")
             var page = 0
             val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -164,13 +166,13 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -203,7 +205,7 @@ private enum class FindMethodMethod {
 
 private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
-private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
     setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
@@ -220,11 +222,71 @@ private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, map
                 ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
                 "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                 "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
-        desc += "\n__Descriptor__: `${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-                ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-        desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-                ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+//        desc += "\n__Descriptor__: `${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
+//                ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+        if (isYarn) {
+            desc += "\n__Mixin Target__: `L${it.parent.mappedName
+                    ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
+                    ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+        } else {
+            desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+                    " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
+                    " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
+        }
     }
     setDescription(desc.substring(0, min(desc.length, 2000)))
+}
+
+private fun String.mapObfDescToNamed(container: MappingsContainer): String {
+    if (startsWith('(') && contains(')')) {
+        val split = split(')')
+        val parametersOG = split[0].substring(1).toCharArray()
+        val returnsOG = split[1].toCharArray()
+        val parametersUnmapped = mutableListOf<String>()
+        val returnsUnmapped = mutableListOf<String>()
+
+        var lastT: String? = null
+        for (char in parametersOG) {
+            when {
+                lastT != null && char == ';' -> {
+                    parametersUnmapped.add(lastT)
+                    lastT = null
+                }
+                lastT != null -> {
+                    lastT += char
+                }
+                char == 'L' -> {
+                    lastT = ""
+                }
+                else -> parametersUnmapped.add(char.toString())
+            }
+        }
+        for (char in returnsOG) {
+            when {
+                lastT != null && char == ';' -> {
+                    returnsUnmapped.add(lastT)
+                    lastT = null
+                }
+                lastT != null -> {
+                    lastT += char
+                }
+                char == 'L' -> {
+                    lastT = ""
+                }
+                else -> returnsUnmapped.add(char.toString())
+            }
+        }
+        return "(" + parametersUnmapped.joinToString("") {
+            if (it.length != 1) {
+                "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
+            } else
+                it
+        } + ")" + returnsUnmapped.joinToString("") {
+            if (it.length != 1) {
+                "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
+            } else
+                it
+        }
+    }
+    return this
 }

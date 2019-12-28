@@ -24,11 +24,13 @@ object POMFClassCommand : AYarnClassCommand({ "b1.7.3" }) {
     override fun getDescription(): String? = "Query pomf classes."
 }
 
-open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> String) : CommandBase {
+open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("!$cmd <search> [version]")
-        val mappingsContainerGetter = tryLoadMappingContainer(args.last(), getMappingsContainer(defaultVersion.invoke(channel)))
+        val mappingsContainerGetter = if (isYarn)
+            tryLoadYarnMappingContainer(args.last(), getYarnMappingsContainer(defaultVersion.invoke(channel)))
+        else tryLoadMCPMappingContainer(args.last(), getMCPMappingsContainer(defaultVersion.invoke(channel)))
         var searchTerm = args.joinToString(" ")
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
@@ -53,9 +55,9 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             mappingsContainer.classes.forEach { clazz ->
                 if (!classes.contains(clazz)) {
                     if (clazz.intermediaryName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                        if (clazz.mappedName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
-                            if (clazz.obfName.client.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
-                                if (clazz.obfName.server.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched  != true) {
+                        if (clazz.mappedName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                            if (clazz.obfName.client.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                                if (clazz.obfName.server.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
                                     clazz.obfName.merged.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }
                                 }
                             }
