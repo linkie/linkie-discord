@@ -12,7 +12,7 @@ import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object MCPToYarnFieldCommand : CommandBase {
+object MCPToYarnMethodCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (event.guildId.orElse(null)?.asLong() == 570630340075454474)
             throw IllegalAccessException("MCP commands are not available on this server.")
@@ -30,7 +30,7 @@ object MCPToYarnFieldCommand : CommandBase {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                var desc = "Searching up fields for **${mappingsContainerGetter.first}**."
+                var desc = "Searching up methods for **${mappingsContainerGetter.first}**."
                 if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
                 setDescription(desc)
             }
@@ -42,29 +42,30 @@ object MCPToYarnFieldCommand : CommandBase {
                     ?: throw NullPointerException("Failed to find yarn version for ${mappingsContainer.version}!")
 
             val searchKeyOnly = searchTerm.replace('.', '/').onlyClass()
-            val mcpFields = mutableMapOf<Field, Class>()
+            val mcpMethods = mutableMapOf<Method, Class>()
             mappingsContainer.classes.forEach { clazz ->
-                clazz.fields.forEach {
+                clazz.methods.forEach {
                     if (it.intermediaryName.onlyClass().equals(searchKeyOnly, true) || it.mappedName?.onlyClass()?.equals(searchKeyOnly, true) == true) {
-                        mcpFields[it] = clazz
+                        mcpMethods[it] = clazz
                     }
                 }
             }
-            val remappedFields = mutableMapOf<String, String>()
-            mcpFields.forEach { (mcpField, mcpClassParent) ->
-                val obfName = mcpField.obfName.merged!!
+            val remappedMethods = mutableMapOf<String, String>()
+            mcpMethods.forEach { (mcpMethod, mcpClassParent) ->
+                val obfName = mcpMethod.obfName.merged!!
+                val obfDesc = mcpMethod.obfDesc.merged!!
                 val parentObfName = mcpClassParent.obfName.merged!!
                 val yarnClass = yarnMappingsContainer.getClassByObfName(parentObfName) ?: return@forEach
-                val yarnField = yarnClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@forEach
-                remappedFields[mcpClassParent.intermediaryName.onlyClass() + "." + (mcpField.mappedName ?: mcpField.intermediaryName)] = (yarnClass.mappedName
-                        ?: yarnClass.intermediaryName).onlyClass() + "." + (yarnField.mappedName ?: yarnField.intermediaryName)
+                val yarnMethod = yarnClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@forEach
+                remappedMethods[mcpClassParent.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName ?: mcpMethod.intermediaryName)] = (yarnClass.mappedName
+                        ?: yarnClass.intermediaryName).onlyClass() + "." + (yarnMethod.mappedName ?: yarnMethod.intermediaryName)
             }
-            if (remappedFields.isEmpty())
+            if (remappedMethods.isEmpty())
                 throw NullPointerException("No results found!")
             var page = 0
-            val maxPage = ceil(remappedFields.size / 5.0).toInt()
-            val mcpFieldsList = remappedFields.keys.toList()
-            message.edit { it.setEmbed { it.buildMessage(remappedFields, mcpFieldsList, mappingsContainer.version, page, user, maxPage) } }.subscribe { msg ->
+            val maxPage = ceil(remappedMethods.size / 5.0).toInt()
+            val mcpMethodsList = remappedMethods.keys.toList()
+            message.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -83,13 +84,13 @@ object MCPToYarnFieldCommand : CommandBase {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedFields, mcpFieldsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedFields, mcpFieldsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -110,20 +111,20 @@ object MCPToYarnFieldCommand : CommandBase {
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(remappedFields: MutableMap<String, String>, mcpFields: List<String>, version: String, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(remappedMethods: MutableMap<String, String>, mcpMethods: List<String>, version: String, page: Int, author: User, maxPage: Int) {
         setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of MCP->Yarn Mappings (Page ${page + 1}/$maxPage)")
         var desc = ""
-        mcpFields.dropAndTake(5 * page, 5).forEach {
+        mcpMethods.dropAndTake(5 * page, 5).forEach {
             if (desc.isNotEmpty())
                 desc += "\n"
-            val yarnName = remappedFields[it]
+            val yarnName = remappedMethods[it]
             desc += "**MC $version: $it => `$yarnName`**\n"
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
-    override fun getName(): String = "MCP->Yarn Field Command"
-    override fun getDescription(): String = "Query mcp->yarn fields."
+    override fun getName(): String = "MCP->Yarn Method Command"
+    override fun getDescription(): String = "Query mcp->yarn methods."
 }
