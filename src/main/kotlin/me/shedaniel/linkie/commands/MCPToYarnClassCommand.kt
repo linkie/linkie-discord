@@ -42,7 +42,7 @@ object MCPToYarnClassCommand : CommandBase {
                     ?: throw NullPointerException("Failed to find yarn version for ${mappingsContainer.version}!")
 
             val searchKeyOnly = searchTerm.replace('.', '/').onlyClass()
-            val mcpClasses = mappingsContainer.classes.filter { it.intermediaryName.onlyClass() == searchKeyOnly }
+            val mcpClasses = mappingsContainer.classes.filter { it.intermediaryName.onlyClass().equals(searchKeyOnly, false) }
             val remappedClasses = mutableMapOf<String, String>()
             mcpClasses.forEach { mcpClass ->
                 val obfName = mcpClass.obfName.merged!!
