@@ -1,5 +1,6 @@
 package me.shedaniel.linkie
 
+import me.shedaniel.linkie.utils.toVersion
 import net.fabricmc.mappings.MappingsProvider
 import org.apache.commons.lang3.StringUtils
 import java.io.BufferedReader
@@ -89,7 +90,9 @@ fun MappingsContainer.loadNamedFromMaven(
         group: String = "net.fabricmc.yarn",
         showError: Boolean = true
 ) =
-        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
+        if (yarnVersion.split('+').first().toVersion().isAtLeast(1, 14, 4))
+            loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
+        else loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
 
 fun MappingsContainer.loadNamedFromTinyJar(url: URL, showError: Boolean = true) {
     val stream = ZipInputStream(url.openStream())

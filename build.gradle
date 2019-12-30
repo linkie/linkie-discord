@@ -33,7 +33,7 @@ dependencies {
 //    implementation "com.vaadin:vaadin-bom:$vaadin_version"
 //    implementation "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     implementation "com.google.guava:guava:28.0-jre"
-    implementation "com.github.Chocohead:Tiny-Mappings-Parser:337c8b6"
+    implementation "com.github.shedaniel:Tiny-Mappings-Parser:5c725f4"
     implementation('com.discord4j:discord4j-core:3.0.11') {
         force = true
     }

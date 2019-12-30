@@ -59,3 +59,49 @@ fun String?.containsOrMatchWildcard(searchTerm: String): MatchResult {
 }
 
 data class MatchResult(val matched: Boolean, val matchStr: String? = null, val selfTerm: String? = null)
+
+class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<Version> {
+    constructor(major: Int, minor: Int) : this(major, minor, 0)
+
+    private val version = versionOf(major, minor, patch)
+
+    private fun versionOf(major: Int, minor: Int, patch: Int): Int {
+        require(major in 0..255 && minor in 0..255 && patch in 0..255) {
+            "Version components are out of range: $major.$minor.$patch"
+        }
+        return major.shl(16) + minor.shl(8) + patch
+    }
+
+    override fun toString(): String = if (patch == 0) "$major.$minor" else "$major.$minor.$patch"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        val otherVersion = (other as? Version) ?: return false
+        return this.version == otherVersion.version
+    }
+
+    override fun hashCode(): Int = version
+
+    override fun compareTo(other: Version): Int = version - other.version
+
+    fun isAtLeast(major: Int, minor: Int): Boolean = // this.version >= versionOf(major, minor, 0)
+            this.major > major || (this.major == major &&
+                    this.minor >= minor)
+
+    fun isAtLeast(major: Int, minor: Int, patch: Int): Boolean = // this.version >= versionOf(major, minor, patch)
+            this.major > major || (this.major == major &&
+                    (this.minor > minor || this.minor == minor &&
+                            this.patch >= patch))
+}
+
+fun String.toVersion(): Version {
+    val byDot = split('.')
+
+    return when (byDot.size) {
+        0 -> Version(0, 0)
+        1 -> Version(byDot[0].toInt(), 0)
+        2 -> Version(byDot[0].toInt(), byDot[1].toInt())
+        3 -> Version(byDot[0].toInt(), byDot[1].toInt(), byDot[2].toInt())
+        else -> throw IllegalStateException()
+    }
+}

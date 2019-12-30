@@ -10,6 +10,11 @@ fun getYarnMappingsContainer(version: String): MappingsContainer? = yarnContaine
 
 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
 fun tryLoadYarnMappingContainer(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer> {
+    return tryLoadYarnMappingContainerDoNotThrow(version, defaultContainer) ?: throw NullPointerException("Please report this issue!")
+}
+
+@Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getYarnMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
@@ -22,7 +27,7 @@ fun tryLoadYarnMappingContainer(version: String, defaultContainer: MappingsConta
     if (defaultContainer != null) {
         return Triple(defaultContainer.version, true, { defaultContainer!! })
     }
-    throw NullPointerException("Please report this issue!")
+    return null
 }
 
 var latestYarn = ""
@@ -56,13 +61,14 @@ fun updateYarn() {
 }
 
 private fun String.loadOfficialYarn(c: MutableList<MappingsContainer>) {
-    println("Loading yarn for $this")
-    c.add(MappingsContainer(this).apply {
-        classes.clear()
-        loadIntermediaryFromMaven(version)
-        val yarnMaven = yarnBuilds[version]!!.maven
-        loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
-    })
+    if (c.none { it.version == this })
+        c.add(MappingsContainer(this).apply {
+            println("Loading yarn for $version")
+            classes.clear()
+            loadIntermediaryFromMaven(version)
+            val yarnMaven = yarnBuilds[version]!!.maven
+            loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
+        })
 }
 
 fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String {
