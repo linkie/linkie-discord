@@ -14,7 +14,7 @@ import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object YarnFieldCommand : AYarnFieldCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else latestYarn }) {
+object YarnFieldCommand : AYarnFieldCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else if (it.id.asLong() == 661088839464386571) "1.14.3" else latestYarn }) {
     override fun getName(): String? = "Yarn Field Command"
     override fun getDescription(): String? = "Query yarn fields."
 }
