@@ -42,6 +42,7 @@ fun updateYarn() {
         yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn(c)
         yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(c)
         yarnBuilds.keys.firstOrNull()?.apply { latestYarn = this }
+        "1.14.3".loadOfficialYarn(c)
         c.add(MappingsContainer("1.2.5").apply {
             classes.clear()
             loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
