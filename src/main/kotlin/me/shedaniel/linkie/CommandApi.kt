@@ -62,7 +62,7 @@ fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) 
     setColor(Color.red)
     user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
     setTimestamp(Instant.now())
-    addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + throwable.localizedMessage
+    addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message")
             .replace(System.getenv("GOOGLEAPI"), "*")
             , false)
 }

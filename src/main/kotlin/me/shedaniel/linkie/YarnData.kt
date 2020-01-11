@@ -8,7 +8,6 @@ val yarnBuilds = mutableMapOf<String, YarnBuild>()
 
 fun getYarnMappingsContainer(version: String): MappingsContainer? = yarnContainers.firstOrNull { it.version == version }
 
-@Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
 fun tryLoadYarnMappingContainer(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer> {
     return tryLoadYarnMappingContainerDoNotThrow(version, defaultContainer) ?: throw NullPointerException("Please report this issue!")
 }

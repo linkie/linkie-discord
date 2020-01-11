@@ -15,7 +15,7 @@ import kotlin.math.min
 object MCPToYarnClassCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (event.guildId.orElse(null)?.asLong() == 570630340075454474)
-            throw IllegalAccessException("MCP commands are not available on this server.")
+            throw IllegalAccessException("MCP-related commands are not available on this server.")
         if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
@@ -23,7 +23,7 @@ object MCPToYarnClassCommand : CommandBase {
             mappingsContainerGetter = if (args.size == 2) tryLoadMCPMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString()
                     ?: "", true, { getMCPMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
         } catch (e: NullPointerException) {
-            throw NullPointerException("Version not found!\nVersions: " + mcpConfigSnapshots.filterValues { it.isNotEmpty() }.keys.joinToString { it.toString() })
+            throw NullPointerException("Version not found!\nVersions: " + mcpConfigSnapshots.filterValues { it.isNotEmpty() }.keys.sorted().joinToString { it.toString() })
         }
         val searchTerm = args.first()
         val message = channel.createEmbed {

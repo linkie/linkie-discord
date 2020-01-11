@@ -25,7 +25,7 @@ import java.time.Instant
 val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
-var commandApi: CommandApi = CommandApi("!")
+var commandApi: CommandApi = CommandApi("!!")
 val music: Boolean = System.getProperty("linkie-music") != "false"
 val commands: Boolean = System.getProperty("linkie-commands") != "false"
 
@@ -36,14 +36,17 @@ fun registerCommands(commandApi: CommandApi) {
         commandApi.registerCommand(POMFClassCommand, "pomfc")
         commandApi.registerCommand(MCPClassCommand, "mcpc")
         commandApi.registerCommand(MCPToYarnClassCommand, "devoldefyc", "devoldec", "dvc")
+        commandApi.registerCommand(YarnToMCPClassCommand, "voldefyc", "voldec", "vc")
         commandApi.registerCommand(YarnMethodCommand, "ym")
         commandApi.registerCommand(POMFMethodCommand, "pomfm")
         commandApi.registerCommand(MCPMethodCommand, "mcpm")
         commandApi.registerCommand(MCPToYarnMethodCommand, "devoldefym", "devoldem", "dvm")
+        commandApi.registerCommand(YarnToMCPMethodCommand, "voldefym", "voldem", "vm")
         commandApi.registerCommand(YarnFieldCommand, "yf")
         commandApi.registerCommand(POMFFieldCommand, "pomff")
         commandApi.registerCommand(MCPFieldCommand, "mcpf")
         commandApi.registerCommand(MCPToYarnFieldCommand, "devoldefyf", "devoldef", "dvf")
+        commandApi.registerCommand(YarnToMCPFieldCommand, "voldefyf", "voldef", "vf")
         commandApi.registerCommand(HelpCommand, "help", "?", "commands")
         commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
         commandApi.registerCommand(AboutCommand, "about")

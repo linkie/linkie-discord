@@ -56,7 +56,7 @@ object PlayCommand : CommandBase {
                 } catch (t: Throwable) {
                     joinBySearch(url, event.guild.block()!!, voiceChannel, channel, member, musicManager)
                 }
-        }
+        } else throw IllegalAccessException("Music commands are not available on this server.")
     }
 
     override fun getCategory(): CommandCategory = CommandCategory.MUSIC

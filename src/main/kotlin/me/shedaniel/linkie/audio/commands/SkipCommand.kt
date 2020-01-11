@@ -13,7 +13,7 @@ import java.awt.Color
 object SkipCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isNotEmpty())
-            throw InvalidUsageException("!$cmd <link>")
+            throw InvalidUsageException("!$cmd")
         val guildId = event.guildId.orElse(null)
         if (guildId?.asLong() == 591645350016712709 || guildId?.asLong() == 432055962233470986) {
             val member = event.member.get()
@@ -48,7 +48,7 @@ object SkipCommand : CommandBase {
                     }
                 }.subscribe()
             }
-        }
+        } else throw IllegalAccessException("Music commands are not available on this server.")
     }
 
     override fun getCategory(): CommandCategory = CommandCategory.MUSIC

@@ -10,8 +10,12 @@ internal val mcpConfigSnapshots = mutableMapOf<Version, MutableList<String>>()
 
 fun getMCPMappingsContainer(version: String): MappingsContainer? = mcpContainers.firstOrNull { it.version == version }
 
-@Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
 fun tryLoadMCPMappingContainer(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer> {
+    return tryLoadMCPMappingContainerDoNotThrow(version, defaultContainer) ?: throw NullPointerException("Please report this issue!")
+}
+
+@Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getMCPMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
@@ -27,7 +31,7 @@ fun tryLoadMCPMappingContainer(version: String, defaultContainer: MappingsContai
     if (defaultContainer != null) {
         return Triple(defaultContainer.version, true, { defaultContainer!! })
     }
-    throw NullPointerException("Please report this issue!")
+    return null
 }
 
 fun getLatestMCPVersion(): Version? = mcpConfigSnapshots.filterValues { it.isNotEmpty() }.keys.max()

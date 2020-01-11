@@ -12,7 +12,7 @@ import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object MCPToYarnMethodCommand : CommandBase {
+object YarnToMCPClassCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (event.guildId.orElse(null)?.asLong() == 570630340075454474)
             throw IllegalAccessException("MCP-related commands are not available on this server.")
@@ -20,17 +20,17 @@ object MCPToYarnMethodCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = if (args.size == 2) tryLoadMCPMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString()
-                    ?: "", true, { getMCPMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
+            mappingsContainerGetter = if (args.size == 2) tryLoadYarnMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString() ?: "",
+                    true, { getYarnMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
         } catch (e: NullPointerException) {
-            throw NullPointerException("Version not found!\nVersions: " + mcpConfigSnapshots.filterValues { it.isNotEmpty() }.keys.sorted().joinToString { it.toString() })
+            throw NullPointerException("Version not found!\nVersions: " + yarnBuilds.keys.joinToString())
         }
         val searchTerm = args.first()
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                var desc = "Searching up methods for **${mappingsContainerGetter.first}**."
+                var desc = "Searching up classes for **${mappingsContainerGetter.first}**."
                 if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
                 setDescription(desc)
             }
@@ -38,34 +38,24 @@ object MCPToYarnMethodCommand : CommandBase {
 
         try {
             val mappingsContainer = mappingsContainerGetter.third.invoke()
-            val yarnMappingsContainer = tryLoadYarnMappingContainerDoNotThrow(mappingsContainer.version, null)?.third?.invoke()
-                    ?: throw NullPointerException("Failed to find yarn version for ${mappingsContainer.version}!")
+            val mcpMappingsContainer = tryLoadMCPMappingContainerDoNotThrow(mappingsContainer.version, null)?.third?.invoke()
+                    ?: throw NullPointerException("Failed to find mcp version for ${mappingsContainer.version}!")
 
             val searchKeyOnly = searchTerm.replace('.', '/').onlyClass()
-            val mcpMethods = mutableMapOf<Method, Class>()
-            mappingsContainer.classes.forEach { clazz ->
-                clazz.methods.forEach {
-                    if (it.intermediaryName.onlyClass().equals(searchKeyOnly, true) || it.mappedName?.onlyClass()?.equals(searchKeyOnly, true) == true) {
-                        mcpMethods[it] = clazz
-                    }
-                }
+            val yarnClasses = mappingsContainer.classes.filter { it.intermediaryName.onlyClass().equals(searchKeyOnly, false) ||
+                    it.mappedName?.onlyClass()?.equals(searchKeyOnly, false) == true }
+            val remappedClasses = mutableMapOf<String, String>()
+            yarnClasses.forEach { yarnClass ->
+                val obfName = yarnClass.obfName.merged!!
+                val mcpClass = mcpMappingsContainer.getClassByObfName(obfName) ?: return@forEach
+                remappedClasses[yarnClass.mappedName ?: yarnClass.intermediaryName] = mcpClass.mappedName ?: mcpClass.intermediaryName
             }
-            val remappedMethods = mutableMapOf<String, String>()
-            mcpMethods.forEach { (mcpMethod, mcpClassParent) ->
-                val obfName = mcpMethod.obfName.merged!!
-                val obfDesc = mcpMethod.obfDesc.merged!!
-                val parentObfName = mcpClassParent.obfName.merged!!
-                val yarnClass = yarnMappingsContainer.getClassByObfName(parentObfName) ?: return@forEach
-                val yarnMethod = yarnClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@forEach
-                remappedMethods[mcpClassParent.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName ?: mcpMethod.intermediaryName)] = (yarnClass.mappedName
-                        ?: yarnClass.intermediaryName).onlyClass() + "." + (yarnMethod.mappedName ?: yarnMethod.intermediaryName)
-            }
-            if (remappedMethods.isEmpty())
+            if (remappedClasses.isEmpty())
                 throw NullPointerException("No results found!")
             var page = 0
-            val maxPage = ceil(remappedMethods.size / 5.0).toInt()
-            val mcpMethodsList = remappedMethods.keys.toList()
-            message.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe { msg ->
+            val maxPage = ceil(remappedClasses.size / 5.0).toInt()
+            val yarnClassesList = remappedClasses.keys.toList()
+            message.edit { it.setEmbed { it.buildMessage(remappedClasses, yarnClassesList, mappingsContainer.version, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -84,13 +74,13 @@ object MCPToYarnMethodCommand : CommandBase {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(remappedClasses, yarnClassesList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedMethods, mcpMethodsList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(remappedClasses, yarnClassesList, mappingsContainer.version, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -111,20 +101,20 @@ object MCPToYarnMethodCommand : CommandBase {
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(remappedMethods: MutableMap<String, String>, mcpMethods: List<String>, version: String, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(remappedClasses: MutableMap<String, String>, yarnClasses: List<String>, version: String, page: Int, author: User, maxPage: Int) {
         setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
         setTimestampToNow()
-        if (maxPage > 1) setTitle("List of MCP->Yarn Mappings (Page ${page + 1}/$maxPage)")
+        if (maxPage > 1) setTitle("List of Yarn->MCP Mappings (Page ${page + 1}/$maxPage)")
         var desc = ""
-        mcpMethods.dropAndTake(5 * page, 5).forEach {
+        yarnClasses.dropAndTake(5 * page, 5).forEach {
             if (desc.isNotEmpty())
                 desc += "\n"
-            val yarnName = remappedMethods[it]
+            val yarnName = remappedClasses[it]
             desc += "**MC $version: $it => `$yarnName`**\n"
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
-    override fun getName(): String = "MCP->Yarn Method Command"
-    override fun getDescription(): String = "Query mcp->yarn methods."
+    override fun getName(): String = "Yarn->MCP Class Command"
+    override fun getDescription(): String = "Query yarn->mcp classes."
 }
