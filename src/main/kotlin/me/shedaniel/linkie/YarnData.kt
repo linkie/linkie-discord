@@ -1,5 +1,7 @@
 package me.shedaniel.linkie
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.list
 import java.net.URL
 
@@ -19,7 +21,7 @@ fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: Map
         return Triple(mightBeCached.version, true, { mightBeCached!! })
     if (yarnBuilds.containsKey(version)) {
         return Triple(version.toLowerCase(), false, {
-            version.loadOfficialYarn(yarnContainers)
+            version.loadOfficialYarn(yarnContainers, false)
             getYarnMappingsContainer(version)!!
         })
     }
@@ -33,43 +35,58 @@ var latestYarn = ""
 
 fun updateYarn() {
     try {
-        val c = mutableListOf<MappingsContainer>()
+        println("Updating yarn")
+        yarnContainers.clear()
         yarnBuilds.clear()
         val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
         json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
-        buildMap.forEach { version, builds -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
-        yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn(c)
-        yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(c)
+        buildMap.forEach { (version, builds) -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
+        yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn(yarnContainers)
+        yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(yarnContainers)
         yarnBuilds.keys.firstOrNull()?.apply { latestYarn = this }
-        "1.14.3".loadOfficialYarn(c)
-        c.add(MappingsContainer("1.2.5").apply {
-            classes.clear()
-            loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
-            loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
-        })
-        c.add(MappingsContainer("b1.7.3", name = "POMF").apply {
-            classes.clear()
-            loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta%201.7.3%20Merge.tiny"))
-            loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", showError = false)
-        })
-        yarnContainers.clear()
-        yarnContainers.addAll(c)
-        println("Updated KYarn")
+        "1.14.3".loadOfficialYarn(yarnContainers)
+        GlobalScope.launch {
+            yarnContainers.add(MappingsContainer("1.2.5").apply {
+                println("Loading yarn for $version")
+                classes.clear()
+                loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
+                loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
+            })
+        }
+        GlobalScope.launch {
+            yarnContainers.add(MappingsContainer("b1.7.3", name = "POMF").apply {
+                println("Loading yarn for $version")
+                classes.clear()
+                loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta%201.7.3%20Merge.tiny"))
+                loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", showError = false)
+            })
+        }
     } catch (t: Throwable) {
         t.printStackTrace()
     }
 }
 
-private fun String.loadOfficialYarn(c: MutableList<MappingsContainer>) {
-    if (c.none { it.version == this })
-        c.add(MappingsContainer(this).apply {
-            println("Loading yarn for $version")
+private fun String.loadOfficialYarn(c: MutableList<MappingsContainer>, async: Boolean = true) {
+    val version = this
+    if (async)
+        GlobalScope.launch {
+            version.loadNonAsyncOfficialYarn(c)
+        }
+    else version.loadNonAsyncOfficialYarn(c)
+}
+
+private fun String.loadNonAsyncOfficialYarn(c: MutableList<MappingsContainer>) {
+    val version = this
+    if (c.none { it.version == version })
+        c.add(MappingsContainer(version).apply {
+            println("Loading yarn for ${this.version}")
             classes.clear()
-            loadIntermediaryFromMaven(version)
-            val yarnMaven = yarnBuilds[version]!!.maven
+            loadIntermediaryFromMaven(this.version)
+            val yarnMaven = yarnBuilds[this.version]!!.maven
             loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
         })
 }
+
 
 fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String {
     if (startsWith('(') && contains(')')) {

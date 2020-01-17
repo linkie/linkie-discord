@@ -1,5 +1,7 @@
 package me.shedaniel.linkie
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import me.shedaniel.linkie.utils.Version
 import me.shedaniel.linkie.utils.toVersion
 import java.net.URL
@@ -38,7 +40,8 @@ fun getLatestMCPVersion(): Version? = mcpConfigSnapshots.filterValues { it.isNot
 
 fun updateMCP() {
     try {
-        val c = mutableListOf<MappingsContainer>()
+        println("Updating MCP")
+        mcpContainers.clear()
         mcpConfig.clear()
         mcpConfigSnapshots.clear()
         URL("https://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/maven-metadata.xml").readText().lines().forEach {
@@ -56,20 +59,29 @@ fun updateMCP() {
                 list.add(it.primitive.content)
             }
         }
-        getLatestMCPVersion()?.loadLatestSnapshot(c)
-        mcpContainers.clear()
-        mcpContainers.addAll(c)
-        println("Updated KMCP")
+        getLatestMCPVersion()?.loadLatestSnapshot(mcpContainers)
     } catch (t: Throwable) {
         t.printStackTrace()
     }
 }
 
-private fun Version?.loadLatestSnapshot(containers: MutableList<MappingsContainer>) =
-        this?.also { mcVersion ->
-            val latestSnapshot = mcpConfigSnapshots[mcVersion]?.max() ?: return@also
-            MappingsContainer(mcVersion.toString(), name = "MCP").apply {
-                loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
-                loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
-            }.also { containers.add(it) }
-        }
+private fun Version?.loadLatestSnapshot(containers: MutableList<MappingsContainer>, async: Boolean = true) {
+    this?.also { mcVersion ->
+        if (async)
+            GlobalScope.launch {
+                mcVersion.loadNonAsyncLatestSnapshot(containers)
+            }
+        else mcVersion.loadNonAsyncLatestSnapshot(containers)
+    }
+}
+
+private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<MappingsContainer>) {
+    this?.also { mcVersion ->
+        val latestSnapshot = mcpConfigSnapshots[mcVersion]?.max() ?: return@also
+        MappingsContainer(mcVersion.toString(), name = "MCP").apply {
+            println("Loading mcp for $version")
+            loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
+            loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
+        }.also { containers.add(it) }
+    }
+}

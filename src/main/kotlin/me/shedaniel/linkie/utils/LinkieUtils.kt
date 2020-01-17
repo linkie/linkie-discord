@@ -1,5 +1,8 @@
 package me.shedaniel.linkie.utils
 
+import java.lang.Exception
+import java.util.*
+import kotlin.Comparator
 import kotlin.math.min
 
 fun <T> Iterable<T>.dropAndTake(drop: Int, take: Int): List<T> =
@@ -60,8 +63,8 @@ fun String?.containsOrMatchWildcard(searchTerm: String): MatchResult {
 
 data class MatchResult(val matched: Boolean, val matchStr: String? = null, val selfTerm: String? = null)
 
-class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<Version> {
-    constructor(major: Int, minor: Int) : this(major, minor, 0)
+class Version(val major: Int, val minor: Int, val patch: Int, val snapshot: String? = null) : Comparable<Version> {
+    constructor(major: Int, minor: Int, snapshot: String? = null) : this(major, minor, 0, snapshot)
 
     private val version = versionOf(major, minor, patch)
 
@@ -72,17 +75,17 @@ class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<Versi
         return major.shl(16) + minor.shl(8) + patch
     }
 
-    override fun toString(): String = if (patch == 0) "$major.$minor" else "$major.$minor.$patch"
+    override fun toString(): String = (if (patch == 0) "$major.$minor" else "$major.$minor.$patch") + (snapshot?.let { "-$it" } ?: "")
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         val otherVersion = (other as? Version) ?: return false
-        return this.version == otherVersion.version
+        return this.version == otherVersion.version && this.snapshot == otherVersion.snapshot
     }
 
-    override fun hashCode(): Int = version
+    override fun hashCode(): Int = Objects.hash(version, snapshot)
 
-    override fun compareTo(other: Version): Int = version - other.version
+    override fun compareTo(other: Version): Int = Comparator.comparingInt<Version> { it.version }.thenBy { it.snapshot }.compare(this, other)
 
     fun isAtLeast(major: Int, minor: Int): Boolean = // this.version >= versionOf(major, minor, 0)
             this.major > major || (this.major == major &&
@@ -95,6 +98,18 @@ class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<Versi
 }
 
 fun String.toVersion(): Version {
+    if (contains('-')) {
+        val byDash = split('-')
+        val byDot = byDash.first().split('.')
+
+        return when (byDot.size) {
+            0 -> Version(0, 0, snapshot = byDash.drop(1).joinToString("-"))
+            1 -> Version(byDot[0].toInt(), 0, snapshot = byDash.drop(1).joinToString("-"))
+            2 -> Version(byDot[0].toInt(), byDot[1].toInt(), snapshot = byDash.drop(1).joinToString("-"))
+            3 -> Version(byDot[0].toInt(), byDot[1].toInt(), byDot[2].toInt(), snapshot = byDash.drop(1).joinToString("-"))
+            else -> throw IllegalStateException()
+        }
+    }
     val byDot = split('.')
 
     return when (byDot.size) {
@@ -103,5 +118,33 @@ fun String.toVersion(): Version {
         2 -> Version(byDot[0].toInt(), byDot[1].toInt())
         3 -> Version(byDot[0].toInt(), byDot[1].toInt(), byDot[2].toInt())
         else -> throw IllegalStateException()
+    }
+}
+
+fun String.tryToVersion(): Version? {
+    try {
+        if (contains('-')) {
+            val byDash = split('-')
+            val byDot = byDash.first().split('.')
+
+            return when (byDot.size) {
+                0 -> Version(0, 0, snapshot = byDash.drop(1).joinToString("-"))
+                1 -> Version(byDot[0].toInt(), 0, snapshot = byDash.drop(1).joinToString("-"))
+                2 -> Version(byDot[0].toInt(), byDot[1].toInt(), snapshot = byDash.drop(1).joinToString("-"))
+                3 -> Version(byDot[0].toInt(), byDot[1].toInt(), byDot[2].toInt(), snapshot = byDash.drop(1).joinToString("-"))
+                else -> throw IllegalStateException()
+            }
+        }
+        val byDot = split('.')
+
+        return when (byDot.size) {
+            0 -> Version(0, 0)
+            1 -> Version(byDot[0].toInt(), 0)
+            2 -> Version(byDot[0].toInt(), byDot[1].toInt())
+            3 -> Version(byDot[0].toInt(), byDot[1].toInt(), byDot[2].toInt())
+            else -> throw IllegalStateException()
+        }
+    } catch (e: Exception) {
+        return null
     }
 }

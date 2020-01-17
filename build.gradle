@@ -44,6 +44,7 @@ dependencies {
 //        force = true
 //    }
 //    implementation "org.apache.logging.log4j:log4j-core:2.11.0"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.3'
     implementation "org.apache.commons:commons-lang3:3.9"
     implementation "com.github.shedaniel:CurseMetaAPI:0.2"
     implementation "com.github.Zeitheron:CurseForge4J:1.5.2"

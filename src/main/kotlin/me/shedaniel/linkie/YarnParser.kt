@@ -1,6 +1,7 @@
 package me.shedaniel.linkie
 
 import me.shedaniel.linkie.utils.toVersion
+import me.shedaniel.linkie.utils.tryToVersion
 import net.fabricmc.mappings.MappingsProvider
 import org.apache.commons.lang3.StringUtils
 import java.io.BufferedReader
@@ -90,7 +91,7 @@ fun MappingsContainer.loadNamedFromMaven(
         group: String = "net.fabricmc.yarn",
         showError: Boolean = true
 ) =
-        if (yarnVersion.split('+').first().toVersion().isAtLeast(1, 14, 4))
+        if (yarnVersion.split('+').first().tryToVersion()?.isAtLeast(1, 14, 4) == true)
             loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
         else loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
 
