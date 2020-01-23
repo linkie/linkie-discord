@@ -41,10 +41,10 @@ fun updateYarn() {
         val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
         json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
         buildMap.forEach { (version, builds) -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
-        yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.loadOfficialYarn(yarnContainers)
+        yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.takeIf { it != yarnBuilds.keys.firstOrNull() }?.loadOfficialYarn(yarnContainers)
         yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(yarnContainers)
         yarnBuilds.keys.firstOrNull()?.apply { latestYarn = this }
-        "1.14.3".loadOfficialYarn(yarnContainers)
+//        "1.14.3".loadOfficialYarn(yarnContainers)
         GlobalScope.launch {
             yarnContainers.add(MappingsContainer("1.2.5").apply {
                 println("Loading yarn for $version")

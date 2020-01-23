@@ -24,7 +24,7 @@ fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: Mapp
     try {
         if (mcpConfigSnapshots[version.toVersion()]?.isNotEmpty() == true) {
             return Triple(version.toLowerCase(), false, {
-                version.toVersion().loadLatestSnapshot(mcpContainers)
+                version.toVersion().loadLatestSnapshot(mcpContainers, false)
                 getMCPMappingsContainer(version)!!
             })
         }
