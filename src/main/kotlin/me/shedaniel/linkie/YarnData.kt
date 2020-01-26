@@ -4,8 +4,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.list
 import java.net.URL
+import java.util.concurrent.CopyOnWriteArrayList
 
-private val yarnContainers = mutableListOf<MappingsContainer>()
+private val yarnContainers = CopyOnWriteArrayList<MappingsContainer>()
 val yarnBuilds = mutableMapOf<String, YarnBuild>()
 
 fun getYarnMappingsContainer(version: String): MappingsContainer? = yarnContainers.firstOrNull { it.version == version }
@@ -41,6 +42,7 @@ fun updateYarn() {
         val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
         json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
         buildMap.forEach { (version, builds) -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
+        System.gc()
         yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.takeIf { it != yarnBuilds.keys.firstOrNull() }?.loadOfficialYarn(yarnContainers)
         yarnBuilds.keys.firstOrNull()?.loadOfficialYarn(yarnContainers)
         yarnBuilds.keys.firstOrNull()?.apply { latestYarn = this }
@@ -77,7 +79,7 @@ private fun String.loadOfficialYarn(c: MutableList<MappingsContainer>, async: Bo
 
 private fun String.loadNonAsyncOfficialYarn(c: MutableList<MappingsContainer>) {
     val version = this
-    if (c.none { it.version == version })
+    if (c.none { it.version == version }) {
         c.add(MappingsContainer(version).apply {
             println("Loading yarn for ${this.version}")
             classes.clear()
@@ -85,6 +87,10 @@ private fun String.loadNonAsyncOfficialYarn(c: MutableList<MappingsContainer>) {
             val yarnMaven = yarnBuilds[this.version]!!.maven
             loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
         })
+        if (c.size > 5)
+            c.firstOrNull { yarnBuilds.containsKey(it.version) && it.version != yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') } && it.version != yarnBuilds.keys.firstOrNull() }?.let { c.remove(it) }
+        System.gc()
+    }
 }
 
 

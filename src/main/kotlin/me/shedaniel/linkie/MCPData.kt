@@ -5,8 +5,9 @@ import kotlinx.coroutines.launch
 import me.shedaniel.linkie.utils.Version
 import me.shedaniel.linkie.utils.toVersion
 import java.net.URL
+import java.util.concurrent.CopyOnWriteArrayList
 
-private val mcpContainers = mutableListOf<MappingsContainer>()
+private val mcpContainers = CopyOnWriteArrayList<MappingsContainer>()
 private val mcpConfig = mutableListOf<Version>()
 internal val mcpConfigSnapshots = mutableMapOf<Version, MutableList<String>>()
 
@@ -53,6 +54,7 @@ fun updateMCP() {
             }
         }
         mcpConfig.sort()
+        System.gc()
         json.parseJson(URL("http://export.mcpbot.bspk.rs/versions.json").readText()).jsonObject.forEach { mcVersion, mcpVersionsObj ->
             val list = mcpConfigSnapshots.getOrPut(mcVersion.toVersion(), { mutableListOf() })
             mcpVersionsObj.jsonObject["snapshot"]?.jsonArray?.forEach {
@@ -82,6 +84,11 @@ private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<Mappings
             println("Loading mcp for $version")
             loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
             loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
-        }.also { containers.add(it) }
+        }.also {
+            containers.add(it)
+            if (containers.size > 5)
+                containers.firstOrNull { mcpConfigSnapshots.keys.any {version -> version.toString() == it.version} && getLatestMCPVersion()?.toString() != it.version }?.let { containers.remove(it) }
+            System.gc()
+        }
     }
 }
