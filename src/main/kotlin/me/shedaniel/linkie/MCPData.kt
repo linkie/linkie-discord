@@ -17,8 +17,12 @@ fun tryLoadMCPMappingContainer(version: String, defaultContainer: MappingsContai
     return tryLoadMCPMappingContainerDoNotThrow(version, defaultContainer) ?: throw NullPointerException("Please report this issue!")
 }
 
+fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? =
+        if (defaultContainer == null) tryLoadMCPMappingContainerDoNotThrowSupplier(version, null)
+        else tryLoadMCPMappingContainerDoNotThrowSupplier(defaultContainer.version) { defaultContainer }
+
 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? {
+fun tryLoadMCPMappingContainerDoNotThrowSupplier(version: String, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getMCPMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
@@ -32,7 +36,7 @@ fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: Mapp
     } catch (ignored: NumberFormatException) {
     }
     if (defaultContainer != null) {
-        return Triple(defaultContainer.version, true, { defaultContainer!! })
+        return Triple(version, true, defaultContainer)
     }
     return null
 }
@@ -87,7 +91,7 @@ private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<Mappings
         }.also {
             containers.add(it)
             if (containers.size > 5)
-                containers.firstOrNull { mcpConfigSnapshots.keys.any {version -> version.toString() == it.version} && getLatestMCPVersion()?.toString() != it.version }?.let { containers.remove(it) }
+                containers.firstOrNull { mcpConfigSnapshots.keys.any { version -> version.toString() == it.version } && getLatestMCPVersion()?.toString() != it.version }?.let { containers.remove(it) }
             System.gc()
         }
     }

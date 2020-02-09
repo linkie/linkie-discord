@@ -20,8 +20,10 @@ object MCPToYarnClassCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = if (args.size == 2) tryLoadMCPMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString()
-                    ?: "", true, { getMCPMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
+            mappingsContainerGetter = tryLoadMCPMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString()
+                    ?: "" else args.last()) {
+                tryLoadMCPMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
+            } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
             throw NullPointerException("Version not found!\nVersions: " + mcpConfigSnapshots.filterValues { it.isNotEmpty() }.keys.sorted().joinToString { it.toString() })
         }

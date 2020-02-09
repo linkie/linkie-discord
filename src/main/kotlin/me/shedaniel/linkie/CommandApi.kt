@@ -61,8 +61,10 @@ fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) 
     setTitle("Linkie Error")
     setColor(Color.red)
     user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
-    setTimestamp(Instant.now())
+    setTimestampToNow()
     addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message")
             .replace(System.getenv("GOOGLEAPI"), "*")
             , false)
+    if (isDebug)
+        throwable.printStackTrace()
 }

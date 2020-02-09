@@ -20,8 +20,9 @@ object YarnToMCPMethodCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = if (args.size == 2) tryLoadYarnMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString() ?: "",
-                    true, { getYarnMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
+            mappingsContainerGetter = tryLoadYarnMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString() ?: "" else args.last()) {
+                tryLoadYarnMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
+            } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
             throw NullPointerException("Version not found!\nVersions: " + yarnBuilds.keys.joinToString())
         }
@@ -57,7 +58,8 @@ object YarnToMCPMethodCommand : CommandBase {
                 val parentObfName = yarnClassParent.obfName.merged!!
                 val mcpClass = mcpMappingsContainer.getClassByObfName(parentObfName) ?: return@forEach
                 val mcpMethod = mcpClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@forEach
-                remappedMethods[(yarnClassParent.mappedName ?: yarnClassParent.intermediaryName).onlyClass() + "." + (yarnMethod.mappedName ?: yarnMethod.intermediaryName)] = mcpClass.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName ?: mcpMethod.intermediaryName)
+                remappedMethods[(yarnClassParent.mappedName ?: yarnClassParent.intermediaryName).onlyClass() + "." + (yarnMethod.mappedName
+                        ?: yarnMethod.intermediaryName)] = mcpClass.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName ?: mcpMethod.intermediaryName)
             }
             if (remappedMethods.isEmpty())
                 throw NullPointerException("No results found!")

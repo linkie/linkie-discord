@@ -20,8 +20,9 @@ object YarnToMCPFieldCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = if (args.size == 2) tryLoadYarnMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString() ?: "",
-                    true, { getYarnMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
+            mappingsContainerGetter = tryLoadYarnMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString() ?: "" else args.last()) {
+                tryLoadYarnMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
+            } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
             throw NullPointerException("Version not found!\nVersions: " + yarnBuilds.keys.joinToString())
         }
@@ -56,7 +57,8 @@ object YarnToMCPFieldCommand : CommandBase {
                 val parentObfName = yarnClassParent.obfName.merged!!
                 val mcpClass = mcpMappingsContainer.getClassByObfName(parentObfName) ?: return@forEach
                 val mcpField = mcpClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@forEach
-                remappedFields[(yarnClassParent.mappedName ?: yarnClassParent.intermediaryName).onlyClass() + "." + (yarnField.mappedName ?: yarnField.intermediaryName)] = mcpClass.intermediaryName.onlyClass() + "." + (mcpField.mappedName ?: mcpField.intermediaryName)
+                remappedFields[(yarnClassParent.mappedName ?: yarnClassParent.intermediaryName).onlyClass() + "." + (yarnField.mappedName
+                        ?: yarnField.intermediaryName)] = mcpClass.intermediaryName.onlyClass() + "." + (mcpField.mappedName ?: mcpField.intermediaryName)
             }
             if (remappedFields.isEmpty())
                 throw NullPointerException("No results found!")

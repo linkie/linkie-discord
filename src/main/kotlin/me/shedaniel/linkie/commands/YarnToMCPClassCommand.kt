@@ -20,8 +20,9 @@ object YarnToMCPClassCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = if (args.size == 2) tryLoadYarnMappingContainer(args.last(), null) else Triple(getLatestMCPVersion()?.toString() ?: "",
-                    true, { getYarnMappingsContainer(getLatestMCPVersion()?.toString() ?: "")!! })
+            mappingsContainerGetter = tryLoadYarnMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString() ?: "" else args.last()) {
+                tryLoadYarnMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
+            } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
             throw NullPointerException("Version not found!\nVersions: " + yarnBuilds.keys.joinToString())
         }
@@ -42,8 +43,10 @@ object YarnToMCPClassCommand : CommandBase {
                     ?: throw NullPointerException("Failed to find mcp version for ${mappingsContainer.version}!")
 
             val searchKeyOnly = searchTerm.replace('.', '/').onlyClass()
-            val yarnClasses = mappingsContainer.classes.filter { it.intermediaryName.onlyClass().equals(searchKeyOnly, false) ||
-                    it.mappedName?.onlyClass()?.equals(searchKeyOnly, false) == true }
+            val yarnClasses = mappingsContainer.classes.filter {
+                it.intermediaryName.onlyClass().equals(searchKeyOnly, false) ||
+                        it.mappedName?.onlyClass()?.equals(searchKeyOnly, false) == true
+            }
             val remappedClasses = mutableMapOf<String, String>()
             yarnClasses.forEach { yarnClass ->
                 val obfName = yarnClass.obfName.merged!!

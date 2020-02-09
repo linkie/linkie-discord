@@ -25,7 +25,8 @@ import java.time.Instant
 val api: DiscordClient by lazy {
     DiscordClientBuilder(System.getenv("TOKEN")).build()
 }
-var commandApi: CommandApi = CommandApi("!")
+val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
+var commandApi: CommandApi = CommandApi(if (isDebug) "!!" else "!")
 val music: Boolean = System.getProperty("linkie-music") != "false"
 val commands: Boolean = System.getProperty("linkie-commands") != "false"
 
@@ -54,6 +55,9 @@ fun registerCommands(commandApi: CommandApi) {
 }
 
 fun start() {
+    if (isDebug)
+        println("Linkie Bot (Debug Mode)")
+    else println("Linkie Bot")
     api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
     if (music) LinkieMusic.setupMusic()
     registerCommands(commandApi)

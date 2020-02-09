@@ -1,10 +1,9 @@
 package me.shedaniel.linkie
 
-import me.shedaniel.linkie.utils.toVersion
-import me.shedaniel.linkie.utils.tryToVersion
 import net.fabricmc.mappings.MappingsProvider
 import org.apache.commons.lang3.StringUtils
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URL
@@ -90,10 +89,14 @@ fun MappingsContainer.loadNamedFromMaven(
         repo: String = "https://maven.fabricmc.net",
         group: String = "net.fabricmc.yarn",
         showError: Boolean = true
-) =
-        if (yarnVersion.split('+').first().tryToVersion()?.isAtLeast(1, 14, 4) == true)
-            loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
-        else loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
+) {
+    val v2 = URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar")
+    try {
+        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
+    } catch (e: IOException) {
+        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
+    }
+}
 
 fun MappingsContainer.loadNamedFromTinyJar(url: URL, showError: Boolean = true) {
     val stream = ZipInputStream(url.openStream())

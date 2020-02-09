@@ -15,8 +15,12 @@ fun tryLoadYarnMappingContainer(version: String, defaultContainer: MappingsConta
     return tryLoadYarnMappingContainerDoNotThrow(version, defaultContainer) ?: throw NullPointerException("Please report this issue!")
 }
 
+fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? =
+        if (defaultContainer == null) tryLoadYarnMappingContainerDoNotThrowSupplier(version, null)
+        else tryLoadYarnMappingContainerDoNotThrowSupplier(defaultContainer.version) { defaultContainer }
+
 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? {
+fun tryLoadYarnMappingContainerDoNotThrowSupplier(version: String, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getYarnMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
@@ -27,7 +31,7 @@ fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: Map
         })
     }
     if (defaultContainer != null) {
-        return Triple(defaultContainer.version, true, { defaultContainer!! })
+        return Triple(version, true, defaultContainer)
     }
     return null
 }
