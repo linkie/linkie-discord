@@ -18,11 +18,11 @@ fun tryLoadMCPMappingContainer(version: String, defaultContainer: MappingsContai
 }
 
 fun tryLoadMCPMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? =
-        if (defaultContainer == null) tryLoadMCPMappingContainerDoNotThrowSupplier(version, null)
-        else tryLoadMCPMappingContainerDoNotThrowSupplier(defaultContainer.version) { defaultContainer }
+        if (defaultContainer == null) tryLoadMCPMappingContainerDoNotThrowSupplier(version, null, null)
+        else tryLoadMCPMappingContainerDoNotThrowSupplier(version, defaultContainer.version) { defaultContainer }
 
 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-fun tryLoadMCPMappingContainerDoNotThrowSupplier(version: String, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
+fun tryLoadMCPMappingContainerDoNotThrowSupplier(version: String, defaultContainerVersion: String?, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getMCPMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
@@ -35,8 +35,8 @@ fun tryLoadMCPMappingContainerDoNotThrowSupplier(version: String, defaultContain
         }
     } catch (ignored: NumberFormatException) {
     }
-    if (defaultContainer != null) {
-        return Triple(version, true, defaultContainer)
+    if (defaultContainer != null && defaultContainerVersion != null) {
+        return Triple(defaultContainerVersion, true, defaultContainer)
     }
     return null
 }
@@ -90,7 +90,7 @@ private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<Mappings
             loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
         }.also {
             containers.add(it)
-            if (containers.size > 5)
+            if (containers.size > 6)
                 containers.firstOrNull { mcpConfigSnapshots.keys.any { version -> version.toString() == it.version } && getLatestMCPVersion()?.toString() != it.version }?.let { containers.remove(it) }
             System.gc()
         }

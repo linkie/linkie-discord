@@ -48,7 +48,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
         }.block() ?: throw NullPointerException("Unknown Message!")
 
         try {
-            val mappingsContainer = mappingsContainerGetter.third.invoke()
+            val mappingsContainer = mappingsContainerGetter.third()
 
             val classes = mutableMapOf<Class, MatchResult>()
             val searchKeyOnly = searchTerm.replace('.', '/')

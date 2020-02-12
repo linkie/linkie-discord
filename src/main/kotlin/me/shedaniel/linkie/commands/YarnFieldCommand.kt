@@ -54,7 +54,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
         }.block() ?: throw NullPointerException("Unknown Message!")
 
         try {
-            val mappingsContainer = mappingsContainerGetter.third.invoke()
+            val mappingsContainer = mappingsContainerGetter.third()
 
             val classes = mutableMapOf<Class, FindFieldMethod>()
 

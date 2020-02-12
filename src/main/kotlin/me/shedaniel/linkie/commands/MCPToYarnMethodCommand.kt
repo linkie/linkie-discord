@@ -21,7 +21,7 @@ object MCPToYarnMethodCommand : CommandBase {
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
             mappingsContainerGetter = tryLoadMCPMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString()
-                    ?: "" else args.last()) {
+                    ?: "" else args.last(), getLatestMCPVersion()?.toString() ?: "") {
                 tryLoadMCPMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
             } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
@@ -39,7 +39,7 @@ object MCPToYarnMethodCommand : CommandBase {
         }.block() ?: throw NullPointerException("Unknown Message!")
 
         try {
-            val mappingsContainer = mappingsContainerGetter.third.invoke()
+            val mappingsContainer = mappingsContainerGetter.third()
             val yarnMappingsContainer = tryLoadYarnMappingContainerDoNotThrow(mappingsContainer.version, null)?.third?.invoke()
                     ?: throw NullPointerException("Failed to find yarn version for ${mappingsContainer.version}!")
 

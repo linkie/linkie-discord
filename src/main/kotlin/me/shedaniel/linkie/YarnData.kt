@@ -16,22 +16,22 @@ fun tryLoadYarnMappingContainer(version: String, defaultContainer: MappingsConta
 }
 
 fun tryLoadYarnMappingContainerDoNotThrow(version: String, defaultContainer: MappingsContainer?): Triple<String, Boolean, () -> MappingsContainer>? =
-        if (defaultContainer == null) tryLoadYarnMappingContainerDoNotThrowSupplier(version, null)
-        else tryLoadYarnMappingContainerDoNotThrowSupplier(defaultContainer.version) { defaultContainer }
+        if (defaultContainer == null) tryLoadYarnMappingContainerDoNotThrowSupplier(version, null, null)
+        else tryLoadYarnMappingContainerDoNotThrowSupplier(version, defaultContainer.version) { defaultContainer }
 
 @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-fun tryLoadYarnMappingContainerDoNotThrowSupplier(version: String, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
+fun tryLoadYarnMappingContainerDoNotThrowSupplier(version: String, defaultContainerVersion: String?, defaultContainer: (() -> MappingsContainer)?): Triple<String, Boolean, () -> MappingsContainer>? {
     val mightBeCached = getYarnMappingsContainer(version)
     if (mightBeCached != null)
         return Triple(mightBeCached.version, true, { mightBeCached!! })
     if (yarnBuilds.containsKey(version)) {
-        return Triple(version.toLowerCase(), false, {
+        return Triple(version.toLowerCase(), false) {
             version.loadOfficialYarn(yarnContainers, false)
             getYarnMappingsContainer(version)!!
-        })
+        }
     }
-    if (defaultContainer != null) {
-        return Triple(version, true, defaultContainer)
+    if (defaultContainer != null && defaultContainerVersion != null) {
+        return Triple(defaultContainerVersion, true, defaultContainer)
     }
     return null
 }
@@ -91,7 +91,7 @@ private fun String.loadNonAsyncOfficialYarn(c: MutableList<MappingsContainer>) {
             val yarnMaven = yarnBuilds[this.version]!!.maven
             loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
         })
-        if (c.size > 5)
+        if (c.size > 6)
             c.firstOrNull { yarnBuilds.containsKey(it.version) && it.version != yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') } && it.version != yarnBuilds.keys.firstOrNull() }?.let { c.remove(it) }
         System.gc()
     }

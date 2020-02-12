@@ -52,7 +52,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
         }.block() ?: throw NullPointerException("Unknown Message!")
 
         try {
-            val mappingsContainer = mappingsContainerGetter.third.invoke()
+            val mappingsContainer = mappingsContainerGetter.third()
 
             val classes = mutableMapOf<Class, FindMethodMethod>()
             if (hasClass) {

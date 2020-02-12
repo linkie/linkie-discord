@@ -20,7 +20,9 @@ object YarnToMCPFieldCommand : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
         try {
-            mappingsContainerGetter = tryLoadYarnMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString() ?: "" else args.last()) {
+            mappingsContainerGetter = tryLoadYarnMappingContainerDoNotThrowSupplier(if (args.size == 1) getLatestMCPVersion()?.toString()
+                    ?: "" else args.last(),
+                    getLatestMCPVersion()?.toString() ?: "") {
                 tryLoadYarnMappingContainer(getLatestMCPVersion()?.toString() ?: "", null).third()
             } ?: throw NullPointerException("Please report this issue!")
         } catch (e: NullPointerException) {
@@ -38,7 +40,7 @@ object YarnToMCPFieldCommand : CommandBase {
         }.block() ?: throw NullPointerException("Unknown Message!")
 
         try {
-            val mappingsContainer = mappingsContainerGetter.third.invoke()
+            val mappingsContainer = mappingsContainerGetter.third()
             val mcpMappingsContainer = tryLoadMCPMappingContainerDoNotThrow(mappingsContainer.version, null)?.third?.invoke()
                     ?: throw NullPointerException("Failed to find mcp version for ${mappingsContainer.version}!")
 
