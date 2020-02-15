@@ -24,7 +24,7 @@ object HelpCommand : CommandBase {
                 }
                 commandApi.commands.filter { it.key.getCategory() == category && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }
                         .toSortedMap(Comparator.comparing<CommandBase, String> { it.getName()!! })
-                        .forEach { cmd, values ->
+                        .forEach { (cmd, values) ->
                             if (values.isEmpty()) return@forEach
                             val name = cmd.getName() ?: return@forEach
                             val desc = cmd.getDescription() ?: return@forEach

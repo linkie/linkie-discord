@@ -50,6 +50,7 @@ fun registerCommands(commandApi: CommandApi) {
         commandApi.registerCommand(YarnToMCPFieldCommand, "voldefyf", "voldef", "vf")
         commandApi.registerCommand(HelpCommand, "help", "?", "commands")
         commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
+        commandApi.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
         commandApi.registerCommand(AboutCommand, "about")
     }
 }
