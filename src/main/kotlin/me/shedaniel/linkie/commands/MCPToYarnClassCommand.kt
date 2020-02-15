@@ -51,8 +51,14 @@ object MCPToYarnClassCommand : CommandBase {
                 val yarnClass = yarnMappingsContainer.getClassByObfName(obfName) ?: return@forEach
                 remappedClasses[mcpClass.intermediaryName] = yarnClass.mappedName ?: yarnClass.intermediaryName
             }
-            if (remappedClasses.isEmpty())
+            if (remappedClasses.isEmpty()) {
+                if (searchKeyOnly.startsWith("func_") || searchKeyOnly.startsWith("method_")) {
+                    throw NullPointerException("No results found! `$searchKeyOnly` looks like a method!")
+                } else if (searchKeyOnly.startsWith("field_")) {
+                    throw NullPointerException("No results found! `$searchKeyOnly` looks like a field!")
+                }
                 throw NullPointerException("No results found!")
+            }
             var page = 0
             val maxPage = ceil(remappedClasses.size / 5.0).toInt()
             val mcpClassesList = remappedClasses.keys.toList()

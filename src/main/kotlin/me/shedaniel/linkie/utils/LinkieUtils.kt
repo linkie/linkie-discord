@@ -68,11 +68,8 @@ class Version(val major: Int, val minor: Int, val patch: Int, val snapshot: Stri
 
     private val version = versionOf(major, minor, patch)
 
-    private fun versionOf(major: Int, minor: Int, patch: Int): Int {
-        require(major in 0..255 && minor in 0..255 && patch in 0..255) {
-            "Version components are out of range: $major.$minor.$patch"
-        }
-        return major.shl(16) + minor.shl(8) + patch
+    private fun versionOf(major: Int, minor: Int, patch: Int): Long {
+        return major.toLong().shl(16) + minor.toLong().shl(8) + patch.toLong()
     }
 
     override fun toString(): String = (if (patch == 0) "$major.$minor" else "$major.$minor.$patch") + (snapshot?.let { "-$it" } ?: "")
@@ -85,7 +82,7 @@ class Version(val major: Int, val minor: Int, val patch: Int, val snapshot: Stri
 
     override fun hashCode(): Int = Objects.hash(version, snapshot)
 
-    override fun compareTo(other: Version): Int = Comparator.comparingInt<Version> { it.version }.thenBy { it.snapshot }.compare(this, other)
+    override fun compareTo(other: Version): Int = Comparator.comparingLong<Version> { it.version }.thenBy { it.snapshot }.compare(this, other)
 
     fun isAtLeast(major: Int, minor: Int): Boolean = // this.version >= versionOf(major, minor, 0)
             this.major > major || (this.major == major &&

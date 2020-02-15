@@ -39,10 +39,10 @@ object FabricApiVersionCommand : CommandBase {
                 msg.removeAllReactions().block()
             msg.subscribeReactions("⬅", "❌", "➡")
             api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                when {
-                    it.userId == api.selfId.get() -> {
+                when (it.userId) {
+                    api.selfId.get() -> {
                     }
-                    it.userId == user.id -> {
+                    user.id -> {
                         if (!it.emoji.asUnicodeEmoji().isPresent) {
                             msg.removeReaction(it.emoji, it.userId).subscribe()
                         } else {

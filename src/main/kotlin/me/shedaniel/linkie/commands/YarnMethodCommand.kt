@@ -143,8 +143,14 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                     }.map { it.key }
                 }
             }
-            if (sortedMethods.isEmpty())
+            if (sortedMethods.isEmpty()) {
+                if (searchTerm.startsWith("class_")) {
+                    throw NullPointerException("No results found! `$searchTerm` looks like a class!")
+                } else if (searchTerm.startsWith("field_")) {
+                    throw NullPointerException("No results found! `$searchTerm` looks like a field!")
+                }
                 throw NullPointerException("No results found!")
+            }
             var page = 0
             val maxPage = ceil(sortedMethods.size / 5.0).toInt()
             message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe { msg ->

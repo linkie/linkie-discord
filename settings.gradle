@@ -2,8 +2,7 @@ pluginManagement {
     repositories {
         jcenter()
         mavenCentral()
-        maven { url "https://maven.vaadin.com/vaadin-prereleases" }
-        maven { url "http://maven.vaadin.com/vaadin-addons" }
+        maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
         gradlePluginPortal()
     }
 }

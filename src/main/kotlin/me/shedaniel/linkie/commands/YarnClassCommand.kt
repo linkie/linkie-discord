@@ -66,8 +66,14 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
             }
             val sortedClasses = classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }.map { it.key }
-            if (sortedClasses.isEmpty())
+            if (sortedClasses.isEmpty()) {
+                if (searchTerm.startsWith("func_") || searchTerm.startsWith("method_")) {
+                    throw NullPointerException("No results found! `$searchTerm` looks like a method!")
+                } else if (searchTerm.startsWith("field_")) {
+                    throw NullPointerException("No results found! `$searchTerm` looks like a field!")
+                }
                 throw NullPointerException("No results found!")
+            }
             var page = 0
             val maxPage = ceil(sortedClasses.size / 5.0).toInt()
             message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
