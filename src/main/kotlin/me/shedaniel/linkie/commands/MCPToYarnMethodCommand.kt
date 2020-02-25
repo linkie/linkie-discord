@@ -14,8 +14,6 @@ import kotlin.math.min
 
 object MCPToYarnMethodCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (event.guildId.orElse(null)?.asLong() == 570630340075454474)
-            throw IllegalAccessException("MCP-related commands are not available on this server.")
         if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
@@ -59,7 +57,8 @@ object MCPToYarnMethodCommand : CommandBase {
                 val parentObfName = mcpClassParent.obfName.merged!!
                 val yarnClass = yarnMappingsContainer.getClassByObfName(parentObfName) ?: return@forEach
                 val yarnMethod = yarnClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@forEach
-                remappedMethods[mcpClassParent.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName ?: mcpMethod.intermediaryName)] = (yarnClass.mappedName
+                remappedMethods[mcpClassParent.intermediaryName.onlyClass() + "." + (mcpMethod.mappedName
+                        ?: mcpMethod.intermediaryName)] = (yarnClass.mappedName
                         ?: yarnClass.intermediaryName).onlyClass() + "." + (yarnMethod.mappedName ?: yarnMethod.intermediaryName)
             }
             if (remappedMethods.isEmpty()) {

@@ -14,8 +14,6 @@ import kotlin.math.min
 
 object MCPToYarnFieldCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (event.guildId.orElse(null)?.asLong() == 570630340075454474)
-            throw IllegalAccessException("MCP-related commands are not available on this server.")
         if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
         val mappingsContainerGetter: Triple<String, Boolean, () -> MappingsContainer>
