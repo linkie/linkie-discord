@@ -3,7 +3,6 @@ package me.shedaniel.linkie
 import net.fabricmc.mappings.MappingsProvider
 import org.apache.commons.lang3.StringUtils
 import java.io.BufferedReader
-import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.URL
@@ -90,12 +89,17 @@ fun MappingsContainer.loadNamedFromMaven(
         group: String = "net.fabricmc.yarn",
         showError: Boolean = true
 ) {
-    mappingSource = try {
-        loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
-        MappingsContainer.MappingSource.YARN_V2
-    } catch (t: Throwable) {
+    mappingSource = if (YarnV2BlackList.blacklist.contains(yarnVersion)) {
         loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
         MappingsContainer.MappingSource.YARN_V1
+    } else {
+        try {
+            loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
+            MappingsContainer.MappingSource.YARN_V2
+        } catch (t: Throwable) {
+            loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
+            MappingsContainer.MappingSource.YARN_V1
+        }
     }
 }
 
