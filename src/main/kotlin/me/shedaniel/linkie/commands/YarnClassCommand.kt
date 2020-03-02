@@ -122,32 +122,25 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             }
         }
     }
-}
 
-private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
-    setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
-    setTimestampToNow()
-    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
-    var desc = ""
-    sortedClasses.dropAndTake(5 * page, 5).forEach {
-        if (!desc.isEmpty())
-            desc += "\n\n"
-        val obfMap = LinkedHashMap<String, String>()
-        if (!it.obfName.isMerged()) {
-            if (it.obfName.client != null) obfMap["client"] = it.obfName.client!!
-            if (it.obfName.server != null) obfMap["server"] = it.obfName.server!!
+    private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+        if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
+        setTimestampToNow()
+        if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
+        var desc = ""
+        sortedClasses.dropAndTake(5 * page, 5).forEach {
+            if (desc.isNotEmpty())
+                desc += "\n\n"
+            val obfMap = LinkedHashMap<String, String>()
+            if (!it.obfName.isMerged()) {
+                if (it.obfName.client != null) obfMap["client"] = it.obfName.client!!
+                if (it.obfName.server != null) obfMap["server"] = it.obfName.server!!
+            }
+            desc += "**MC ${mappingsContainer.version}: ${it.mappedName ?: it.intermediaryName}**\n" +
+                    "__Name__: " + (if (it.obfName.isEmpty()) "" else if (it.obfName.isMerged()) "${it.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
+                    "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
         }
-        desc += "**MC ${mappingsContainer.version}: ${it.mappedName ?: it.intermediaryName}**\n" +
-                "__Name__: " + (if (it.obfName.isEmpty()) "" else if (it.obfName.isMerged()) "${it.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
+        setDescription(desc.substring(0, min(desc.length, 2000)))
     }
-    setDescription(desc.substring(0, min(desc.length, 2000)))
-}
-
-private enum class FindClassMethod {
-    INTERMEDIARY,
-    MAPPED,
-    OBF_CLIENT,
-    OBF_SERVER,
-    OBF_MERGED,
 }

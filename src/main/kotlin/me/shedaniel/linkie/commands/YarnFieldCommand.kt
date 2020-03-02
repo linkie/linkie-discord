@@ -215,12 +215,13 @@ private enum class FindFieldMethod {
 private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
 
 private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
-    setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
+    if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+    else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
     setTimestampToNow()
     if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
     var desc = ""
     sortedMethods.dropAndTake(5 * page, 5).forEach {
-        if (!desc.isEmpty())
+        if (desc.isNotEmpty())
             desc += "\n\n"
         val obfMap = LinkedHashMap<String, String>()
         if (!it.field.obfName.isMerged()) {

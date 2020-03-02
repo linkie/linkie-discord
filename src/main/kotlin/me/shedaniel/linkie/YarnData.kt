@@ -57,6 +57,7 @@ fun updateYarn() {
                 classes.clear()
                 loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/1.2.5%20Merge.tiny"))
                 loadNamedFromGithubRepo("Blayyke/yarn", "1.2.5", showError = false)
+                mappingSource = MappingsContainer.MappingSource.ENGIMA
             })
         }
         GlobalScope.launch {
@@ -65,6 +66,7 @@ fun updateYarn() {
                 classes.clear()
                 loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/Chocohead/b7ea04058776495a93ed2d13f34d697a/raw/Beta%201.7.3%20Merge.tiny"))
                 loadNamedFromGithubRepo("minecraft-cursed-legacy/Minecraft-Cursed-POMF", "master", showError = false)
+                mappingSource = MappingsContainer.MappingSource.ENGIMA
             })
         }
     } catch (t: Throwable) {

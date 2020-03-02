@@ -88,6 +88,7 @@ private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<Mappings
             println("Loading mcp for $version")
             loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
             loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
+            mappingSource = MappingsContainer.MappingSource.MCP_TSRG
         }.also {
             containers.add(it)
             if (containers.size > 6)

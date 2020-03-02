@@ -90,11 +90,12 @@ fun MappingsContainer.loadNamedFromMaven(
         group: String = "net.fabricmc.yarn",
         showError: Boolean = true
 ) {
-    val v2 = URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar")
-    try {
+    mappingSource = try {
         loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion-v2.jar"), showError)
-    } catch (e: IOException) {
+        MappingsContainer.MappingSource.YARN_V2
+    } catch (t: Throwable) {
         loadNamedFromTinyJar(URL("$repo/${group.replace('.', '/')}/$yarnVersion/yarn-$yarnVersion.jar"), showError)
+        MappingsContainer.MappingSource.YARN_V1
     }
 }
 

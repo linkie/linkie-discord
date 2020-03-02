@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 data class MappingsContainer(
         val version: String,
         val classes: MutableList<Class> = mutableListOf(),
-        val name: String = "Yarn"
+        val name: String = "Yarn",
+        var mappingSource: MappingSource? = null
 ) {
     fun getClass(intermediaryName: String): Class? =
             classes.firstOrNull { it.intermediaryName == intermediaryName }
@@ -30,6 +31,18 @@ data class MappingsContainer(
                 println()
             }
         }
+    }
+
+    @Suppress("unused")
+    enum class MappingSource {
+        MCP_SRG,
+        MCP_TSRG,
+        MOJANG,
+        YARN_V1,
+        YARN_V2,
+        ENGIMA;
+
+        override fun toString(): String = name.toLowerCase().split("_").joinToString(" ") { it.capitalize() }
     }
 }
 
