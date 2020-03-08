@@ -19,7 +19,8 @@ interface CommandBase {
 
 enum class CommandCategory(val description: String?) {
     NORMAL(null),
-    MUSIC("Music Commands");
+    MUSIC("Music Commands"),
+    MATH("Math Commands");
 
     companion object {
         fun getValues(guildId: Snowflake?): Array<CommandCategory> {

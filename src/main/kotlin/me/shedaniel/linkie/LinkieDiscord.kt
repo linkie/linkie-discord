@@ -52,6 +52,7 @@ fun registerCommands(commandApi: CommandApi) {
         commandApi.registerCommand(FabricApiVersionCommand, "fabricapi")
         commandApi.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
         commandApi.registerCommand(AboutCommand, "about")
+        commandApi.registerCommand(CalculateLength, "calclen")
     }
 }
 
