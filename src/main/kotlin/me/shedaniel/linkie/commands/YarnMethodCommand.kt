@@ -6,10 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
-import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.similarity
-import me.shedaniel.linkie.utils.similarityOnNull
+import me.shedaniel.linkie.utils.*
 import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
@@ -36,7 +33,9 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
-            throw InvalidUsageException("!$cmd <search> [version]")
+            if (args.size == 2)
+                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
+            else throw InvalidUsageException("!$cmd <search> [version]")
         val hasClass = searchTerm.contains('/')
         val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
 
@@ -198,102 +197,106 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
             }
         }
     }
-}
 
-private enum class FindMethodMethod {
-    INTERMEDIARY,
-    MAPPED,
-    OBF_CLIENT,
-    OBF_SERVER,
-    OBF_MERGED,
-    WILDCARD
-}
+    private enum class FindMethodMethod {
+        INTERMEDIARY,
+        MAPPED,
+        OBF_CLIENT,
+        OBF_SERVER,
+        OBF_MERGED,
+        WILDCARD
+    }
 
-private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
+    private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
-private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
-    if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-    else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
-    setTimestampToNow()
-    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
-    var desc = ""
-    sortedMethods.dropAndTake(5 * page, 5).forEach {
-        if (desc.isNotEmpty())
-            desc += "\n\n"
-        val obfMap = LinkedHashMap<String, String>()
-        if (!it.method.obfName.isMerged()) {
-            if (it.method.obfName.client != null) obfMap["client"] = it.method.obfName.client!!
-            if (it.method.obfName.server != null) obfMap["server"] = it.method.obfName.server!!
-        }
-        desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
-                ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
-                "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
+    private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
+        if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
+        setTimestampToNow()
+        if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
+        var desc = ""
+        sortedMethods.dropAndTake(5 * page, 5).forEach {
+            if (desc.isNotEmpty())
+                desc += "\n\n"
+            val obfMap = LinkedHashMap<String, String>()
+            if (!it.method.obfName.isMerged()) {
+                if (it.method.obfName.client != null) obfMap["client"] = it.method.obfName.client!!
+                if (it.method.obfName.server != null) obfMap["server"] = it.method.obfName.server!!
+            }
+            desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
+                    ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
+                    "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
+                    "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
 //        desc += "\n__Descriptor__: `${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
 //                ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-        if (isYarn) {
-            desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                    ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-                    ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-        } else {
-            desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
-                    " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
-                    " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
-        }
-    }
-    setDescription(desc.substring(0, min(desc.length, 2000)))
-}
-
-private fun String.mapObfDescToNamed(container: MappingsContainer): String {
-    if (startsWith('(') && contains(')')) {
-        val split = split(')')
-        val parametersOG = split[0].substring(1).toCharArray()
-        val returnsOG = split[1].toCharArray()
-        val parametersUnmapped = mutableListOf<String>()
-        val returnsUnmapped = mutableListOf<String>()
-
-        var lastT: String? = null
-        for (char in parametersOG) {
-            when {
-                lastT != null && char == ';' -> {
-                    parametersUnmapped.add(lastT)
-                    lastT = null
-                }
-                lastT != null -> {
-                    lastT += char
-                }
-                char == 'L' -> {
-                    lastT = ""
-                }
-                else -> parametersUnmapped.add(char.toString())
+            desc += if (isYarn) {
+                "\n__Mixin Target__: `L${it.parent.mappedName
+                        ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
+                        ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+            } else {
+                "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+                        " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
+                        " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
             }
         }
-        for (char in returnsOG) {
-            when {
-                lastT != null && char == ';' -> {
-                    returnsUnmapped.add(lastT)
-                    lastT = null
+        setDescription(desc.substring(0, min(desc.length, 2000)))
+    }
+
+    private fun String.mapObfDescToNamed(container: MappingsContainer): String =
+            remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
+
+    /*
+    private fun String.mapObfDescToNamed(container: MappingsContainer): String {
+        if (startsWith('(') && contains(')')) {
+            val split = split(')')
+            val parametersOG = split[0].substring(1).toCharArray()
+            val returnsOG = split[1].toCharArray()
+            val parametersUnmapped = mutableListOf<String>()
+            val returnsUnmapped = mutableListOf<String>()
+
+            var lastT: String? = null
+            for (char in parametersOG) {
+                when {
+                    lastT != null && char == ';' -> {
+                        parametersUnmapped.add(lastT)
+                        lastT = null
+                    }
+                    lastT != null -> {
+                        lastT += char
+                    }
+                    char == 'L' -> {
+                        lastT = ""
+                    }
+                    else -> parametersUnmapped.add(char.toString())
                 }
-                lastT != null -> {
-                    lastT += char
+            }
+            for (char in returnsOG) {
+                when {
+                    lastT != null && char == ';' -> {
+                        returnsUnmapped.add(lastT)
+                        lastT = null
+                    }
+                    lastT != null -> {
+                        lastT += char
+                    }
+                    char == 'L' -> {
+                        lastT = ""
+                    }
+                    else -> returnsUnmapped.add(char.toString())
                 }
-                char == 'L' -> {
-                    lastT = ""
-                }
-                else -> returnsUnmapped.add(char.toString())
+            }
+            return "(" + parametersUnmapped.joinToString("") {
+                if (it.length != 1) {
+                    "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
+                } else
+                    it
+            } + ")" + returnsUnmapped.joinToString("") {
+                if (it.length != 1) {
+                    "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
+                } else
+                    it
             }
         }
-        return "(" + parametersUnmapped.joinToString("") {
-            if (it.length != 1) {
-                "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
-            } else
-                it
-        } + ")" + returnsUnmapped.joinToString("") {
-            if (it.length != 1) {
-                "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
-            } else
-                it
-        }
-    }
-    return this
+        return this
+    }*/
 }

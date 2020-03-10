@@ -1,9 +1,11 @@
 package me.shedaniel.linkie.utils
 
-import java.lang.Exception
+import java.io.IOException
+import java.io.StringReader
 import java.util.*
 import kotlin.Comparator
 import kotlin.math.min
+
 
 fun <T> Iterable<T>.dropAndTake(drop: Int, take: Int): List<T> =
         drop(drop).take(take)
@@ -143,5 +145,40 @@ fun String.tryToVersion(): Version? {
         }
     } catch (e: Exception) {
         return null
+    }
+}
+
+fun String.remapMethodDescriptor(classMappings: (String) -> String): String {
+    return try {
+        val reader = StringReader(this)
+        val result = StringBuilder()
+        var started = false
+        var insideClassName = false
+        val className = StringBuilder()
+        while (true) {
+            val c: Int = reader.read()
+            if (c == -1) {
+                break
+            }
+            if (c == ';'.toInt()) {
+                insideClassName = false
+                result.append(classMappings(className.toString()))
+            }
+            if (insideClassName) {
+                className.append(c.toChar())
+            } else {
+                result.append(c.toChar())
+            }
+            if (c == '('.toInt()) {
+                started = true
+            }
+            if (started && c == 'L'.toInt()) {
+                insideClassName = true
+                className.setLength(0)
+            }
+        }
+        result.toString()
+    } catch (e: IOException) {
+        throw AssertionError(e)
     }
 }

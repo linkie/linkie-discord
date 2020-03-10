@@ -36,7 +36,9 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
-            throw InvalidUsageException("!$cmd <search> [version]")
+            if (args.size == 2)
+                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
+            else throw InvalidUsageException("!$cmd <search> [version]")
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)

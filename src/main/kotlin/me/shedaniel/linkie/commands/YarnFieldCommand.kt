@@ -38,7 +38,9 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
         }
         if (searchTerm.contains(' '))
-            throw InvalidUsageException("!$cmd <search> [version]")
+            if (args.size == 2)
+                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
+            else throw InvalidUsageException("!$cmd <search> [version]")
         val hasClass = searchTerm.contains('/')
         val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
 

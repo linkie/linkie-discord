@@ -16,6 +16,60 @@ fun MappingsContainer.loadTsrgFromURLZip(url: URL) {
     }
 }
 
+fun MappingsContainer.loadSrgFromURLZip(url: URL) {
+    val stream = ZipInputStream(url.openStream())
+    while (true) {
+        val entry = stream.nextEntry ?: break
+        if (!entry.isDirectory && entry.name.split("/").lastOrNull() == "joined.srg") {
+            loadSrgFromInputStream(stream)
+            break
+        }
+    }
+}
+
+private fun MappingsContainer.loadSrgFromInputStream(stream: InputStream) {
+    val lines = InputStreamReader(stream).readLines().groupBy { it.split(' ')[0] }
+    lines["CL:"]?.forEach { classLine ->
+        val split = classLine.substring(4).split(" ")
+        val obf = split[0]
+        val named = split[1]
+        getOrCreateClass(named).apply {
+            obfName.merged = obf
+        }
+    }
+    lines["FD:"]?.forEach { fieldLine ->
+        val split = fieldLine.substring(4).split(" ")
+        val obfClass = split[0].substring(0, split[0].lastIndexOf('/'))
+        val obf = split[0].substring(obfClass.length + 1)
+        val namedClass = split[1].substring(0, split[1].lastIndexOf('/'))
+        val intermediary = split[1].substring(namedClass.length + 1)
+        getClass(namedClass)?.apply {
+            getOrCreateField(intermediary, "").apply {
+                obfName.merged = obf
+                obfDesc.merged = ""
+            }
+        }.also {
+            if (it == null)
+                println(namedClass)
+        }
+    }
+    lines["MD:"]?.forEach { fieldLine ->
+        val split = fieldLine.substring(4).split(" ")
+        val obfClass = split[0].substring(0, split[0].lastIndexOf('/'))
+        val obf = split[0].substring(obfClass.length + 1)
+        val obfDesc = split[1]
+        val namedClass = split[2].substring(0, split[2].lastIndexOf('/'))
+        val intermediary = split[2].substring(namedClass.length + 1)
+        val namedDesc = split[3]
+        getClass(namedClass)?.apply {
+            getOrCreateMethod(intermediary, namedDesc).also { method ->
+                method.obfName.merged = obf
+                method.obfDesc.merged = obfDesc
+            }
+        }
+    }
+}
+
 private fun MappingsContainer.loadTsrgFromInputStream(stream: InputStream) {
     var lastClass: String? = null
     InputStreamReader(stream).forEachLine {
@@ -34,7 +88,6 @@ private fun MappingsContainer.loadTsrgFromInputStream(stream: InputStream) {
                     val obf = split[0]
                     val tsrg = split[1]
                     clazz.apply {
-                        // TODO Figure out the desc by getting it from yarn
                         getOrCreateField(tsrg, "").apply {
                             obfName.merged = obf
                             obfDesc.merged = ""
@@ -46,9 +99,9 @@ private fun MappingsContainer.loadTsrgFromInputStream(stream: InputStream) {
                     val obfDesc = split[1]
                     val tsrg = split[2]
                     clazz.apply {
-                        getOrCreateMethod(tsrg, "").apply {
-                            obfName.merged = obf
-                            this.obfDesc.merged = obfDesc
+                        getOrCreateMethod(tsrg, "").also { method ->
+                            method.obfName.merged = obf
+                            method.obfDesc.merged = obfDesc
                         }
                     }
                 }

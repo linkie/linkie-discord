@@ -86,7 +86,10 @@ private fun Version?.loadNonAsyncLatestSnapshot(containers: MutableList<Mappings
         val latestSnapshot = mcpConfigSnapshots[mcVersion]?.max() ?: return@also
         MappingsContainer(mcVersion.toString(), name = "MCP").apply {
             println("Loading mcp for $version")
-            loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
+            if (mcVersion >= Version(1, 13))
+                loadTsrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/$mcVersion/mcp_config-$mcVersion.zip"))
+            else
+                loadSrgFromURLZip(URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp/$mcVersion/mcp-$mcVersion-srg.zip"))
             loadMCPFromURLZip(URL("http://export.mcpbot.bspk.rs/mcp_snapshot/$latestSnapshot-$mcVersion/mcp_snapshot-$latestSnapshot-$mcVersion.zip"))
             mappingSource = MappingsContainer.MappingSource.MCP_TSRG
         }.also {
