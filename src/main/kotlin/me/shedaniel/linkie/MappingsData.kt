@@ -5,7 +5,7 @@ import kotlinx.serialization.json.JsonConfiguration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-val json = Json(JsonConfiguration.Stable.copy(strictMode = false))
+val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
 
 private val executor = Executors.newScheduledThreadPool(16)
 

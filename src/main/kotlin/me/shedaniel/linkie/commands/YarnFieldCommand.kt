@@ -30,8 +30,10 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
             throw InvalidUsageException("!$cmd <search> [version]")
 
         val mappingsContainerGetter = if (isYarn)
-            tryLoadYarnMappingContainer(args.last(), getYarnMappingsContainer(defaultVersion.invoke(channel)))
-        else tryLoadMCPMappingContainer(args.last(), getMCPMappingsContainer(defaultVersion.invoke(channel)))
+            tryLoadYarnMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadYarnMappingContainer(defaultVersion.invoke(channel), null).third() }
+                    ?: throw NullPointerException("Please report this issue!")
+        else tryLoadMCPMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadMCPMappingContainer(defaultVersion.invoke(channel), null).third() }
+                ?: throw NullPointerException("Please report this issue!")
 
         var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {

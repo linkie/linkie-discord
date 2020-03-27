@@ -2,7 +2,7 @@ package me.shedaniel.linkie
 
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.list
+import kotlinx.serialization.builtins.list
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
 

@@ -25,9 +25,13 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
         if (args.isEmpty())
             throw InvalidUsageException("!$cmd <search> [version]")
+
         val mappingsContainerGetter = if (isYarn)
-            tryLoadYarnMappingContainer(args.last(), getYarnMappingsContainer(defaultVersion.invoke(channel)))
-        else tryLoadMCPMappingContainer(args.last(), getMCPMappingsContainer(defaultVersion.invoke(channel)))
+            tryLoadYarnMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadYarnMappingContainer(defaultVersion.invoke(channel), null).third() }
+                    ?: throw NullPointerException("Please report this issue!")
+        else tryLoadMCPMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadMCPMappingContainer(defaultVersion.invoke(channel), null).third() }
+                ?: throw NullPointerException("Please report this issue!")
+
         var searchTerm = args.joinToString(" ").replace('.', '/')
         if (mappingsContainerGetter.first == args.last()) {
             searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
