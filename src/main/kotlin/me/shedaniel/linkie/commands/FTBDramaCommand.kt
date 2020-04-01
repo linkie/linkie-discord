@@ -9,12 +9,12 @@ import me.shedaniel.linkie.json
 import me.shedaniel.linkie.setTimestampToNow
 import java.net.URL
 
-object FabricDramaCommand : CommandBase {
+object FTBDramaCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        val jsonText = URL("https://fabric-drama.herokuapp.com/json").readText()
+        val jsonText = URL("https://ftb-drama.herokuapp.com/json").readText()
         val jsonObject = json.parseJson(jsonText).jsonObject
         val text = jsonObject["drama"]!!.primitive.content
-        val permLink = "https://fabric-drama.herokuapp.com/${jsonObject["version"]!!.primitive.content}/${jsonObject["seed"]!!.primitive.content}"
+        val permLink = "https://ftb-drama.herokuapp.com/${jsonObject["version"]!!.primitive.content}/${jsonObject["seed"]!!.primitive.content}"
         channel.createEmbed {
             it.setTitle("${user.username} starts a drama!")
             it.setUrl(permLink)
@@ -24,6 +24,6 @@ object FabricDramaCommand : CommandBase {
         }.subscribe()
     }
 
-    override fun getName(): String? = "Fabric Drama Command"
-    override fun getDescription(): String? = "Generates fabric drama."
+    override fun getName(): String? = "FTB Drama Command"
+    override fun getDescription(): String? = "Generates ftb drama."
 }
