@@ -69,6 +69,15 @@ fun updateYarn() {
                 mappingSource = MappingsContainer.MappingSource.ENGIMA
             })
         }
+        GlobalScope.launch {
+            yarnContainers.add(MappingsContainer("1.8.9").apply {
+                println("Loading yarn for $version")
+                classes.clear()
+                loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/hYdos/33c70aeca0f54eb031874bf78d8bd50d/raw/6723e56ecdddc9e1101be1a1cf7aa60e3367f72e/1.8.9_intermediary.tiny"))
+                loadNamedFromGithubRepo("Legacy-Fabric/yarn-1.8.9", "1.8.9", showError = false)
+                mappingSource = MappingsContainer.MappingSource.ENGIMA
+            })
+        }
     } catch (t: Throwable) {
         t.printStackTrace()
     }
