@@ -102,7 +102,7 @@ private fun String.loadNonAsyncOfficialYarn(c: MutableList<MappingsContainer>) {
             val yarnMaven = yarnBuilds[this.version]!!.maven
             loadNamedFromMaven(yarnMaven.substring(yarnMaven.lastIndexOf(':') + 1), showError = false)
         })
-        if (c.size > 6)
+        if (c.size > 7)
             c.firstOrNull { yarnBuilds.containsKey(it.version) && it.version != yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') } && it.version != yarnBuilds.keys.firstOrNull() }?.let { c.remove(it) }
         System.gc()
     }
