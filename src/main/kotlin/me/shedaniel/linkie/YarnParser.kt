@@ -240,6 +240,38 @@ fun MappingsContainer.loadNamedFromEngimaStream(stream: InputStream, showError: 
     }
 }
 
+fun MappingsContainer.loadClassFromSpigot(stream: InputStream) {
+    InputStreamReader(stream).forEachLine {
+        val split = it.split(' ')
+        getOrCreateClass(split[1]).also {
+            it.obfName.merged = split[0]
+        }
+    }
+}
+
+fun MappingsContainer.loadMembersFromSpigot(stream: InputStream) {
+    InputStreamReader(stream).forEachLine {
+        val split = it.split(' ')
+        if (split.size == 3) {
+            // Field
+            getOrCreateClass(split[0]).also { clazz ->
+                clazz.getOrCreateField(split[2], "").also { field ->
+                    field.obfName.merged = split[1]
+                    field.obfDesc.merged = ""
+                }
+            }
+        } else if (split.size == 4) {
+            // Method
+            getOrCreateClass(split[0]).also { clazz ->
+                clazz.getOrCreateMethod(split[3], split[2]).also { method ->
+                    method.obfName.merged = split[1]
+                    method.obfDesc.merged = ""
+                }
+            }
+        }
+    }
+}
+
 private data class EngimaLine(
         val text: String,
         val indent: Int,

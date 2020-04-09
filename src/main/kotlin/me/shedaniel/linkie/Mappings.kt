@@ -40,6 +40,7 @@ data class MappingsContainer(
         MOJANG,
         YARN_V1,
         YARN_V2,
+        SPIGOT,
         ENGIMA;
 
         override fun toString(): String = name.toLowerCase().split("_").joinToString(" ") { it.capitalize() }
