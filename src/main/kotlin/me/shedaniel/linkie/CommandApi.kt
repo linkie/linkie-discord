@@ -3,9 +3,10 @@ package me.shedaniel.linkie
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import java.awt.Color
-import java.time.Instant
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 
 class CommandApi(private val prefix: String) {
@@ -27,34 +28,32 @@ class CommandApi(private val prefix: String) {
     }
 
     fun onMessageCreate(event: MessageCreateEvent) {
-        CompletableFuture.runAsync(Runnable {
-            val user: User? = event.message.author.orElse(null)
-            val message: String? = event.message.content.orElse(null)
-            val channel = event.message.channel.block()
-            if (user == null || user.isBot || message == null || channel == null)
-                return@Runnable
-            val prefix = getPrefix(event.guildId.orElse(null)?.asLong())
-            if (message.toLowerCase().startsWith(prefix)) {
-                val content = message.substring(prefix.length)
-                val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)
-                val cmd = split[0].toLowerCase()
-                val args = split.drop(1).toTypedArray()
-                if (cmd in commandMap)
-                    try {
+        val channel = event.message.channel.block()
+        val user: User? = event.message.author.orElse(null)
+        val message: String? = event.message.content.orElse(null)
+        if (user == null || user.isBot || message == null || channel == null)
+            return
+        GlobalScope.launch {
+            runCatching {
+                val prefix = getPrefix(event.guildId.orElse(null)?.asLong())
+                if (message.toLowerCase().startsWith(prefix)) {
+                    val content = message.substring(prefix.length)
+                    val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)
+                    val cmd = split[0].toLowerCase()
+                    val args = split.drop(1).toTypedArray()
+                    if (cmd in commandMap)
                         commandMap[cmd]!!.execute(event, user, cmd, args, channel)
-                    } catch (throwable: Throwable) {
-                        try {
-                            channel.createEmbed { it.generateThrowable(throwable, user) }.subscribe()
-                        } catch (throwable2: Throwable) {
-                            throwable2.addSuppressed(throwable)
-                            throwable2.printStackTrace()
-                        }
-                    }
-
+                }
+            }.exceptionOrNull()?.also { throwable ->
+                try {
+                    channel.createEmbed { it.generateThrowable(throwable, user) }.subscribe()
+                } catch (throwable2: Exception) {
+                    throwable2.addSuppressed(throwable)
+                    throwable2.printStackTrace()
+                }
             }
-        }, executors)
+        }
     }
-
 }
 
 fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {

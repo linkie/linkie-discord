@@ -11,55 +11,43 @@ import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object YarnMethodCommand : AYarnMethodCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else if (it.id.asLong() == 661088839464386571) "1.14.3" else latestYarn }) {
-    override fun getName(): String? = "Yarn Method Command"
-    override fun getDescription(): String? = "Query yarn methods."
-}
-
-object POMFMethodCommand : AYarnMethodCommand({ "b1.7.3" }) {
-    override fun getName(): String? = "POMF Method Command"
-    override fun getDescription(): String? = "Query pomf methods."
-}
-
-open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
+class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (args.isEmpty())
+        if (namespace.reloading)
+            throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
+        if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
 
-        val mappingsContainerGetter = if (isYarn)
-            tryLoadYarnMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadYarnMappingContainer(defaultVersion.invoke(channel), null).third() }
-                    ?: throw NullPointerException("Please report this issue!")
-        else tryLoadMCPMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadMCPMappingContainer(defaultVersion.invoke(channel), null).third() }
-                ?: throw NullPointerException("Please report this issue!")
-
-        var searchTerm = args.joinToString(" ").replace('.', '/')
-        if (mappingsContainerGetter.first == args.last()) {
-            searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
+        val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
+        if (mappingsProvider.isEmpty() && args.size == 2) {
+            val list = namespace.getAllSortedVersions()
+            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
+                    if (list.size > 20)
+                        list.take(20).joinToString(", ") + ", etc"
+                    else list.joinToString(", "))
         }
-        if (searchTerm.contains(' '))
-            if (args.size == 2)
-                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
-            else throw InvalidUsageException("!$cmd <search> [version]")
-        val hasClass = searchTerm.contains('/')
-        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id))
+        if (mappingsProvider.isEmpty())
+            throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
+        val searchKey = args.first().replace('.', '/')
+        val hasClass = searchKey.contains('/')
+        val hasWildcard = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
 
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                var desc = "Searching up methods for **${mappingsContainerGetter.first}**."
+                var desc = "Searching up methods for **${namespace.id} ${mappingsProvider.version}**."
                 if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
-                if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
                 setDescription(desc)
             }
         }.block() ?: throw NullPointerException("Unknown Message!")
-
         try {
-            val mappingsContainer = mappingsContainerGetter.third()
-
+            val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
             val classes = mutableMapOf<Class, FindMethodMethod>()
             if (hasClass) {
-                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
+                val clazzKey = searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass()
                 if (clazzKey == "*") {
                     mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
                 } else {
@@ -75,7 +63,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 }
             } else mappingsContainer.classes.forEach { classes[it] = FindMethodMethod.WILDCARD }
             val methods = mutableMapOf<MethodWrapper, FindMethodMethod>()
-            val methodKey = searchTerm.onlyClass('/')
+            val methodKey = searchKey.onlyClass('/')
             if (methodKey == "*") {
                 classes.forEach { (clazz, cm) ->
                     clazz.methods.forEach { method ->
@@ -98,7 +86,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 }
             }
             val sortedMethods = when {
-                methodKey == "*" && (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") -> {
+                methodKey == "*" && (!hasClass || searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") -> {
                     // Class and method both wildcard
                     methods.entries.sortedBy { it.key.method.intermediaryName }.sortedBy {
                         it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
@@ -106,7 +94,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 }
                 methodKey == "*" -> {
                     // Only method wildcard
-                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
+                    val classKey = searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass()
                     methods.entries.sortedBy { it.key.method.intermediaryName }.sortedByDescending {
                         when (it.key.cm) {
                             FindMethodMethod.MAPPED -> it.key.parent.mappedName!!.onlyClass()
@@ -118,7 +106,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                         }.similarityOnNull(classKey)
                     }.map { it.key }
                 }
-                hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() != "*" -> {
+                hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() != "*" -> {
                     // has class
                     methods.entries.sortedByDescending {
                         when (it.value) {
@@ -147,16 +135,16 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                 }
             }
             if (sortedMethods.isEmpty()) {
-                if (searchTerm.startsWith("class_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a class!")
-                } else if (searchTerm.startsWith("field_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a field!")
+                if (searchKey.startsWith("class_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a class!")
+                } else if (searchKey.startsWith("field_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a field!")
                 }
                 throw NullPointerException("No results found!")
             }
             var page = 0
             val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -175,13 +163,13 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -213,7 +201,7 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
 
     private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
-    private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
+    private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
         if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
         else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
         setTimestampToNow()
@@ -231,17 +219,16 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
                     ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
                     "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
-//        desc += "\n__Descriptor__: `${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-//                ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-            desc += if (isYarn) {
+            desc += if (namespace.supportsMixin()) {
                 "\n__Mixin Target__: `L${it.parent.mappedName
                         ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
                         ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-            } else {
+            } else ""
+            desc += if (namespace.supportsAT()) {
                 "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
                         " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
                         " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
-            }
+            } else ""
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
@@ -249,58 +236,6 @@ open class AYarnMethodCommand(private val defaultVersion: (MessageChannel) -> St
     private fun String.mapObfDescToNamed(container: MappingsContainer): String =
             remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
 
-    /*
-    private fun String.mapObfDescToNamed(container: MappingsContainer): String {
-        if (startsWith('(') && contains(')')) {
-            val split = split(')')
-            val parametersOG = split[0].substring(1).toCharArray()
-            val returnsOG = split[1].toCharArray()
-            val parametersUnmapped = mutableListOf<String>()
-            val returnsUnmapped = mutableListOf<String>()
-
-            var lastT: String? = null
-            for (char in parametersOG) {
-                when {
-                    lastT != null && char == ';' -> {
-                        parametersUnmapped.add(lastT)
-                        lastT = null
-                    }
-                    lastT != null -> {
-                        lastT += char
-                    }
-                    char == 'L' -> {
-                        lastT = ""
-                    }
-                    else -> parametersUnmapped.add(char.toString())
-                }
-            }
-            for (char in returnsOG) {
-                when {
-                    lastT != null && char == ';' -> {
-                        returnsUnmapped.add(lastT)
-                        lastT = null
-                    }
-                    lastT != null -> {
-                        lastT += char
-                    }
-                    char == 'L' -> {
-                        lastT = ""
-                    }
-                    else -> returnsUnmapped.add(char.toString())
-                }
-            }
-            return "(" + parametersUnmapped.joinToString("") {
-                if (it.length != 1) {
-                    "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
-                } else
-                    it
-            } + ")" + returnsUnmapped.joinToString("") {
-                if (it.length != 1) {
-                    "L${container.getClassByObfName(it)?.intermediaryName ?: it};"
-                } else
-                    it
-            }
-        }
-        return this
-    }*/
+    override fun getName(): String? = namespace.id.capitalize() + " Method Query"
+    override fun getDescription(): String? = "Queries ${namespace.id} method entries."
 }

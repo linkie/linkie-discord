@@ -14,57 +14,44 @@ import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object YarnClassCommand : AYarnClassCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else if (it.id.asLong() == 661088839464386571) "1.14.3" else latestYarn }) {
-    override fun getName(): String? = "Yarn Class Command"
-    override fun getDescription(): String? = "Query yarn classes."
-}
-
-object POMFClassCommand : AYarnClassCommand({ "b1.7.3" }) {
-    override fun getName(): String? = "POMF Class Command"
-    override fun getDescription(): String? = "Query pomf classes."
-}
-
-open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
+class QueryClassMethod(private val namespace: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (args.isEmpty())
+        if (namespace.reloading)
+            throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
+        if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
 
-        val mappingsContainerGetter = if (isYarn)
-            tryLoadYarnMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadYarnMappingContainer(defaultVersion.invoke(channel), null).third() }
-                    ?: throw NullPointerException("Please report this issue!")
-        else tryLoadMCPMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadMCPMappingContainer(defaultVersion.invoke(channel), null).third() }
-                ?: throw NullPointerException("Please report this issue!")
-
-        var searchTerm = args.joinToString(" ")
-        if (mappingsContainerGetter.first == args.last()) {
-            searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
+        val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
+        if (mappingsProvider.isEmpty() && args.size == 2) {
+            val list = namespace.getAllSortedVersions()
+            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
+                    if (list.size > 20)
+                        list.take(20).joinToString(", ") + ", etc"
+                    else list.joinToString(", "))
         }
-        if (searchTerm.contains(' '))
-            if (args.size == 2)
-                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
-            else throw InvalidUsageException("!$cmd <search> [version]")
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id))
+        if (mappingsProvider.isEmpty())
+            throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                var desc = "Searching up classes for **${mappingsContainerGetter.first}**."
-                if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                var desc = "Searching up classes for **${namespace.id} ${mappingsProvider.version}**."
+                if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
                 setDescription(desc)
             }
         }.block() ?: throw NullPointerException("Unknown Message!")
-
         try {
-            val mappingsContainer = mappingsContainerGetter.third()
-
+            val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
             val classes = mutableMapOf<Class, MatchResult>()
-            val searchKeyOnly = searchTerm.replace('.', '/')
+            val searchKey = args.first().replace('.', '/')
             mappingsContainer.classes.forEach { clazz ->
                 if (!classes.contains(clazz)) {
-                    if (clazz.intermediaryName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                        if (clazz.mappedName.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                            if (clazz.obfName.client.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                                if (clazz.obfName.server.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                                    clazz.obfName.merged.containsOrMatchWildcard(searchKeyOnly).takeIf { it.matched }?.also { classes[clazz] = it }
+                    if (clazz.intermediaryName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                        if (clazz.mappedName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                            if (clazz.obfName.client.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                                if (clazz.obfName.server.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                                    clazz.obfName.merged.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }
                                 }
                             }
                         }
@@ -73,10 +60,10 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
             }
             val sortedClasses = classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }.map { it.key }
             if (sortedClasses.isEmpty()) {
-                if (searchTerm.startsWith("func_") || searchTerm.startsWith("method_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a method!")
-                } else if (searchTerm.startsWith("field_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a field!")
+                if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a method!")
+                } else if (searchKey.startsWith("field_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a field!")
                 }
                 throw NullPointerException("No results found!")
             }
@@ -118,7 +105,6 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
                     }
                 }
             }
-
         } catch (t: Throwable) {
             try {
                 message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
@@ -149,4 +135,7 @@ open class AYarnClassCommand(private val defaultVersion: (MessageChannel) -> Str
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
+
+    override fun getName(): String? = namespace.id.capitalize() + " Class Query"
+    override fun getDescription(): String? = "Queries ${namespace.id} class entries."
 }

@@ -2,13 +2,14 @@ package me.shedaniel.linkie.audio.commands
 
 import discord4j.core.`object`.entity.*
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import me.shedaniel.linkie.CommandBase
 import me.shedaniel.linkie.CommandCategory
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.audio.GuildMusicManager
 import me.shedaniel.linkie.audio.LinkieMusic
 import me.shedaniel.linkie.audio.OurAudioLoadResultHandler
-import me.shedaniel.linkie.json
 import org.apache.http.client.utils.URIBuilder
 import java.net.URL
 
@@ -21,7 +22,7 @@ object PlayCommand : CommandBase {
         builder.addParameter("key", System.getenv("GOOGLEAPI"))
         builder.addParameter("q", searchTerm)
         val apiText = URL(builder.toString()).readText()
-        val obj = json.parseJson(apiText).jsonObject
+        val obj = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true)).parseJson(apiText).jsonObject
         val items = obj.getArray("items")
         if (items.isEmpty()) {
             throw NullPointerException("Track not found!")

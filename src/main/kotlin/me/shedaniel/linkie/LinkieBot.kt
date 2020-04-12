@@ -32,24 +32,24 @@ fun main() {
                 }
             }
         }
-        val version = "1.15.1"
-        val yarn = tryLoadYarnMappingContainer(version, null).third()
-        val mcp = tryLoadMCPMappingContainer(version, null).third()
-        val file = java.io.File(System.getProperty("user.dir"), "migrate/" + java.util.UUID.randomUUID().toString().substring(0, 8) + ".xml")
-        file.parentFile.mkdirs()
-        val writer = file.printWriter()
-        writer.println("<?xml version=\"1.0\"?>\n\n<migrationMap>\n  <name value=\"MCP->Yarn (${mcp.version}-${mcpConfigSnapshots[mcp.version.toVersion()]?.max()} -&gt; ${yarnBuilds[yarn.version]?.version})\" />\n" +
-                "  <description value=\"This map is generated automatically.\" />")
-        mcp.classes.forEach { mcpClass ->
-            runCatching {
-                val obfName = mcpClass.obfName.merged ?: return@forEach
-                val yarnClass = yarn.getClassByObfName(obfName) ?: error("Can't find class: $obfName ${mcpClass.intermediaryName}!")
-                writer.println("  <entry oldName=\"${mcpClass.intermediaryName.replace('/', '.')}\" newName=\"${(yarnClass.mappedName ?: yarnClass.intermediaryName).replace('/', '.')}\" type=\"class\" />")
-            }
-        }
-        writer.println("</migrationMap>\n")
-        writer.close()
-        println("Done Generated XML!")
+//        val version = "1.15.1"
+//        val yarn = tryLoadYarnMappingContainer(version, null).third()
+//        val mcp = tryLoadMCPMappingContainer(version, null).third()
+//        val file = java.io.File(System.getProperty("user.dir"), "migrate/" + java.util.UUID.randomUUID().toString().substring(0, 8) + ".xml")
+//        file.parentFile.mkdirs()
+//        val writer = file.printWriter()
+//        writer.println("<?xml version=\"1.0\"?>\n\n<migrationMap>\n  <name value=\"MCP->Yarn (${mcp.version}-${mcpConfigSnapshots[mcp.version.toVersion()]?.max()} -&gt; ${yarnBuilds[yarn.version]?.version})\" />\n" +
+//                "  <description value=\"This map is generated automatically.\" />")
+//        mcp.classes.forEach { mcpClass ->
+//            runCatching {
+//                val obfName = mcpClass.obfName.merged ?: return@forEach
+//                val yarnClass = yarn.getClassByObfName(obfName) ?: error("Can't find class: $obfName ${mcpClass.intermediaryName}!")
+//                writer.println("  <entry oldName=\"${mcpClass.intermediaryName.replace('/', '.')}\" newName=\"${(yarnClass.mappedName ?: yarnClass.intermediaryName).replace('/', '.')}\" type=\"class\" />")
+//            }
+//        }
+//        writer.println("</migrationMap>\n")
+//        writer.close()
+//        println("Done Generated XML!")
     }
     start()
 }
