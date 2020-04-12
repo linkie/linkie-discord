@@ -6,64 +6,49 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
-import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.similarity
-import me.shedaniel.linkie.utils.similarityOnNull
+import me.shedaniel.linkie.utils.*
 import java.time.Duration
 import kotlin.math.ceil
 import kotlin.math.min
 
-object YarnFieldCommand : AYarnFieldCommand({ if (it.id.asLong() == 602959845842485258) "1.2.5" else if (it.id.asLong() == 661088839464386571) "1.14.3" else latestYarn }) {
-    override fun getName(): String? = "Yarn Field Command"
-    override fun getDescription(): String? = "Query yarn fields."
-}
-
-object POMFFieldCommand : AYarnFieldCommand({ "b1.7.3" }) {
-    override fun getName(): String? = "POMF Field Command"
-    override fun getDescription(): String? = "Query pomf fields."
-}
-
-open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> String, private val isYarn: Boolean = true) : CommandBase {
+class QueryFieldCommand(private val namespace: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (args.isEmpty())
+        if (namespace.reloading)
+            throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
+        if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
 
-        val mappingsContainerGetter = if (isYarn)
-            tryLoadYarnMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadYarnMappingContainer(defaultVersion.invoke(channel), null).third() }
-                    ?: throw NullPointerException("Please report this issue!")
-        else tryLoadMCPMappingContainerDoNotThrowSupplier(args.last(), defaultVersion.invoke(channel)) { tryLoadMCPMappingContainer(defaultVersion.invoke(channel), null).third() }
-                ?: throw NullPointerException("Please report this issue!")
-
-        var searchTerm = args.joinToString(" ").replace('.', '/')
-        if (mappingsContainerGetter.first == args.last()) {
-            searchTerm = searchTerm.substring(0, searchTerm.lastIndexOf(' '))
+        val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
+        if (mappingsProvider.isEmpty() && args.size == 2) {
+            val list = namespace.getAllSortedVersions()
+            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
+                    if (list.size > 20)
+                        list.take(20).joinToString(", ") + ", etc"
+                    else list.joinToString(", "))
         }
-        if (searchTerm.contains(' '))
-            if (args.size == 2)
-                throw InvalidUsageException("Invalid Version: ${args.last()}!\nVersions: ${if (isYarn) yarnBuilds.keys.joinToString(", ") else mcpConfigSnapshots.keys.sorted().joinToString(", ") { it.toString() }}")
-            else throw InvalidUsageException("!$cmd <search> [version]")
-        val hasClass = searchTerm.contains('/')
-        val hasWildcard = (hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") || searchTerm.onlyClass('/') == "*"
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id))
+        if (mappingsProvider.isEmpty())
+            throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
+        val searchKey = args.first().replace('.', '/')
+        val hasClass = searchKey.contains('/')
+        val hasWildcard = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
 
         val message = channel.createEmbed {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                var desc = "Searching up fields for **${mappingsContainerGetter.first}**."
+                var desc = "Searching up fields for **${namespace.id} ${mappingsProvider.version}**."
                 if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
-                if (!mappingsContainerGetter.second) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
                 setDescription(desc)
             }
         }.block() ?: throw NullPointerException("Unknown Message!")
-
         try {
-            val mappingsContainer = mappingsContainerGetter.third()
-
+            val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
             val classes = mutableMapOf<Class, FindFieldMethod>()
 
             if (hasClass) {
-                val clazzKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
+                val clazzKey = searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass()
                 if (clazzKey == "*") {
                     mappingsContainer.classes.forEach { classes[it] = FindFieldMethod.WILDCARD }
                 } else {
@@ -79,7 +64,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
             } else mappingsContainer.classes.forEach { classes[it] = FindFieldMethod.WILDCARD }
             val fields = mutableMapOf<FieldWrapper, FindFieldMethod>()
-            val fieldKey = searchTerm.onlyClass('/')
+            val fieldKey = searchKey.onlyClass('/')
             if (fieldKey == "*") {
                 classes.forEach { (clazz, cm) ->
                     clazz.fields.forEach { field ->
@@ -102,7 +87,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
             }
             val sortedFields = when {
-                fieldKey == "*" && (!hasClass || searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() == "*") -> {
+                fieldKey == "*" && (!hasClass || searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") -> {
                     // Class and field both wildcard
                     fields.entries.sortedBy { it.key.field.intermediaryName }.sortedBy {
                         it.key.parent.mappedName?.onlyClass() ?: it.key.parent.intermediaryName
@@ -110,7 +95,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
                 fieldKey == "*" -> {
                     // Only field wildcard
-                    val classKey = searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass()
+                    val classKey = searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass()
                     fields.entries.sortedBy { it.key.field.intermediaryName }.sortedByDescending {
                         when (it.key.cm) {
                             FindFieldMethod.MAPPED -> it.key.parent.mappedName!!.onlyClass()
@@ -122,7 +107,7 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                         }.similarityOnNull(classKey)
                     }.map { it.key }
                 }
-                hasClass && searchTerm.substring(0, searchTerm.lastIndexOf('/')).onlyClass() != "*" -> {
+                hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() != "*" -> {
                     // has class
                     fields.entries.sortedByDescending {
                         when (it.value) {
@@ -151,16 +136,16 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                 }
             }
             if (sortedFields.isEmpty()) {
-                if (searchTerm.startsWith("func_") || searchTerm.startsWith("method_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a method!")
-                } else if (searchTerm.startsWith("class_")) {
-                    throw NullPointerException("No results found! `$searchTerm` looks like a class!")
+                if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a method!")
+                } else if (searchKey.startsWith("class_")) {
+                    throw NullPointerException("No results found! `$searchKey` looks like a class!")
                 }
                 throw NullPointerException("No results found!")
             }
             var page = 0
             val maxPage = ceil(sortedFields.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -179,13 +164,13 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage, isYarn) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -205,83 +190,88 @@ open class AYarnFieldCommand(private val defaultVersion: (MessageChannel) -> Str
             }
         }
     }
-}
 
-private enum class FindFieldMethod {
-    INTERMEDIARY,
-    MAPPED,
-    OBF_CLIENT,
-    OBF_SERVER,
-    OBF_MERGED,
-    WILDCARD
-}
+    private enum class FindFieldMethod {
+        INTERMEDIARY,
+        MAPPED,
+        OBF_CLIENT,
+        OBF_SERVER,
+        OBF_MERGED,
+        WILDCARD
+    }
 
-private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
+    private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
 
-private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int, isYarn: Boolean) {
-    if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-    else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
-    setTimestampToNow()
-    if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
-    var desc = ""
-    sortedMethods.dropAndTake(5 * page, 5).forEach {
-        if (desc.isNotEmpty())
-            desc += "\n\n"
-        val obfMap = LinkedHashMap<String, String>()
-        if (!it.field.obfName.isMerged()) {
-            if (it.field.obfName.client != null) obfMap["client"] = it.field.obfName.client!!
-            if (it.field.obfName.server != null) obfMap["server"] = it.field.obfName.server!!
-        }
-        desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
-                ?: it.parent.intermediaryName}.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
-                "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
-        if (isYarn) {
+    private fun EmbedCreateSpec.buildMessage(sortedMethods: List<FieldWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+        if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
+        setTimestampToNow()
+        if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
+        var desc = ""
+        sortedMethods.dropAndTake(5 * page, 5).forEach {
+            if (desc.isNotEmpty())
+                desc += "\n\n"
+            val obfMap = LinkedHashMap<String, String>()
+            if (!it.field.obfName.isMerged()) {
+                if (it.field.obfName.client != null) obfMap["client"] = it.field.obfName.client!!
+                if (it.field.obfName.server != null) obfMap["server"] = it.field.obfName.server!!
+            }
+            desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
+                    ?: it.parent.intermediaryName}.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
+                    "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
+                    "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
             desc += "\n__Type__: `${(it.field.mappedDesc
                     ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
-            desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                    ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
-                    "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-        } else {
-            desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
-                    " ${it.field.intermediaryName} # ${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}`"
+            if (namespace.supportsMixin()) {
+                desc += "\n__Mixin Target__: `L${it.parent.mappedName
+                        ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
+                        "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+            }
+            if (namespace.supportsAT()) {
+                desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+                        " ${it.field.intermediaryName} # ${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}`"
+            }
         }
+        setDescription(desc.substring(0, min(desc.length, 2000)))
     }
-    setDescription(desc.substring(0, min(desc.length, 2000)))
-}
 
-private fun String.localiseFieldDesc(): String {
-    if (length == 1) {
-        val c = first()
-        when (c) {
-            'Z' -> return "boolean"
-            'C' -> return "char"
-            'B' -> return "byte"
-            'S' -> return "short"
-            'I' -> return "int"
-            'F' -> return "float"
-            'J' -> return "long"
-            'D' -> return "double"
+    private fun String.localiseFieldDesc(): String {
+        if (length == 1) {
+            return localisePrimitive(first())
         }
-    }
-    if (length == 2 && first() == '[') {
-        val c = last()
-        when (c) {
-            'Z' -> return "boolean[]"
-            'C' -> return "char[]"
-            'B' -> return "byte[]"
-            'S' -> return "short[]"
-            'I' -> return "int[]"
-            'F' -> return "float[]"
-            'J' -> return "long[]"
-            'D' -> return "double[]"
+        val s = replace('/', '.')
+        var offset = 0
+        for (i in s.indices) {
+            if (s[i] == '[')
+                offset++
+            else break
         }
+        if (offset + 1 == length) {
+            val primitive = StringBuilder(localisePrimitive(first()))
+            for (i in 1..offset) primitive.append("[]")
+            return primitive.toString()
+        }
+        if (s[offset + 1] == 'L') {
+            val substring = StringBuilder(substring(offset + 1))
+            for (i in 1..offset) substring.append("[]")
+            return substring.toString()
+        }
+        return s
     }
-    if (startsWith("[L"))
-        return substring(2, length - 1).replace('/', '.') + "[]"
-    if (startsWith("L"))
-        return substring(1, length - 1).replace('/', '.')
-    if (startsWith("[[L"))
-        return substring(3, length - 1).replace('/', '.')
-    return replace('/', '.')
+
+    private fun localisePrimitive(char: Char): String =
+            when (char) {
+                'Z' -> "boolean"
+                'C' -> "char"
+                'B' -> "byte"
+                'S' -> "short"
+                'I' -> "int"
+                'F' -> "float"
+                'J' -> "long"
+                'D' -> "double"
+                else -> char.toString()
+            }
+
+    override fun getName(): String? = namespace.id.capitalize() + " Field Query"
+    override fun getDescription(): String? = "Queries ${namespace.id} field entries."
 }
