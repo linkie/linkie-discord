@@ -288,6 +288,6 @@ internal enum class MappingsType {
 
     companion object {
         fun getByString(string: String): MappingsType =
-                MappingsType.values().firstOrNull { it.name.equals(string, true) } ?: UNKNOWN
+                values().firstOrNull { it.name.equals(string, true) } ?: UNKNOWN
     }
 }

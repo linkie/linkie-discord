@@ -7,6 +7,7 @@ import java.net.URL
 
 object YarnNamespace : Namespace("yarn") {
     private val yarnBuilds = mutableMapOf<String, YarnBuild>()
+    private var yarnBuild1_8_9 = ""
 
     init {
         registerProvider({ it == "1.2.5" }) {
@@ -22,9 +23,8 @@ object YarnNamespace : Namespace("yarn") {
             MappingsContainer(it).apply {
                 println("Loading yarn for $version")
                 classes.clear()
-                loadIntermediaryFromTinyFile(URL("https://gist.githubusercontent.com/hYdos/33c70aeca0f54eb031874bf78d8bd50d/raw/6723e56ecdddc9e1101be1a1cf7aa60e3367f72e/1.8.9_intermediary.tiny"))
-                loadNamedFromGithubRepo("Legacy-Fabric/yarn-1.8.9", "1.8.9", showError = false)
-                mappingSource = MappingsContainer.MappingSource.ENGIMA
+                loadIntermediaryFromMaven(version, repo = "https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven")
+                loadNamedFromMaven(yarnVersion = yarnBuild1_8_9, repo = "https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven", showError = false)
             }
         }
         registerProvider({ it in yarnBuilds.keys }) {
@@ -43,6 +43,7 @@ object YarnNamespace : Namespace("yarn") {
         val latestVersion = getDefaultVersion(null, null)
         yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.takeIf { it != latestVersion }?.also { versions.add(it) }
         latestVersion.also { versions.add(it) }
+        versions.add("1.8.9")
         return versions
     }
 
@@ -60,6 +61,8 @@ object YarnNamespace : Namespace("yarn") {
         val buildMap = LinkedHashMap<String, MutableList<YarnBuild>>()
         json.parse(YarnBuild.serializer().list, URL("https://meta.fabricmc.net/v2/versions/yarn").readText()).forEach { buildMap.getOrPut(it.gameVersion, { mutableListOf() }).add(it) }
         buildMap.forEach { (version, builds) -> builds.maxBy { it.build }?.apply { yarnBuilds[version] = this } }
+        val pom189 = URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/yarn/maven-metadata.xml").readText()
+        yarnBuild1_8_9 = pom189.substring(pom189.indexOf("<latest>") + "<latest>".length, pom189.indexOf("</latest>"))
     }
 
     override fun getDefaultVersion(command: String?, snowflake: Snowflake?): String =
