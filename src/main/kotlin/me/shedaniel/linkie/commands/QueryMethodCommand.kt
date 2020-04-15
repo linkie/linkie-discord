@@ -8,15 +8,24 @@ import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.utils.*
 import java.time.Duration
+import java.util.*
+import kotlin.collections.LinkedHashMap
 import kotlin.math.ceil
 import kotlin.math.min
 
-class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
+class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
+        if (this.namespace == null) {
+            if (args.size !in 2..3)
+                throw InvalidUsageException("!$cmd <namespace> <search> [version]\n" +
+                        "Do !namespaces for list of namespaces.")
+        } else if (args.size !in 1..2)
+            throw InvalidUsageException("!$cmd <search> [version]")
+        val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
+                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
+        val args = if (this.namespace == null) args.drop(1).toTypedArray() else args
         if (namespace.reloading)
             throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
-        if (args.size !in 1..2)
-            throw InvalidUsageException("!$cmd <search> [version]")
 
         val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
@@ -144,7 +153,7 @@ class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
             }
             var page = 0
             val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -163,13 +172,13 @@ class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -201,7 +210,7 @@ class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
 
     private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
-    private fun EmbedCreateSpec.buildMessage(sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
         if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
         else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
         setTimestampToNow()
@@ -236,6 +245,11 @@ class QueryMethodCommand(private val namespace: Namespace) : CommandBase {
     private fun String.mapObfDescToNamed(container: MappingsContainer): String =
             remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
 
-    override fun getName(): String? = namespace.id.capitalize() + " Method Query"
-    override fun getDescription(): String? = "Queries ${namespace.id} method entries."
+    override fun getName(): String? =
+            if (namespace != null) namespace.id.capitalize() + " Method Query"
+            else "Method Query"
+
+    override fun getDescription(): String? =
+            if (namespace != null) "Queries ${namespace.id} method entries."
+            else "Queries method entries."
 }

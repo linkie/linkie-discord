@@ -11,15 +11,24 @@ import me.shedaniel.linkie.utils.containsOrMatchWildcard
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.similarityOnNull
 import java.time.Duration
+import java.util.*
+import kotlin.collections.LinkedHashMap
 import kotlin.math.ceil
 import kotlin.math.min
 
-class QueryClassMethod(private val namespace: Namespace) : CommandBase {
+class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
+        if (this.namespace == null) {
+            if (args.size !in 2..3)
+                throw InvalidUsageException("!$cmd <namespace> <search> [version]\n" +
+                        "Do !namespaces for list of namespaces.")
+        } else if (args.size !in 1..2)
+            throw InvalidUsageException("!$cmd <search> [version]")
+        val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
+                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
+        val args = if (this.namespace == null) args.drop(1).toTypedArray() else args
         if (namespace.reloading)
             throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
-        if (args.size !in 1..2)
-            throw InvalidUsageException("!$cmd <search> [version]")
 
         val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
@@ -136,6 +145,11 @@ class QueryClassMethod(private val namespace: Namespace) : CommandBase {
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
-    override fun getName(): String? = namespace.id.capitalize() + " Class Query"
-    override fun getDescription(): String? = "Queries ${namespace.id} class entries."
+    override fun getName(): String? =
+            if (namespace != null) namespace.id.capitalize() + " Class Query"
+            else "Class Query"
+
+    override fun getDescription(): String? =
+            if (namespace != null) "Queries ${namespace.id} class entries."
+            else "Queries class entries."
 }

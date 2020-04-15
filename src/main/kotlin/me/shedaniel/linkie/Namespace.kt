@@ -44,7 +44,7 @@ abstract class Namespace(val id: String) {
     open fun getMaximumCachedVersion(): Int = 3
     abstract fun getDefaultVersion(command: String?, snowflake: Snowflake?): String
     fun getAllSortedVersions(): List<String> =
-            getAllVersions().sortedWith(Comparator.nullsFirst(compareBy { it.tryToVersion() }))
+            getAllVersions().sortedWith(Comparator.nullsFirst(compareBy { it.tryToVersion() })).asReversed()
 
     protected fun registerProvider(versionPredicate: (String) -> Boolean, containerProvider: (String) -> MappingsContainer) {
         mappingsProviders[versionPredicate] = containerProvider

@@ -4,10 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.launch
-import me.shedaniel.linkie.namespaces.MCPNamespace
-import me.shedaniel.linkie.namespaces.POMFNamespace
-import me.shedaniel.linkie.namespaces.SpigotNamespace
-import me.shedaniel.linkie.namespaces.YarnNamespace
+import me.shedaniel.linkie.namespaces.*
 
 object Namespaces {
     val namespaces = mutableMapOf<String, Namespace>()
@@ -20,6 +17,7 @@ object Namespaces {
         registerNamespace(SpigotNamespace)
         registerNamespace(POMFNamespace)
         registerNamespace(MCPNamespace)
+        registerNamespace(MojangNamespace)
     }
 
     operator fun get(id: String) = namespaces[id]!!
