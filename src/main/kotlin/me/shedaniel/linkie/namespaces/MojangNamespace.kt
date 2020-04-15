@@ -18,7 +18,7 @@ object MojangNamespace : Namespace("mojang") {
 
     init {
         registerProvider({ it == "1.14.4" }) {
-            MappingsContainer(it).apply {
+            MappingsContainer(it, name = "Mojang").apply {
                 println("Loading mojmap for $version")
                 classes.clear()
                 readMojmap(
@@ -29,7 +29,7 @@ object MojangNamespace : Namespace("mojang") {
             }
         }
         registerProvider({ it in versionJsonMap.keys }) {
-            MappingsContainer(it).apply {
+            MappingsContainer(it, name = "Mojang").apply {
                 println("Loading mojmap for $version")
                 classes.clear()
                 val url = URL(versionJsonMap[version])
