@@ -43,7 +43,6 @@ object YarnNamespace : Namespace("yarn") {
         val latestVersion = getDefaultVersion(null, null)
         yarnBuilds.keys.firstOrNull { it.contains('.') && !it.contains('-') }?.takeIf { it != latestVersion }?.also { versions.add(it) }
         latestVersion.also { versions.add(it) }
-        versions.add("1.8.9")
         return versions
     }
 
