@@ -78,7 +78,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
             }
             var page = 0
             val maxPage = ceil(sortedClasses.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+            message.edit { it.setEmbed { it.buildMessage(namespace,sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -97,13 +97,13 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page > 0) {
                                         page--
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(namespace,sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else if (unicode.raw == "➡") {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
                                     if (page < maxPage - 1) {
                                         page++
-                                        msg.edit { it.setEmbed { it.buildMessage(sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
+                                        msg.edit { it.setEmbed { it.buildMessage(namespace,sortedClasses, mappingsContainer, page, user, maxPage) } }.subscribe()
                                     }
                                 } else {
                                     msg.removeReaction(it.emoji, it.userId).subscribe()
@@ -124,7 +124,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
         if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
         else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
         setTimestampToNow()
@@ -141,6 +141,9 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
             desc += "**MC ${mappingsContainer.version}: ${it.mappedName ?: it.intermediaryName}**\n" +
                     "__Name__: " + (if (it.obfName.isEmpty()) "" else if (it.obfName.isMerged()) "${it.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
+            if (namespace.supportsAW()) {
+                desc += "\n__AW__: `<access> class ${it.mappedName ?: it.intermediaryName}`"
+            }
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }

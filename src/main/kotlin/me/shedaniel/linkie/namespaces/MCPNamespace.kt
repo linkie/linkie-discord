@@ -26,6 +26,7 @@ object MCPNamespace : Namespace("mcp") {
         }
     }
 
+    override fun supportsFieldDescription(): Boolean = false
     override fun getDefaultLoadedVersions(): List<String> = listOf(getDefaultVersion(null, null))
     override fun getAllVersions(): List<String> = mcpConfigSnapshots.keys.map { it.toString() }
     override fun getDefaultVersion(command: String?, snowflake: Snowflake?): String = mcpConfigSnapshots.keys.max()!!.toString()

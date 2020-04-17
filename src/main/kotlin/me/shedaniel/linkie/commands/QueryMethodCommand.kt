@@ -228,16 +228,19 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                     ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
                     "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
-            desc += if (namespace.supportsMixin()) {
-                "\n__Mixin Target__: `L${it.parent.mappedName
+            if (namespace.supportsMixin()) {
+                desc += "\n__Mixin Target__: `L${it.parent.mappedName
                         ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
                         ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
-            } else ""
-            desc += if (namespace.supportsAT()) {
-                "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+            }
+            if (namespace.supportsAT()) {
+                desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
                         " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
                         " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
-            } else ""
+            } else if (namespace.supportsAW()) {
+                desc += "\n__AW__: `<access> method ${it.parent.mappedName ?: it.parent.intermediaryName} ${it.method.mappedName ?: it.method.intermediaryName} " +
+                        "${it.method.mappedDesc ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+            }
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }

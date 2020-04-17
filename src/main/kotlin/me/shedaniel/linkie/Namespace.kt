@@ -87,6 +87,8 @@ abstract class Namespace(val id: String) {
 
     open fun supportsMixin(): Boolean = false
     open fun supportsAT(): Boolean = false
+    open fun supportsAW(): Boolean = false
+    open fun supportsFieldDescription(): Boolean = true
 
     data class MappingsProvider(var version: String?, var cached: Boolean?, var mappingsContainer: (() -> MappingsContainer)?) {
         companion object {

@@ -229,26 +229,32 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
                     ?: it.parent.intermediaryName}.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
                     "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
-            desc += "\n__Type__: `${(it.field.mappedDesc
-                    ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
+            if (namespace.supportsFieldDescription()) {
+                desc += "\n__Type__: `${(it.field.mappedDesc
+                        ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
+            }
             if (namespace.supportsMixin()) {
                 desc += "\n__Mixin Target__: `L${it.parent.mappedName
                         ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
                         "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
             }
             if (namespace.supportsAT()) {
-                desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
+                desc += "\n__AT__: `public ${(it.parent.mappedName ?: it.parent.intermediaryName).replace('/', '.')}" +
                         " ${it.field.intermediaryName} # ${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}`"
+            } else if (namespace.supportsAW()) {
+                desc += "\n__AW__: `<access> field ${it.parent.mappedName ?: it.parent.intermediaryName} ${it.field.mappedName ?: it.field.intermediaryName} " +
+                        "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
             }
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
     private fun String.localiseFieldDesc(): String {
+        if (isEmpty()) return this
         if (length == 1) {
             return localisePrimitive(first())
         }
-        val s = replace('/', '.')
+        val s = this
         var offset = 0
         for (i in s.indices) {
             if (s[i] == '[')

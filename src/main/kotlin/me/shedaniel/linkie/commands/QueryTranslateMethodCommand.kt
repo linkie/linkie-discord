@@ -29,7 +29,7 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
                         allVersions.take(20).joinToString(", ") + ", etc"
                     else allVersions.joinToString(", "))
         }
-        sourceMappingsProvider.injectDefaultVersion(source.getProvider(allVersions.last()))
+        sourceMappingsProvider.injectDefaultVersion(source.getProvider(allVersions.first()))
         if (sourceMappingsProvider.isEmpty())
             throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
         val targetMappingsProvider = target.getProvider(sourceMappingsProvider.version!!)
