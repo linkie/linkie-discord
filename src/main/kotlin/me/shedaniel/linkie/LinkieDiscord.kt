@@ -59,6 +59,7 @@ fun registerCommands(commandApi: CommandApi) {
         commandApi.registerCommand(CalculateLength, "calclen")
         commandApi.registerCommand(RandomClassCommand, "randc")
         commandApi.registerCommand(NamespacesCommand, "namespaces")
+        commandApi.registerCommand(AWCommand, "allaccesswidener")
     }
 }
 

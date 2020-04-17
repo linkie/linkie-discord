@@ -36,6 +36,7 @@ dependencies {
 //    compile "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
     compile "com.google.guava:guava:28.0-jre"
     compile "com.github.shedaniel:Tiny-Mappings-Parser:5c725f4"
+    compile "fr.minuskube:jpastee:1.0.2"
     compile('com.discord4j:discord4j-core:3.0.11') {
         force = true
     }

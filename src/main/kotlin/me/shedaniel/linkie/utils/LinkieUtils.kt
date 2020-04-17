@@ -186,58 +186,38 @@ fun String.tryToVersion(): Version? {
     }
 }
 
-fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String {
-    if (startsWith('(') && contains(')')) {
-        val split = split(')')
-        val parametersOG = split[0].substring(1).toCharArray()
-        val returnsOG = split[1].toCharArray()
-        val parametersUnmapped = mutableListOf<String>()
-        val returnsUnmapped = mutableListOf<String>()
+fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String =
+        remapFieldDescriptor { mappingsContainer.getClass(it)?.mappedName ?: it }
 
-        var lastT: String? = null
-        for (char in parametersOG) {
-            when {
-                lastT != null && char == ';' -> {
-                    parametersUnmapped.add(lastT)
-                    lastT = null
-                }
-                lastT != null -> {
-                    lastT += char
-                }
-                char == 'L' -> {
-                    lastT = ""
-                }
-                else -> parametersUnmapped.add(char.toString())
+fun String.remapFieldDescriptor(classMappings: (String) -> String): String {
+    return try {
+        val reader = StringReader(this)
+        val result = StringBuilder()
+        var insideClassName = false
+        val className = StringBuilder()
+        while (true) {
+            val c: Int = reader.read()
+            if (c == -1) {
+                break
+            }
+            if (c == ';'.toInt()) {
+                insideClassName = false
+                result.append(classMappings(className.toString()))
+            }
+            if (insideClassName) {
+                className.append(c.toChar())
+            } else {
+                result.append(c.toChar())
+            }
+            if (c == 'L'.toInt()) {
+                insideClassName = true
+                className.setLength(0)
             }
         }
-        for (char in returnsOG) {
-            when {
-                lastT != null && char == ';' -> {
-                    returnsUnmapped.add(lastT)
-                    lastT = null
-                }
-                lastT != null -> {
-                    lastT += char
-                }
-                char == 'L' -> {
-                    lastT = ""
-                }
-                else -> returnsUnmapped.add(char.toString())
-            }
-        }
-        return "(" + parametersUnmapped.joinToString("") {
-            if (it.length != 1) {
-                "L${mappingsContainer.getClass(it)?.mappedName ?: it};"
-            } else
-                it
-        } + ")" + returnsUnmapped.joinToString("") {
-            if (it.length != 1) {
-                "L${mappingsContainer.getClass(it)?.mappedName ?: it};"
-            } else
-                it
-        }
+        result.toString()
+    } catch (e: IOException) {
+        throw AssertionError(e)
     }
-    return this
 }
 
 fun String.remapMethodDescriptor(classMappings: (String) -> String): String {
