@@ -68,7 +68,7 @@ object YarnNamespace : Namespace("yarn") {
     override fun getDefaultVersion(command: String?, snowflake: Snowflake?): String =
             when (snowflake?.asLong()) {
                 602959845842485258 -> "1.2.5"
-                661088839464386571 -> "1.14.3"
-                else -> yarnBuilds.keys.first()
+                661088839464386571 -> "1.14.4"
+                else -> yarnBuilds.keys.first { it.contains('.') && !it.contains('-') }
             }
 }
