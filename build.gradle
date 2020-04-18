@@ -1,80 +1,26 @@
 plugins {
-    id 'java'
-//    id 'org.springframework.boot' version '2.0.3.RELEASE'
-    id "org.jetbrains.kotlin.jvm" version "1.3.71"
-    id "org.jetbrains.kotlin.plugin.serialization" version "1.3.71"
-//    id "org.jetbrains.kotlin.plugin.spring" version "1.3.61"
-//    id 'com.devsoap.vaadin-flow' version '1.2'
+    id("org.jetbrains.kotlin.jvm") version "1.3.71" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.71" apply false
 }
 
-//apply plugin: 'io.spring.dependency-management'
+allprojects {
+    apply plugin: "java"
+    apply plugin: "kotlin"
+    apply plugin: "kotlinx-serialization"
 
-group 'me.shedaniel'
-version '1.0-SNAPSHOT'
+    group "me.shedaniel"
+    version "1.0-SNAPSHOT"
 
-sourceCompatibility = targetCompatibility = 1.8
-//def vaadin_version = "13.0.13"
+    sourceCompatibility = targetCompatibility = 1.8
 
-repositories {
-    jcenter()
-    mavenCentral()
-    maven { url "https://maven.fabricmc.net" }
-    maven { url "https://jitpack.io" }
-    maven { url "https://dl.bintray.com/kotlin/kotlinx/" }
-    maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
-//    maven { url "https://maven.vaadin.com/vaadin-prereleases" }
-//    maven { url "http://maven.vaadin.com/vaadin-addons" }
-}
-
-//vaadin {
-//    productionMode = true
-//    submitStatistics = false
-//}
-
-dependencies {
-//    compile "com.vaadin:vaadin-bom:$vaadin_version"
-//    compile "com.vaadin:vaadin-spring-boot-starter:$vaadin_version"
-    compile "com.google.guava:guava:28.0-jre"
-    compile "com.github.shedaniel:Tiny-Mappings-Parser:5c725f4"
-    compile "fr.minuskube:jpastee:1.0.2"
-    compile('com.discord4j:discord4j-core:3.0.11') {
-        force = true
-    }
-//    compile('io.projectreactor:reactor-core:3.2.3.RELEASE') {
-//        force = true
-//    }
-//    compile('io.projectreactor.addons:reactor-extra:3.2.3.RELEASE') {
-//        force = true
-//    }
-//    compile "org.apache.logging.log4j:log4j-core:2.11.0"
-    compile "org.apache.commons:commons-lang3:3.9"
-    compile "com.github.shedaniel:CurseMetaAPI:0.2"
-    compile "com.github.Zeitheron:CurseForge4J:1.5.2"
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.71"
-    compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.4'
-    compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
-    compile "org.jetbrains.kotlin:kotlin-reflect:1.3.71"
-    compile "com.sedmelluq:lavaplayer:1.3.25"
-    compile 'com.google.code.gson:gson:2.8.6'
-    compile 'com.google.api-client:google-api-client:1.30.2'
-    compile 'com.google.apis:google-api-services-youtube:v3-rev212-1.25.0'
-}
-
-compileKotlin {
-    kotlinOptions.suppressWarnings = true
-    kotlinOptions.jvmTarget = "1.8"
-}
-
-jar {
-    manifest {
-        attributes(
-                'Main-Class': 'me.shedaniel.linkie.LinkieBot'
-        )
-    }
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven { url "https://maven.fabricmc.net" }
+        maven { url "https://jitpack.io" }
+        maven { url "https://dl.bintray.com/kotlin/kotlinx/" }
+        maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
     }
 }
 
-task stage(dependsOn: ['build', 'clean'])
-build.mustRunAfter clean
+task stage(dependsOn: "discord:stage")
