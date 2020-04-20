@@ -47,7 +47,7 @@ object MojangNamespace : Namespace("mojang") {
             listOf(latestRelease)
 
     override fun getAllVersions(): List<String> =
-            versionJsonMap.keys.toList()
+            versionJsonMap.keys.toMutableList().apply { add("1.14.4") }
 
     override fun reloadData() {
         versionJsonMap.clear()
@@ -108,7 +108,7 @@ object MojangNamespace : Namespace("mojang") {
                             obfName.merged = split[2]
                             invokes.add {
                                 obfDesc.merged = obfDesc.merged ?: intermediaryDesc.remapMethodDescriptor {
-                                    getClass(it)?.mappedName ?: it
+                                    getClass(it)?.obfName?.merged ?: it
                                 }
                             }
                         }
@@ -120,7 +120,7 @@ object MojangNamespace : Namespace("mojang") {
                             obfName.merged = split[2]
                             invokes.add {
                                 obfDesc.merged = obfDesc.merged ?: intermediaryDesc.remapMethodDescriptor {
-                                    getClass(it)?.mappedName ?: it
+                                    getClass(it)?.obfName?.merged ?: it
                                 }
                             }
                         }
