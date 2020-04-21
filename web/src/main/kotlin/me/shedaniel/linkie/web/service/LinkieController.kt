@@ -30,7 +30,7 @@ class LinkieController {
     compile("com.google.guava:guava:23.5-jre")
     minecraft("com.mojang:minecraft:{minecraft_version}")
     mappings("net.fabricmc:yarn:{yarn_version}:v2")
-    modImplementation("net.fabricmc:fabric-loader:{loader_version}") {
+    modImplementation("net.fabricmc:fabric-loader-1.8.9:{loader_version}") {
         exclude module: "guava"
     }
             
