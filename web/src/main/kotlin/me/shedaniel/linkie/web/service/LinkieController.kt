@@ -1,15 +1,81 @@
 package me.shedaniel.linkie.web.service
 
 import me.shedaniel.linkie.*
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
+import java.net.URL
 
 @RestController
 @Suppress("unused")
 class LinkieController {
+    @RequestMapping("/fabric/1.8.9")
+    fun fabric(): String = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Fabric Versions 1.8.9</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.14.2/styles/default.min.css">
+</head>
+<body>
+    <h1>Fabric 1.8.9 Latest Versions</h1>
+    <a href="https://discord.gg/Nc28ABK"><img alt="Discord" src="https://img.shields.io/discord/679635419045822474.svg?label=discord"></a> 
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/Legacy-Fabric/yarn.svg?label=Yarn&style=social"> 
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/Legacy-Fabric/fabric.svg?label=Fabric&style=social">
+
+    <h3>build.gradle</h3>
+    <div name="code">
+    <pre><code class="gradle">dependencies {
+    compile("com.google.guava:guava:23.5-jre")
+    minecraft("com.mojang:minecraft:{minecraft_version}")
+    mappings("net.fabricmc:yarn:{yarn_version}:v2")
+    modImplementation("net.fabricmc:fabric-loader:{loader_version}") {
+        exclude module: "guava"
+    }
+            
+    //Fabric api
+    modImplementation "{fabric_maven}{fabric_version}"
+}</code></pre>
+    </div>
+    
+    <h3>gradle.properties (Example Mod)</h3>
+    <div name="code"><pre><code class="properties">minecraft_version={minecraft_version}
+yarn_mappings={yarn_version}
+loader_version={loader_version}
+
+#Fabric api
+fabric_version={fabric_version}</code></pre></div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.14.2/highlight.min.js"></script>
+<script charset="UTF-8" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/gradle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+    });
+</script>
+</html>
+    """.trimIndent()
+            .replace("{minecraft_version}", "1.8.9")
+            .replace("{yarn_version}",
+                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/yarn/maven-metadata.xml").readText().let {
+                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                    }
+            )
+            .replace("{loader_version}",
+                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-loader-1.8.9/maven-metadata.xml").readText().let {
+                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                    }
+            )
+            .replace("{fabric_maven}", "net.fabricmc.fabric-api:fabric-api:")
+            .replace("{fabric_version}",
+                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-api/fabric-api//maven-metadata.xml").readText().let {
+                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                    }
+            )
+
     @GetMapping("/namespaces")
     fun namespaces(): List<String> = Namespaces.namespaces.keys.toList()
 
