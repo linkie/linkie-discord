@@ -1,7 +1,6 @@
 package me.shedaniel.linkie.web.service
 
 import me.shedaniel.linkie.*
-import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
 import org.springframework.web.bind.annotation.*
 import java.net.URL
@@ -9,6 +8,10 @@ import java.net.URL
 @RestController
 @Suppress("unused")
 class LinkieController {
+    private var yarnVersion: Pair<String, Long>? = null
+    private var loaderVersion: Pair<String, Long>? = null
+    private var fabricVersion: Pair<String, Long>? = null
+
     @RequestMapping("/fabric/1.8.9")
     fun fabric(): String = """
 <!DOCTYPE html>
@@ -60,20 +63,27 @@ fabric_version={fabric_version}</code></pre></div>
     """.trimIndent()
             .replace("{minecraft_version}", "1.8.9")
             .replace("{yarn_version}",
-                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/yarn/maven-metadata.xml").readText().let {
-                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
-                    }
+                    yarnVersion?.takeIf { System.currentTimeMillis() - it.second < 60000 }.let {
+                        it ?: Pair(URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/yarn/maven-metadata.xml").readText().let {
+                            it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                        }, System.currentTimeMillis())
+                    }.apply { yarnVersion = this }.first
             )
             .replace("{loader_version}",
-                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-loader-1.8.9/maven-metadata.xml").readText().let {
-                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
-                    }
+                    loaderVersion?.takeIf { System.currentTimeMillis() - it.second < 60000 }.let {
+                        it ?: Pair(URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-loader-1.8.9/maven-metadata.xml")
+                                .readText().let {
+                                    it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                                }, System.currentTimeMillis())
+                    }.apply { loaderVersion = this }.first
             )
             .replace("{fabric_maven}", "net.fabricmc.fabric-api:fabric-api:")
             .replace("{fabric_version}",
-                    URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-api/fabric-api//maven-metadata.xml").readText().let {
-                        it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
-                    }
+                    fabricVersion?.takeIf { System.currentTimeMillis() - it.second < 60000 }.let {
+                        it ?: Pair(URL("https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml").readText().let {
+                            it.substring(it.indexOf("<latest>") + "<latest>".length, it.indexOf("</latest>"))
+                        }, System.currentTimeMillis())
+                    }.apply { fabricVersion = this }.first
             )
 
     @GetMapping("/namespaces")
