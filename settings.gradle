@@ -9,5 +9,4 @@ pluginManagement {
 rootProject.name = 'LinkieBot'
 
 include("core")
-include("discord")
 include("web")
