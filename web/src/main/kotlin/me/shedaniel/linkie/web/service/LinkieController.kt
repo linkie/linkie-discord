@@ -1,7 +1,14 @@
 package me.shedaniel.linkie.web.service
 
 import me.shedaniel.linkie.*
+import me.shedaniel.linkie.accesswidener.AccessWidenerResolver
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URL
 
@@ -13,7 +20,7 @@ class LinkieController {
     private var fabricVersion: Pair<String, Long>? = null
 
     @RequestMapping("/fabric/1.8.9")
-    fun fabric(): String = """
+    fun fabric1_8_9(): String = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -85,6 +92,26 @@ fabric_version={fabric_version}</code></pre></div>
                         }, System.currentTimeMillis())
                     }.apply { fabricVersion = this }.first
             )
+
+    @RequestMapping("/accesswidener/{version}", method = [RequestMethod.GET])
+    fun accessWidener(@PathVariable version: String): ResponseEntity<Resource> {
+        if (YarnNamespace.getProvider(version).isEmpty()) {
+            throw IllegalArgumentException("Illegal Version: $version")
+        }
+        val bytes = ByteArrayResource(AccessWidenerResolver.resolveVersion(version).toString().toByteArray())
+        return ResponseEntity.ok()
+                .headers(
+                        HttpHeaders().also {
+                            it.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=all-$version.accesswidener")
+                            it.add("Cache-Control", "no-cache, no-store, must-revalidate")
+                            it.add("Pragma", "no-cache")
+                            it.add("Expires", "0")
+                        }
+                )
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(bytes.contentLength())
+                .body(bytes)
+    }
 
     @GetMapping("/namespaces")
     fun namespaces(): List<String> = Namespaces.namespaces.keys.toList()
