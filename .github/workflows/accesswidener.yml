@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron:  '*/15 * * * *'
+    - cron:  '*/5 * * * *'
       
 jobs:
   build:
@@ -15,5 +15,5 @@ jobs:
         run: ./gradlew clean accesswidener:build
       - name: Run Jar
         run: java -jar accesswidener/build/libs/accesswidener-1.0-SNAPSHOT.jar
-        with:
+        env:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
