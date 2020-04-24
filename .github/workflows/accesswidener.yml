@@ -16,4 +16,4 @@ jobs:
       - name: Run Jar
         run: java -jar accesswidener/build/libs/accesswidener-1.0-SNAPSHOT.jar
         env:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.ACCESS_WIDENER }}
