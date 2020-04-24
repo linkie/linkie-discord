@@ -26,11 +26,11 @@ object AccessWidenerResolver {
         tmpFolder.deleteRecursively()
     }
 
-    fun resolveVersion(version: String): StringBuilder {
+    fun resolveVersion(version: String, versionJsonMap: MutableMap<String, String> = MojangNamespace.versionJsonMap): StringBuilder {
         System.gc()
         val mappingsContainer = YarnNamespace.getProvider(version).mappingsContainer!!.invoke()
-        val versionManifest = MojangNamespace.versionJsonMap[version]!!
-        val versionJson = MojangNamespace.json.parseJson(URL(versionManifest).readText()).jsonObject
+        val versionManifest = versionJsonMap[version]!!
+        val versionJson = YarnNamespace.json.parseJson(URL(versionManifest).readText()).jsonObject
         val clientSha1 = versionJson["downloads"]!!.jsonObject["client"]!!.jsonObject["sha1"]!!.content
         val clientUrl = URL(versionJson["downloads"]!!.jsonObject["client"]!!.jsonObject["url"]!!.content)
         val clientJar = File(tmpFolder, clientSha1.substring(0, 2) + "/$clientSha1.jar")
@@ -100,7 +100,7 @@ object AccessWidenerResolver {
                 }
                 val superClassNames = mutableListOf<String>()
                 var lastClass: String = name
-                while(true) {
+                while (true) {
                     lastClass = classRelationMap[lastClass] ?: break
                     superClassNames.add(lastClass)
                 }
