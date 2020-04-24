@@ -17,7 +17,7 @@ fun main() {
     Namespaces.startLoop()
     Thread.sleep(4000)
     var changed = false
-    val finishedBuilds = mutableMapOf<String, String>()
+    val finishedBuilds = mutableMapOf<Pair<String, String>, String>()
     val builds = YarnNamespace.yarnBuilds.map { Pair(it.key, it.value.version) }.toMutableList()
     val github = GitHubBuilder().withOAuthToken(System.getenv("repo-token")).build()
     val repository = github.getRepository("shedaniel/LinkieBot")
@@ -26,7 +26,7 @@ fun main() {
     release.assets.forEach { asset ->
         val matches = pattern.matcher(asset.name)
         if (matches.matches()) {
-            finishedBuilds[matches.group(1) + matches.group(2)] = asset.browserDownloadUrl
+            finishedBuilds[Pair(matches.group(1), matches.group(1) + matches.group(2))] = asset.browserDownloadUrl
             builds.removeIf { it.first == matches.group(1) }
         }
     }
@@ -47,7 +47,7 @@ fun main() {
         try {
             val aw = AccessWidenerResolver.resolveVersion(version.first, versionJsonMap).toString()
             val downloadUrl = release.uploadAsset("all-$version.accesswidener", aw.byteInputStream(), "application/octet-stream").browserDownloadUrl
-            finishedBuilds[version.second] = downloadUrl
+            finishedBuilds[version] = downloadUrl
             changed = true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -56,11 +56,11 @@ fun main() {
     }
     val builder = StringBuilder()
     builder.append("# Everything Access Widener™\n")
-    builds.forEach { (mcVersion, _) ->
+    finishedBuilds.keys.forEach { (mcVersion, _) ->
         builder.append("\n## $mcVersion\n")
-        finishedBuilds.forEach { (version, link) ->
-            if (version.startsWith("$mcVersion+build.")) {
-                builder.append("$version: $link\n")
+        finishedBuilds.forEach { (versionPair, link) ->
+            if (versionPair.first == mcVersion) {
+                builder.append("${versionPair.second}: $link\n")
             }
         }
     }
