@@ -8,5 +8,6 @@ pluginManagement {
 }
 rootProject.name = 'LinkieBot'
 
+include("accesswidener")
 include("core")
 include("discord")
