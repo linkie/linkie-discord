@@ -1,6 +1,7 @@
 package me.shedaniel.linkie.utils
 
 import me.shedaniel.linkie.MappingsContainer
+import me.shedaniel.linkie.getClassByObfName
 import java.io.IOException
 import java.io.StringReader
 import java.util.*
@@ -191,6 +192,9 @@ fun String.mapFieldIntermediaryDescToNamed(mappingsContainer: MappingsContainer)
 
 fun String.mapMethodIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String =
         remapMethodDescriptor { mappingsContainer.getClass(it)?.mappedName ?: it }
+
+fun String.mapMethodOfficialDescToNamed(mappingsContainer: MappingsContainer): String =
+        remapMethodDescriptor { mappingsContainer.getClassByObfName(it)?.mappedName ?: it }
 
 fun String.remapFieldDescriptor(classMappings: (String) -> String): String {
     return try {

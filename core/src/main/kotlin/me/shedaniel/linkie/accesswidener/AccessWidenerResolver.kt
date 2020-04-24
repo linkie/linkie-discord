@@ -7,11 +7,11 @@ import kotlinx.serialization.json.content
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getFieldByObfName
-import me.shedaniel.linkie.getMethodByObfName
+import me.shedaniel.linkie.getMethodByObfNameAndDesc
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.mapFieldIntermediaryDescToNamed
-import me.shedaniel.linkie.utils.mapMethodIntermediaryDescToNamed
+import me.shedaniel.linkie.utils.mapMethodOfficialDescToNamed
 import net.fabricmc.stitch.merge.JarMerger
 import org.objectweb.asm.*
 import java.io.File
@@ -27,6 +27,7 @@ object AccessWidenerResolver {
     }
 
     fun resolveVersion(version: String): StringBuilder {
+        System.gc()
         val mappingsContainer = YarnNamespace.getProvider(version).mappingsContainer!!.invoke()
         val versionManifest = MojangNamespace.versionJsonMap[version]!!
         val versionJson = MojangNamespace.json.parseJson(URL(versionManifest).readText()).jsonObject
@@ -66,14 +67,27 @@ object AccessWidenerResolver {
         }
 
         val builder = StringBuilder()
+
+        val classRelationMap = mutableMapOf<String, String>()
+
+        class ClassTreeVisitor : ClassVisitor(Opcodes.ASM8) {
+            override fun visit(version: Int, access: Int, name: String, signature: String?, superName: String?, interfaces: Array<out String>?) {
+                if (superName == null) return
+                val linkieClass = mappingsContainer.getClassByObfName(name)!!
+                val superClass = mappingsContainer.getClassByObfName(superName) ?: return
+                classRelationMap[linkieClass.obfName.merged!!] = superClass.obfName.merged!!
+            }
+        }
         builder.append("accessWidener\tv1\tnamed\n")
         class AccessWidenerVisitor : ClassVisitor(Opcodes.ASM8) {
             var ignore by Delegates.notNull<Boolean>()
             var isInterface by Delegates.notNull<Boolean>()
             var linkieClass by Delegates.notNull<Class>()
             var className by Delegates.notNull<String>()
+            var classes = mutableListOf<Class>()
 
             override fun visit(version: Int, access: Int, name: String, signature: String?, superName: String?, interfaces: Array<out String>?) {
+                classes.clear()
                 ignore = access and Opcodes.ACC_SYNTHETIC != 0 || access and Opcodes.ACC_ANNOTATION != 0
                 if (ignore) return
                 isInterface = access and Opcodes.ACC_INTERFACE != 0
@@ -84,18 +98,29 @@ object AccessWidenerResolver {
                 } else if (access and Opcodes.ACC_PUBLIC == 0) {
                     builder.append("accessible class $className\n")
                 }
+                val superClassNames = mutableListOf<String>()
+                var lastClass: String = name
+                while(true) {
+                    lastClass = classRelationMap[lastClass] ?: break
+                    superClassNames.add(lastClass)
+                }
+                classes.add(linkieClass)
+                superClassNames.map { mappingsContainer.getClassByObfName(it) }.forEach { it?.also { classes.add(it) } }
                 super.visit(version, access, name, signature, superName, interfaces)
             }
 
             override fun visitMethod(access: Int, name: String, descriptor: String, signature: String?, exceptions: Array<out String>?): MethodVisitor? {
                 if (ignore || access and Opcodes.ACC_SYNTHETIC != 0) return super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (access and Opcodes.ACC_PUBLIC == 0) {
-                    val method = linkieClass.getMethodByObfName(name)
-                    if (method != null) {
-                        builder.append("extendable method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
-                                method.intermediaryDesc.mapMethodIntermediaryDescToNamed(mappingsContainer) + "\n")
-                        builder.append("accessible method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
-                                method.intermediaryDesc.mapMethodIntermediaryDescToNamed(mappingsContainer) + "\n")
+                if (access and Opcodes.ACC_PUBLIC == 0 || access and Opcodes.ACC_PROTECTED != 0) {
+                    for (possibleClass in classes) {
+                        val method = possibleClass.getMethodByObfNameAndDesc(name, descriptor)
+                        if (method != null) {
+                            builder.append("extendable method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
+                                    descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
+                            builder.append("accessible method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
+                                    descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
+                            break
+                        }
                     }
                 }
                 return super.visitMethod(access, name, descriptor, signature, exceptions)
@@ -103,7 +128,7 @@ object AccessWidenerResolver {
 
             override fun visitField(access: Int, name: String, descriptor: String, signature: String?, value: Any?): FieldVisitor? {
                 if (ignore || access and Opcodes.ACC_SYNTHETIC != 0) return null
-                if (access and Opcodes.ACC_PUBLIC == 0) {
+                if (access and Opcodes.ACC_PUBLIC == 0 || access and Opcodes.ACC_PROTECTED != 0) {
                     val field = linkieClass.getFieldByObfName(name)
                     if (field != null) {
                         builder.append("accessible field $className ${field.let { it.mappedName ?: it.intermediaryName }} " +
@@ -118,15 +143,22 @@ object AccessWidenerResolver {
             }
         }
 
+        val classTreeVisitor = ClassTreeVisitor()
         val visitor = AccessWidenerVisitor()
-        val zipInputStream = ZipInputStream(mergedJar.inputStream())
-        while (true) {
-            val entry = zipInputStream.nextEntry ?: break
-            if (entry.name.endsWith(".class")) {
-                val reader = ClassReader(zipInputStream.readBytes())
-                reader.accept(visitor, ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES)
+        val classReaders = mutableListOf<ClassReader>()
+        mergedJar.inputStream().use {
+            val zipInputStream = ZipInputStream(it)
+            while (true) {
+                val entry = zipInputStream.nextEntry ?: break
+                if (entry.name.endsWith(".class")) {
+                    val reader = ClassReader(zipInputStream.readBytes())
+                    classReaders.add(reader)
+                    reader.accept(classTreeVisitor, ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES)
+                }
             }
         }
+        classReaders.forEach { it.accept(visitor, ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES) }
+        System.gc()
         return builder
     }
 }
