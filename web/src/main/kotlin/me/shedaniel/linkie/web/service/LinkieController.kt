@@ -230,7 +230,7 @@ fabric_version={fabric_version}</code></pre></div>
                                 intermediaryDesc.remapMethodDescriptor { container.getClass(it)?.obfName?.merged ?: it } else null
                     ),
                     mappedName,
-                    (mappedDesc ?: intermediaryDesc.remapMethodDescriptor { container.getClass(it)?.mappedName ?: it })?.takeIf { it != intermediaryDesc }
+                    (mappedDesc ?: intermediaryDesc.remapMethodDescriptor { container.getClass(it)?.mappedName ?: it }).takeIf { it != intermediaryDesc }
             )
 
     fun Field.toInfo(container: MappingsContainer): FieldInfo =
@@ -247,6 +247,6 @@ fabric_version={fabric_version}</code></pre></div>
                                 intermediaryDesc.remapFieldDescriptor { container.getClass(it)?.obfName?.merged ?: it } else null
                     ),
                     mappedName,
-                    (mappedDesc ?: intermediaryDesc.remapFieldDescriptor { container.getClass(it)?.mappedName ?: it })?.takeIf { it != intermediaryDesc }
+                    (mappedDesc ?: intermediaryDesc.remapFieldDescriptor { container.getClass(it)?.mappedName ?: it }).takeIf { it != intermediaryDesc }
             )
 }
