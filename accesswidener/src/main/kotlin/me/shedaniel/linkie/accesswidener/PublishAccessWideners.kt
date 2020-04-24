@@ -22,7 +22,7 @@ fun main() {
     val github = GitHubBuilder().withOAuthToken(System.getenv("repo-token")).build()
     val repository = github.getRepository("shedaniel/LinkieBot")
     val release = repository.latestRelease
-    val pattern = Pattern.compile("^all-\\.(.*)(?:\\.\\1)(\\+build\\.\\d{1,10}).accesswidener")
+    val pattern = Pattern.compile("^all-\\.(.*)(?:\\.\\1)(\\+?b?u?i?l?d?\\.\\d{1,10}).accesswidener")
     release.assets.forEach { asset ->
         val matches = pattern.matcher(asset.name)
         if (matches.matches()) {
