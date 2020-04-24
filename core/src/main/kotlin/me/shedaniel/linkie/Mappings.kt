@@ -60,6 +60,32 @@ fun MappingsContainer.getClassByObfName(obf: String): Class? {
     return null
 }
 
+fun Class.getMethodByObfName(obf: String): Method? {
+    methods.forEach {
+        if (it.obfName.isMerged()) {
+            if (it.obfName.merged.equals(obf, ignoreCase = true))
+                return it
+        } else if (it.obfName.client.equals(obf, ignoreCase = true))
+            return it
+        else if (it.obfName.server.equals(obf, ignoreCase = true))
+            return it
+    }
+    return null
+}
+
+fun Class.getFieldByObfName(obf: String): Field? {
+    fields.forEach {
+        if (it.obfName.isMerged()) {
+            if (it.obfName.merged.equals(obf, ignoreCase = true))
+                return it
+        } else if (it.obfName.client.equals(obf, ignoreCase = true))
+            return it
+        else if (it.obfName.server.equals(obf, ignoreCase = true))
+            return it
+    }
+    return null
+}
+
 data class Class(
         val intermediaryName: String,
         val obfName: Obf = Obf(),

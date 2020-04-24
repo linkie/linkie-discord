@@ -21,7 +21,7 @@ abstract class Namespace(val id: String) {
 
     private val cachedMappings = CopyOnWriteArrayList<MappingsContainer>()
     private val mappingsProviders = mutableMapOf<(String) -> Boolean, (String) -> MappingsContainer>()
-    protected val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
+    internal val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
     var reloading = false
 
     suspend fun reset() {
