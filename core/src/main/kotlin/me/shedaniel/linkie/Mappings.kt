@@ -50,11 +50,11 @@ data class MappingsContainer(
 fun MappingsContainer.getClassByObfName(obf: String): Class? {
     classes.forEach {
         if (it.obfName.isMerged()) {
-            if (it.obfName.merged.equals(obf, ignoreCase = true))
+            if (it.obfName.merged.equals(obf, ignoreCase = false))
                 return it
-        } else if (it.obfName.client.equals(obf, ignoreCase = true))
+        } else if (it.obfName.client.equals(obf, ignoreCase = false))
             return it
-        else if (it.obfName.server.equals(obf, ignoreCase = true))
+        else if (it.obfName.server.equals(obf, ignoreCase = false))
             return it
     }
     return null
@@ -63,11 +63,33 @@ fun MappingsContainer.getClassByObfName(obf: String): Class? {
 fun Class.getMethodByObfName(obf: String): Method? {
     methods.forEach {
         if (it.obfName.isMerged()) {
-            if (it.obfName.merged.equals(obf, ignoreCase = true))
+            if (it.obfName.merged.equals(obf, ignoreCase = false))
                 return it
-        } else if (it.obfName.client.equals(obf, ignoreCase = true))
+        } else if (it.obfName.client.equals(obf, ignoreCase = false))
             return it
-        else if (it.obfName.server.equals(obf, ignoreCase = true))
+        else if (it.obfName.server.equals(obf, ignoreCase = false))
+            return it
+    }
+    return null
+}
+
+fun Class.getMethodByObfNameAndDesc(obf: String, desc: String): Method? {
+    methods.filter {
+        if (it.obfName.isMerged()) {
+            if (it.obfName.merged.equals(obf, ignoreCase = false))
+                return@filter true
+        } else if (it.obfName.client.equals(obf, ignoreCase = false))
+            return@filter true
+        else if (it.obfName.server.equals(obf, ignoreCase = false))
+            return@filter true
+        return@filter false
+    }.forEach {
+        if (it.obfDesc.isMerged()) {
+            if (it.obfDesc.merged.equals(desc, ignoreCase = false))
+                return it
+        } else if (it.obfDesc.client.equals(desc, ignoreCase = false))
+            return it
+        else if (it.obfDesc.server.equals(desc, ignoreCase = false))
             return it
     }
     return null
@@ -76,11 +98,11 @@ fun Class.getMethodByObfName(obf: String): Method? {
 fun Class.getFieldByObfName(obf: String): Field? {
     fields.forEach {
         if (it.obfName.isMerged()) {
-            if (it.obfName.merged.equals(obf, ignoreCase = true))
+            if (it.obfName.merged.equals(obf, ignoreCase = false))
                 return it
-        } else if (it.obfName.client.equals(obf, ignoreCase = true))
+        } else if (it.obfName.client.equals(obf, ignoreCase = false))
             return it
-        else if (it.obfName.server.equals(obf, ignoreCase = true))
+        else if (it.obfName.server.equals(obf, ignoreCase = false))
             return it
     }
     return null
