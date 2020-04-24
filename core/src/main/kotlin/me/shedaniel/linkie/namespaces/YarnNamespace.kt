@@ -10,26 +10,12 @@ import java.net.URL
 import java.util.*
 import java.util.zip.ZipInputStream
 import kotlin.collections.LinkedHashMap
-import kotlin.collections.List
-import kotlin.collections.MutableList
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.filter
-import kotlin.collections.first
-import kotlin.collections.firstOrNull
-import kotlin.collections.forEach
-import kotlin.collections.getOrPut
-import kotlin.collections.last
-import kotlin.collections.lastOrNull
-import kotlin.collections.map
-import kotlin.collections.max
-import kotlin.collections.maxBy
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableMapOf
 import kotlin.collections.set
 
 object YarnNamespace : Namespace("yarn") {
-    private val yarnBuilds = mutableMapOf<String, YarnBuild>()
+    val yarnBuilds = mutableMapOf<String, YarnBuild>()
     private var yarnBuild1_8_9 = ""
 
     init {
