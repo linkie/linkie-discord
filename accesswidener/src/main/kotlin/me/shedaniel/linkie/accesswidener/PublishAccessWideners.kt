@@ -42,11 +42,15 @@ fun main() {
     }
     sortedBuildsToBuild.forEach { version ->
         System.gc()
-        val aw = AccessWidenerResolver.resolveVersion(version.first, versionJsonMap).toString()
-        val downloadUrl = release.uploadAsset("all-$version.accesswidener", aw.byteInputStream(), "application/octet-stream").browserDownloadUrl
+        try {
+            val aw = AccessWidenerResolver.resolveVersion(version.first, versionJsonMap).toString()
+            val downloadUrl = release.uploadAsset("all-$version.accesswidener", aw.byteInputStream(), "application/octet-stream").browserDownloadUrl
+            finishedBuilds[version.second] = downloadUrl
+            changed = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         System.gc()
-        finishedBuilds[version.second] = downloadUrl
-        changed = true
     }
     if (changed) {
         val builder = StringBuilder()
