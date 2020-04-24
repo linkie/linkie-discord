@@ -26,16 +26,9 @@ fun main() {
     release.assets.forEach { asset ->
         val matches = pattern.matcher(asset.name)
         if (matches.matches()) {
-            finishedBuilds[matches.group(0) + matches.group(1)] = asset.browserDownloadUrl
-            builds.removeIf { it.first == matches.group(0) }
+            finishedBuilds[matches.group(1) + matches.group(2)] = asset.browserDownloadUrl
+            builds.removeIf { it.first == matches.group(1) }
         }
-    }
-    release.body.split("\n").forEach {
-        if (it.isBlank() || it.startsWith("# ") || it.startsWith("## ")) return@forEach
-        val version = it.substring(0, it.indexOf(": "))
-        val link = it.substring(version.length + 2)
-        finishedBuilds[version] = link
-        builds.removeIf { it.second == version }
     }
     val sortedBuildsToBuild = builds.sortedWith(Comparator.nullsFirst(compareBy { it.first.tryToVersion() })).asReversed()
     val versionJsonMap = mutableMapOf<String, String>()
