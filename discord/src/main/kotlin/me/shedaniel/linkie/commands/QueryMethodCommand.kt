@@ -231,7 +231,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
             if (namespace.supportsMixin()) {
                 desc += "\n__Mixin Target__: `L${it.parent.mappedName
                         ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-                        ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+                        ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
             }
             if (namespace.supportsAT()) {
                 desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
@@ -239,7 +239,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                         " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
             } else if (namespace.supportsAW()) {
                 desc += "\n__AW__: `<access> method ${it.parent.mappedName ?: it.parent.intermediaryName} ${it.method.mappedName ?: it.method.intermediaryName} " +
-                        "${it.method.mappedDesc ?: it.method.intermediaryDesc.mapIntermediaryDescToNamed(mappingsContainer)}`"
+                        "${it.method.mappedDesc ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
             }
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
