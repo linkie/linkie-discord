@@ -2,10 +2,13 @@
 
 package me.shedaniel.linkie.accesswidener
 
+import kotlinx.serialization.json.content
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.tryToVersion
 import org.kohsuke.github.GitHubBuilder
+import java.net.URL
+import java.util.regex.Pattern
 
 fun main() {
     arrayOf("pomf", "spigot", "mcp").forEach {
@@ -19,6 +22,14 @@ fun main() {
     val github = GitHubBuilder().withOAuthToken(System.getenv("repo-token")).build()
     val repository = github.getRepository("shedaniel/LinkieBot")
     val release = repository.latestRelease
+    val pattern = Pattern.compile("^all-\\.(.*)(?:\\.\\1)(\\+build\\.\\d{1,10}).accesswidener")
+    release.assets.forEach { asset ->
+        val matches = pattern.matcher(asset.name)
+        if (matches.matches()) {
+            finishedBuilds[matches.group(0) + matches.group(1)] = asset.browserDownloadUrl
+            builds.removeIf { it.first == matches.group(0) }
+        }
+    }
     release.body.split("\n").forEach {
         if (it.isBlank() || it.startsWith("# ") || it.startsWith("## ")) return@forEach
         val version = it.substring(0, it.indexOf(": "))
@@ -27,9 +38,18 @@ fun main() {
         builds.removeIf { it.second == version }
     }
     val sortedBuildsToBuild = builds.sortedWith(Comparator.nullsFirst(compareBy { it.first.tryToVersion() })).asReversed()
+    val versionJsonMap = mutableMapOf<String, String>()
+    versionJsonMap.clear()
+    val versionManifest = YarnNamespace.json.parseJson(URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").readText())
+    versionManifest.jsonObject["versions"]!!.jsonArray.forEach { versionElement ->
+        val versionString = versionElement.jsonObject["id"]!!.content
+        versionString.tryToVersion() ?: return@forEach
+        val urlString = versionElement.jsonObject["url"]!!.content
+        versionJsonMap[versionString] = urlString
+    }
     sortedBuildsToBuild.forEach { version ->
         System.gc()
-        val aw = AccessWidenerResolver.resolveVersion(version.first).toString()
+        val aw = AccessWidenerResolver.resolveVersion(version.first, versionJsonMap).toString()
         val downloadUrl = release.uploadAsset("all-$version.accesswidener", aw.byteInputStream(), "application/octet-stream").browserDownloadUrl
         System.gc()
         finishedBuilds[version.second] = downloadUrl
