@@ -56,7 +56,7 @@ fun main() {
     }
     val builder = StringBuilder()
     builder.append("# Everything Access Widener™\n")
-    finishedBuilds.keys.forEach { (mcVersion, _) ->
+    finishedBuilds.keys.sortedWith(Comparator.nullsFirst(compareBy { it.first.tryToVersion() })).asReversed().forEach { (mcVersion, _) ->
         builder.append("\n## $mcVersion\n")
         finishedBuilds.forEach { (versionPair, link) ->
             if (versionPair.first == mcVersion) {
