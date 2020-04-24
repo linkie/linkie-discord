@@ -42,6 +42,8 @@ fun main() {
     }
     sortedBuildsToBuild.forEach { version ->
         System.gc()
+        if (version.first.contains("combat") || version.first.contains("infinite") || version.first.contains("Shareware") || version.first.contains("Pre-Release"))
+            return@forEach
         try {
             val aw = AccessWidenerResolver.resolveVersion(version.first, versionJsonMap).toString()
             val downloadUrl = release.uploadAsset("all-$version.accesswidener", aw.byteInputStream(), "application/octet-stream").browserDownloadUrl
@@ -52,17 +54,15 @@ fun main() {
         }
         System.gc()
     }
-    if (changed) {
-        val builder = StringBuilder()
-        builder.append("# Everything Access Widener™\n")
-        builds.forEach { (mcVersion, _) ->
-            builder.append("\n## $mcVersion\n")
-            finishedBuilds.forEach { (version, link) ->
-                if (version.startsWith("$mcVersion+build.")) {
-                    builder.append("$version: $link\n")
-                }
+    val builder = StringBuilder()
+    builder.append("# Everything Access Widener™\n")
+    builds.forEach { (mcVersion, _) ->
+        builder.append("\n## $mcVersion\n")
+        finishedBuilds.forEach { (version, link) ->
+            if (version.startsWith("$mcVersion+build.")) {
+                builder.append("$version: $link\n")
             }
         }
-        release.update().body(builder.toString()).update()
     }
+    release.update().body(builder.toString()).update()
 }
