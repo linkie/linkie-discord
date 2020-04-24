@@ -186,8 +186,11 @@ fun String.tryToVersion(): Version? {
     }
 }
 
-fun String.mapIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String =
+fun String.mapFieldIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String =
         remapFieldDescriptor { mappingsContainer.getClass(it)?.mappedName ?: it }
+
+fun String.mapMethodIntermediaryDescToNamed(mappingsContainer: MappingsContainer): String =
+        remapMethodDescriptor { mappingsContainer.getClass(it)?.mappedName ?: it }
 
 fun String.remapFieldDescriptor(classMappings: (String) -> String): String {
     return try {
@@ -208,10 +211,10 @@ fun String.remapFieldDescriptor(classMappings: (String) -> String): String {
                 className.append(c.toChar())
             } else {
                 result.append(c.toChar())
-            }
-            if (c == 'L'.toInt()) {
-                insideClassName = true
-                className.setLength(0)
+                if (c == 'L'.toInt()) {
+                    insideClassName = true
+                    className.setLength(0)
+                }
             }
         }
         result.toString()
@@ -244,7 +247,7 @@ fun String.remapMethodDescriptor(classMappings: (String) -> String): String {
             if (c == '('.toInt()) {
                 started = true
             }
-            if (started && c == 'L'.toInt()) {
+            if (!insideClassName && started && c == 'L'.toInt()) {
                 insideClassName = true
                 className.setLength(0)
             }

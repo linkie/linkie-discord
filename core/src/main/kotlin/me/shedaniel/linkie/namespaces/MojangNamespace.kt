@@ -12,7 +12,7 @@ import java.io.InputStream
 import java.net.URL
 
 object MojangNamespace : Namespace("mojang") {
-    private val versionJsonMap = mutableMapOf<String, String>()
+    internal val versionJsonMap = mutableMapOf<String, String>()
     private var latestRelease = ""
 
     init {
