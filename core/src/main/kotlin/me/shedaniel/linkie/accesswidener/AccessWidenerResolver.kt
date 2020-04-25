@@ -26,7 +26,7 @@ object AccessWidenerResolver {
         tmpFolder.deleteRecursively()
     }
 
-    fun resolveVersion(version: String, versionJsonMap: MutableMap<String, String> = MojangNamespace.versionJsonMap): StringBuilder {
+    fun resolveVersion(version: String, safe: Boolean = false, versionJsonMap: MutableMap<String, String> = MojangNamespace.versionJsonMap): StringBuilder {
         System.gc()
         val mappingsContainer = YarnNamespace.getProvider(version).mappingsContainer!!.invoke()
         val versionManifest = versionJsonMap[version]!!
@@ -115,10 +115,12 @@ object AccessWidenerResolver {
                     for (possibleClass in classes) {
                         val method = possibleClass.getMethodByObfNameAndDesc(name, descriptor)
                         if (method != null) {
-                            builder.append("extendable method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
-                                    descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
-                            builder.append("accessible method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
-                                    descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
+                            if (!safe || access and Opcodes.ACC_PRIVATE != 0 || access and Opcodes.ACC_FINAL != 0 || access and Opcodes.ACC_STATIC != 0) {
+                                builder.append("extendable method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
+                                        descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
+                                builder.append("accessible method $className ${method.let { it.mappedName ?: it.intermediaryName }} " +
+                                        descriptor.mapMethodOfficialDescToNamed(mappingsContainer) + "\n")
+                            }
                             break
                         }
                     }
