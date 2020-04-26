@@ -3,11 +3,9 @@ package me.shedaniel.linkie.commands
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import fr.minuskube.pastee.JPastee
-import fr.minuskube.pastee.data.Paste
-import fr.minuskube.pastee.data.Section
-import me.shedaniel.linkie.*
-import java.util.*
+import me.shedaniel.linkie.CommandBase
+import me.shedaniel.linkie.discriminatedName
+import me.shedaniel.linkie.setTimestampToNow
 
 object AWCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
