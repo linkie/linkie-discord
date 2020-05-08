@@ -13,7 +13,7 @@ object AWCommand : CommandBase {
             it.apply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
-                setTitle("Everything Access Widener™")
+                setTitle("Everything Access Widener")
                 setDescription("https://github.com/shedaniel/LinkieBot/releases/tag/accesswidener")
             }
         }.subscribe()
