@@ -176,7 +176,7 @@ object YarnNamespace : Namespace("yarn") {
         }
     }
 
-    private fun MappingsContainer.loadNamedFromTinyJar(url: URL, showError: Boolean = true) {
+    fun MappingsContainer.loadNamedFromTinyJar(url: URL, showError: Boolean = true) {
         val stream = ZipInputStream(url.openStream())
         while (true) {
             val entry = stream.nextEntry ?: break
