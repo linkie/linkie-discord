@@ -15,7 +15,7 @@ object Namespaces {
     init {
         registerNamespace(YarnNamespace)
         registerNamespace(SpigotNamespace)
-        registerNamespace(POMFNamespace)
+        registerNamespace(PlasmaNamespace)
         registerNamespace(MCPNamespace)
         registerNamespace(MojangNamespace)
     }
