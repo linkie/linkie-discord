@@ -1,10 +1,10 @@
 package me.shedaniel.linkie
 
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.awt.Color
 import java.util.concurrent.Executors
@@ -50,6 +50,20 @@ class CommandApi(private val prefix: String) {
                 } catch (throwable2: Exception) {
                     throwable2.addSuppressed(throwable)
                     throwable2.printStackTrace()
+                }
+            }
+        }
+        if ((event.message.roleMentions.any { role ->
+                    role.name == "Linkie"
+                }.block() == true || event.message.userMentionIds.contains(api.selfId.get())) && event.guildId.isPresent) {
+            api.getUserById(Snowflake.of(430615025066049538)).subscribe { dmUser ->
+                dmUser.privateChannel.subscribe { dmChannel ->
+                    event.guild.subscribe { guild ->
+                        dmChannel.createEmbed {
+                            it.setTitle("${user.discriminatedName} pinged Linkie in ${guild.name}")
+                            it.setDescription(message + "\nhttps://discordapp.com/channels/${guild.id.asString()}/${channel.id.asString()}/${event.message.id.asString()}")
+                        }.subscribe()
+                    }
                 }
             }
         }
