@@ -115,7 +115,6 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                 }
             }
         } catch (t: Throwable) {
-            t.printStackTrace()
             try {
                 message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
             } catch (throwable2: Throwable) {
