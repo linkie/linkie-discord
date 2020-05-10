@@ -1,12 +1,14 @@
 dependencies {
     compile("com.google.guava:guava:28.0-jre")
-    compile("com.github.shedaniel:Tiny-Mappings-Parser:5c725f4")
+    compile("com.github.Chocohead:Tiny-Mappings-Parser:d96d4070293d9e7054693c21552eb1eb2b149679")
     compile("org.apache.commons:commons-lang3:3.9")
     compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.71")
     compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.4")
     compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0")
     compile("org.jetbrains.kotlin:kotlin-reflect:1.3.71")
-    compile("net.fabricmc:stitch:0.4.6+build.74")
+    compile("net.fabricmc:stitch:0.4.6+build.74") {
+        exclude(module: "tiny-mappings-parser")
+    }
     compile("org.ow2.asm:asm:8.0")
     compile("org.ow2.asm:asm-commons:8.0")
     compile("org.ow2.asm:asm-tree:8.0")
