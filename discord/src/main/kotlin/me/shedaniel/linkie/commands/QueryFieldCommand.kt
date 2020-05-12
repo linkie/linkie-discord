@@ -23,14 +23,14 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             throw InvalidUsageException("!$cmd <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
-        val args = if (this.namespace == null) args.drop(1).toTypedArray() else args
+        val mappingsArgs = if (this.namespace == null) args.drop(1).toTypedArray() else args
         if (namespace.reloading)
             throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
 
-        val mappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(args.last())
-        if (mappingsProvider.isEmpty() && args.size == 2) {
+        val mappingsProvider = if (mappingsArgs.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(mappingsArgs.last())
+        if (mappingsProvider.isEmpty() && mappingsArgs.size == 2) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
+            throw NullPointerException("Invalid Version: " + mappingsArgs.last() + "\nVersions: " +
                     if (list.size > 20)
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", "))
@@ -38,20 +38,22 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id?.asLong()))
         if (mappingsProvider.isEmpty())
             throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
-        val searchKey = args.first().replace('.', '/')
+        val searchKey = mappingsArgs.first().replace('.', '/')
         val hasClass = searchKey.contains('/')
         val hasWildcard = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
 
-        val message = channel.createEmbed {
-            it.apply {
-                setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                setTimestampToNow()
-                var desc = "Searching up fields for **${namespace.id} ${mappingsProvider.version}**."
-                if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
-                if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-                setDescription(desc)
-            }
-        }.block() ?: throw NullPointerException("Unknown Message!")
+        val message = if (mappingsProvider.cached!! && !hasWildcard) null else {
+            channel.createEmbed {
+                it.apply {
+                    setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+                    setTimestampToNow()
+                    var desc = "Searching up fields for **${namespace.id} ${mappingsProvider.version}**.\nIf you are stuck with this message, please do the command again."
+                    if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
+                    if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+                    setDescription(desc)
+                }
+            }.block() ?: throw NullPointerException("Unknown Message!")
+        }
         try {
             val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
             val classes = mutableMapOf<Class, FindFieldMethod>()
@@ -154,7 +156,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             }
             var page = 0
             val maxPage = ceil(sortedFields.size / 5.0).toInt()
-            message.edit { it.setEmbed { it.buildMessage(namespace, sortedFields, mappingsContainer, page, user, maxPage) } }.subscribe { msg ->
+            message.editOrCreate(channel) { it.buildMessage(namespace, sortedFields, mappingsContainer, page, user, maxPage) }.subscribe { msg ->
                 if (channel.type.name.startsWith("GUILD_"))
                     msg.removeAllReactions().block()
                 msg.subscribeReactions("⬅", "❌", "➡")
@@ -192,7 +194,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             }
         } catch (t: Throwable) {
             try {
-                message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
+                message.editOrCreate(channel) { it.generateThrowable(t, user) }.subscribe()
             } catch (throwable2: Throwable) {
                 throwable2.addSuppressed(t)
                 throw throwable2

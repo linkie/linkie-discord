@@ -9,16 +9,9 @@ import kotlinx.coroutines.launch
 import java.awt.Color
 import java.util.concurrent.Executors
 
-class CommandApi(private val prefix: String) {
-    private val executors = Executors.newScheduledThreadPool(64)
+class CommandApi(val prefix: String) {
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
     internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
-    private val prefixMap: Map<Long, String> = mapOf(
-//            Pair(432055962233470986L, "+")
-    )
-
-    fun getPrefix(guildId: Long?): String =
-            guildId?.let { prefixMap[it] } ?: prefix.toLowerCase()
 
     fun registerCommand(command: CommandBase, vararg l: String): CommandApi {
         for (ll in l)
@@ -35,7 +28,6 @@ class CommandApi(private val prefix: String) {
             return
         GlobalScope.launch {
             runCatching {
-                val prefix = getPrefix(event.guildId.orElse(null)?.asLong())
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
                     val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)

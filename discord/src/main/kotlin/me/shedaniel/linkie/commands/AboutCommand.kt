@@ -13,8 +13,10 @@ object AboutCommand : CommandBase {
             it.setTitle("About Linkie")
             api.self.map { it.avatarUrl }.block()?.also { url -> it.setThumbnail(url) }
             it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            it.setDescription("i play g o o d games and i search mappings when i am bored ok?")
+            it.setDescription("A mappings bot created by <@430615025066049538>.")
             it.addField("Source", "https://github.com/shedaniel/LinkieBot")
+            it.addField("License", "GNU v3")
+            it.addField("Invite", "https://discordapp.com/oauth2/authorize?client_id=472081983925780490&permissions=10304&scope=bot")
             it.setTimestampToNow()
         }.subscribe()
     }
