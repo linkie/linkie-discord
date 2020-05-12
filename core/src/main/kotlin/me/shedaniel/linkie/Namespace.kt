@@ -64,6 +64,7 @@ abstract class Namespace(val id: String) {
             val defaultLoadedVersions = getDefaultLoadedVersions()
             cachedMappings.firstOrNull { it.version !in defaultLoadedVersions }?.let { cachedMappings.remove(it) }
         }
+        System.gc()
         return this
     }
 
