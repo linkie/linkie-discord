@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import me.shedaniel.linkie.utils.tryToVersion
+import net.fabricmc.mappings.MappingsProvider
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -27,13 +28,17 @@ abstract class Namespace(val id: String) {
     suspend fun reset() {
         reloading = true
         cachedMappings.clear()
-        reloadData()
-        val jobs = getDefaultLoadedVersions().map {
-            GlobalScope.launch(Dispatchers.IO) {
-                createAndAdd(it)
+        try {
+            reloadData()
+            val jobs = getDefaultLoadedVersions().map {
+                GlobalScope.launch(Dispatchers.IO) {
+                    createAndAdd(it)
+                }
             }
+            jobs.forEach { it.join() }
+        } catch (t: Throwable) {
+            t.printStackTrace()
         }
-        jobs.forEach { it.join() }
         reloading = false
     }
 
