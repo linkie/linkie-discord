@@ -12,6 +12,10 @@ mainClassName = 'me.shedaniel.linkie.web.LinkieWebKt'
 //    set('vaadinVersion', "14.1.25")
 //}
 
+repositories {
+    maven { url "https://jitpack.io" }
+}
+
 configurations {
     developmentOnly
     runtimeClasspath {
@@ -24,6 +28,7 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-data-jpa")
     compile("org.springframework.boot:spring-boot-starter-mustache")
     compile("org.springframework.boot:spring-boot-starter-web")
+    compile("com.github.shedaniel:CurseMetaApi:0.2")
     runtimeOnly("com.h2database:h2")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
