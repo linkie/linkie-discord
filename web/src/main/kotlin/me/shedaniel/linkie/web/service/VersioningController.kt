@@ -66,7 +66,7 @@ yarn_mappings={yarn_version}
 loader_version={loader_version}
 
 fabric_version={fabric_version}</code></pre></div>
-</body>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.14.2/highlight.min.js"></script>
 <script charset="UTF-8" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/gradle.min.js"></script>
 <script>
@@ -103,6 +103,7 @@ fabric_version={fabric_version}</code></pre></div>
         document.location.search = kvp.join('&');
     }
 </script>
+</body>
 </html>
 """.trimIndent()
         val versionHolder = getAliasedVersion(version) ?: getVersion(versions.entries.first { it.value.release }.key)!!
