@@ -151,7 +151,7 @@ fabric_version={fabric_version}</code></pre></div>
     val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
 
     init {
-        val tickerChannel = ticker(delayMillis = 1800000, initialDelayMillis = 0)
+        val tickerChannel = ticker(delayMillis = 60000, initialDelayMillis = 0)
         CoroutineScope(Dispatchers.Default).launch {
             for (event in tickerChannel) {
                 val tmpVersions = mutableMapOf<String, VersionHolder>()
