@@ -15,7 +15,8 @@ object AboutCommand : CommandBase {
             api.self.map { it.avatarUrl }.block()?.also { url -> it.setThumbnail(url) }
             it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             it.setDescription("A mappings bot created by <@430615025066049538>.")
-            it.addField("Source", "https://github.com/shedaniel/LinkieBot")
+            it.addField("Library Src", "https://github.com/shedaniel/linkie-core/")
+            it.addField("Bot Src", "https://github.com/shedaniel/linkie-discord/")
             it.addField("License", "GNU v3")
             it.addField("Invite", "https://discordapp.com/oauth2/authorize?client_id=472081983925780490&permissions=10304&scope=bot")
             it.setTimestampToNow()
