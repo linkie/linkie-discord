@@ -28,7 +28,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         if (namespace.reloading)
             throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
 
-        val mappingsProvider = if (mappingsArgs.size == 1) Namespace.MappingsProvider.ofEmpty() else namespace.getProvider(mappingsArgs.last())
+        val mappingsProvider = if (mappingsArgs.size == 1) MappingsProvider.empty() else namespace.getProvider(mappingsArgs.last())
         if (mappingsProvider.isEmpty() && mappingsArgs.size == 2) {
             val list = namespace.getAllSortedVersions()
             throw NullPointerException("Invalid Version: " + mappingsArgs.last() + "\nVersions: " +

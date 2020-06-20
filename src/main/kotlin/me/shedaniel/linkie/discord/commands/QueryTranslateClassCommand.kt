@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.InvalidUsageException
+import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.getClassByObfName
@@ -23,7 +24,7 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
             throw IllegalStateException("Mappings (ID: ${target.id}) is reloading now, please try again in 5 seconds.")
         if (args.size !in 1..2)
             throw InvalidUsageException("!$cmd <search> [version]")
-        val sourceMappingsProvider = if (args.size == 1) Namespace.MappingsProvider.ofEmpty() else source.getProvider(args.last())
+        val sourceMappingsProvider = if (args.size == 1) MappingsProvider.empty() else source.getProvider(args.last())
         val allVersions = source.getAllSortedVersions().toMutableList()
         allVersions.retainAll(target.getAllSortedVersions())
         if (sourceMappingsProvider.isEmpty() && args.size == 2) {

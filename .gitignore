@@ -5,6 +5,7 @@ target
 \.gradle/
 
 build/
+.linkie-cache/
 
 out/
 
