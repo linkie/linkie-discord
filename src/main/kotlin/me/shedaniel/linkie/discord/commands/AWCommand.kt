@@ -14,7 +14,7 @@ object AWCommand : CommandBase {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
                 setTitle("Everything Access Widener")
-                setDescription("https://github.com/shedaniel/LinkieBot/releases/tag/accesswidener")
+                setDescription("https://github.com/shedaniel/linkie-everythingaccesswidener/releases/tag/accesswideners")
             }
         }.subscribe()
     }
