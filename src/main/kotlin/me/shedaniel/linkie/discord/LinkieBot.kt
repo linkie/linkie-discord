@@ -28,8 +28,8 @@ fun main() {
         // This is only used for shedaniel's server, if you are hosting this yourself please remove this.
         registerWelcomeMessages(client)
 
-        api.eventDispatcher.on(ReadyEvent::class.java).subscribe {
-            api.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
+        client.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+            client.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
     }
 }
