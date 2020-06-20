@@ -6,8 +6,4 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-rootProject.name = 'LinkieBot'
-
-include("accesswidener")
-include("core")
-include("discord")
+rootProject.name = 'linkie-discord'

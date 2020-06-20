@@ -1,26 +1,46 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.3.71" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.3.71" apply false
+    id("org.jetbrains.kotlin.jvm") version("1.3.71")
+    id("org.jetbrains.kotlin.plugin.serialization") version("1.3.71")
+    id("java")
 }
 
-allprojects {
-    apply plugin: "java"
-    apply plugin: "kotlin"
-    apply plugin: "kotlinx-serialization"
+group "me.shedaniel"
+version "1.0-SNAPSHOT"
 
-    group "me.shedaniel"
-    version "1.0-SNAPSHOT"
+sourceCompatibility = targetCompatibility = 1.8
 
-    sourceCompatibility = targetCompatibility = 1.8
+repositories {
+    jcenter()
+    mavenCentral()
+    maven { url "https://maven.fabricmc.net" }
+    maven { url "https://jitpack.io" }
+    maven { url "https://dl.bintray.com/kotlin/kotlinx/" }
+    maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
+    maven { url "https://dl.bintray.com/shedaniel/linkie" }
+}
 
-    repositories {
-        jcenter()
-        mavenCentral()
-        maven { url "https://maven.fabricmc.net" }
-        maven { url "https://jitpack.io" }
-        maven { url "https://dl.bintray.com/kotlin/kotlinx/" }
-        maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
+dependencies {
+    compile("me.shedaniel:linkie-core:1.0.1")
+    compile("com.discord4j:discord4j-core:3.0.11") {
+        force = true
     }
 }
 
-task stage(dependsOn: "discord:stage")
+jar {
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    manifest {
+        attributes(
+                'Main-Class': 'me.shedaniel.linkie.discord.LinkieBot'
+        )
+    }
+}
+
+compileKotlin {
+    kotlinOptions.suppressWarnings = true
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+task stage(dependsOn: ['build', 'clean'])
+build.mustRunAfter clean
