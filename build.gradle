@@ -5,7 +5,6 @@ plugins {
 }
 
 group "me.shedaniel"
-version "1.0-SNAPSHOT"
 
 sourceCompatibility = targetCompatibility = 1.8
 
