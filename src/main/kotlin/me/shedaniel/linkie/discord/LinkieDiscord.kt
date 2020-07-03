@@ -4,10 +4,7 @@ package me.shedaniel.linkie.discord
 
 import discord4j.core.DiscordClient
 import discord4j.core.DiscordClientBuilder
-import discord4j.core.`object`.entity.Channel
-import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.MessageChannel
-import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.*
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -73,6 +70,27 @@ fun Message.subscribeReactions(vararg unicodes: String) {
         }
         mono.subscribe()
     }
+}
+
+fun String.stripMentions(messageChannel: MessageChannel, guild: Guild?): String {
+    var message = this
+    message = message.replace("@everyone", "@\u0435veryone")
+    message = message.replace("@here", "@h\u0435re")
+    if (guild != null) guild.apply{
+        roles.subscribe { role ->
+            message = message.replace(role.mention, "@${role.name}")
+        }
+        members.subscribe { user ->
+            message = message.replace("<@${user.id.asString()}>", "@${user.username}")
+            message = message.replace("<@!${user.id.asString()}>", "@${user.username}")
+        }
+    } else if (messageChannel is PrivateChannel) messageChannel.apply {
+        recipients.subscribe { user ->
+            message = message.replace("<@${user.id.asString()}>", "@${user.username}")
+            message = message.replace("<@!${user.id.asString()}>", "@${user.username}")
+        }
+    }
+    return message
 }
 
 inline fun Message?.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {

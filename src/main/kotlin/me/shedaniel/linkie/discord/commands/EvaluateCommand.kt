@@ -13,7 +13,7 @@ object EvaluateCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty("$cmd <script>")
         LinkieScripting.eval(LinkieScripting.simpleContext().context {
-            it("channel", ContextExtensions.channelObj(user, channel))
+            ContextExtensions.commandContexts(event, user, cmd, args, channel, it)
         }, args.joinToString(" "))
     }
 
