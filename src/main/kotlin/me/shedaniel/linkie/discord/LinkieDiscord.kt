@@ -17,6 +17,7 @@ import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.utils.info
+import me.shedaniel.linkie.utils.trace
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
@@ -40,6 +41,11 @@ inline fun start(
         info("Linkie Bot (Debug Mode)")
     else info("Linkie Bot")
     Timer().schedule(Duration.ofMinutes(5).toMillis()) { System.gc() }
+    Timer().schedule(Duration.ofSeconds(10).toMillis()) {
+        trace(String.format("Total: %s, Free: %s",
+                Runtime.getRuntime().totalMemory(),
+                Runtime.getRuntime().freeMemory()))
+    }
     gateway = api.login().block()!!
     Namespaces.init(*namespaces, cycleMs = cycleMs)
     setup(commandApi, api)
