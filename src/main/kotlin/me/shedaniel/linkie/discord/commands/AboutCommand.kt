@@ -1,7 +1,7 @@
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.*
 
@@ -10,7 +10,7 @@ object AboutCommand : CommandBase {
         args.validateEmpty(cmd)
         channel.createEmbedMessage {
             setTitle("About Linkie")
-            api.self.map(User::getAvatarUrl).block()?.also { url -> setThumbnail(url) }
+            gateway.self.map(User::getAvatarUrl).block()?.also { url -> setThumbnail(url) }
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setDescription("A mappings bot created by <@430615025066049538>.")
             addField("Library Src", "https://github.com/shedaniel/linkie-core/")

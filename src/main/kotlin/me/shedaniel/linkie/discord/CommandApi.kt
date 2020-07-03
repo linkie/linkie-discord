@@ -3,9 +3,9 @@ package me.shedaniel.linkie.discord
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
+import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.awt.Color
 
 class CommandApi(val prefix: String) {
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
@@ -21,8 +21,8 @@ class CommandApi(val prefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block()
         val user: User? = event.message.author.orElse(null)
-        val message: String? = event.message.content.orElse(null)
-        if (user == null || user.isBot || message == null || channel == null)
+        val message: String = event.message.content
+        if (user == null || user.isBot || channel == null)
             return
         GlobalScope.launch {
             runCatching {
@@ -49,7 +49,7 @@ class CommandApi(val prefix: String) {
 
 fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {
     setTitle("Linkie Error")
-    setColor(Color.red)
+    setColor(Color.RED)
     user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
     setTimestampToNow()
     addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)

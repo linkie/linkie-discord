@@ -1,6 +1,6 @@
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.serialization.json.Json

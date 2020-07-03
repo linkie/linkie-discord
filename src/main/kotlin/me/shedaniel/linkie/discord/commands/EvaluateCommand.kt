@@ -1,7 +1,7 @@
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
@@ -16,7 +16,7 @@ object EvaluateCommand : CommandBase {
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext().context {
-            ContextExtensions.commandContexts(event, user, cmd, args, channel, it)
+            ContextExtensions.commandContexts(event, user, args, channel, it)
         }, string)
     }
 

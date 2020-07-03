@@ -2,11 +2,15 @@
 
 package me.shedaniel.linkie.discord
 
+import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.DiscordClientBuilder
-import discord4j.core.`object`.entity.*
+import discord4j.core.GatewayDiscordClient
+import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.Channel
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
-import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
@@ -18,12 +22,14 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.concurrent.schedule
+import kotlin.properties.Delegates
 
 val api: DiscordClient by lazy {
-    DiscordClientBuilder(System.getenv("TOKEN") ?: throw NullPointerException("Invalid Token: null")).build()
+    DiscordClientBuilder.create(System.getenv("TOKEN") ?: throw NullPointerException("Invalid Token: null")).build()
 }
 val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
 var commandApi: CommandApi = CommandApi(if (isDebug) "!!" else "!")
+var gateway by Delegates.notNull<GatewayDiscordClient>()
 
 inline fun start(
         vararg namespaces: Namespace,
@@ -34,10 +40,10 @@ inline fun start(
         info("Linkie Bot (Debug Mode)")
     else info("Linkie Bot")
     Timer().schedule(Duration.ofMinutes(5).toMillis()) { System.gc() }
-    api.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
+    gateway = api.login().block()!!
     Namespaces.init(*namespaces, cycleMs = cycleMs)
     setup(commandApi, api)
-    api.login().block()
+    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
 }
 
 val User.discriminatedName: String
@@ -70,27 +76,6 @@ fun Message.subscribeReactions(vararg unicodes: String) {
         }
         mono.subscribe()
     }
-}
-
-fun String.stripMentions(messageChannel: MessageChannel, guild: Guild?): String {
-    var message = this
-    message = message.replace("@everyone", "@\u0435veryone")
-    message = message.replace("@here", "@h\u0435re")
-    if (guild != null) guild.apply{
-        roles.subscribe { role ->
-            message = message.replace(role.mention, "@${role.name}")
-        }
-        members.subscribe { user ->
-            message = message.replace("<@${user.id.asString()}>", "@${user.username}")
-            message = message.replace("<@!${user.id.asString()}>", "@${user.username}")
-        }
-    } else if (messageChannel is PrivateChannel) messageChannel.apply {
-        recipients.subscribe { user ->
-            message = message.replace("<@${user.id.asString()}>", "@${user.username}")
-            message = message.replace("<@!${user.id.asString()}>", "@${user.username}")
-        }
-    }
-    return message
 }
 
 inline fun Message?.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
@@ -138,14 +123,14 @@ class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
 
     fun build(message: Message, userPredicate: (Snowflake) -> Boolean) {
         message.subscribeReactions(*actions.keys.toTypedArray())
-        api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == message.id }.take(duration).subscribe {
+        gateway.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == message.id }.take(duration).subscribe {
             if (userPredicate(it.userId)) {
                 val emote = it.emoji.asUnicodeEmoji().map(ReactionEmoji.Unicode::getRaw).orElse(null)
                 val action = actions[emote]
                 if (action == null || action()) {
                     message.tryRemoveReaction(it.emoji, it.userId)
                 }
-            } else if (it.userId != api.selfId.get()) {
+            } else if (it.userId != gateway.selfId) {
                 message.tryRemoveReaction(it.emoji, it.userId)
             }
         }

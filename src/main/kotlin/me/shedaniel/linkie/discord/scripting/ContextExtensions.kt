@@ -2,15 +2,15 @@
 
 package me.shedaniel.linkie.discord.scripting
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.util.Snowflake
+import discord4j.core.`object`.entity.channel.AllowedMentions
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.discriminatedName
 import me.shedaniel.linkie.discord.setTimestampToNow
-import me.shedaniel.linkie.discord.stripMentions
 import p0nki.pesl.api.PESLEvalException
 import p0nki.pesl.api.`object`.*
 import p0nki.pesl.api.builtins.PESLBuiltins
@@ -33,7 +33,7 @@ object ContextExtensions {
         it("channel", channelObj(user, channel, guild))
     }
 
-    inline fun commandContexts(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel, crossinline it: (String, PESLObject) -> Unit) {
+    inline fun commandContexts(event: MessageCreateEvent, user: User, args: MutableList<String>, channel: MessageChannel, crossinline it: (String, PESLObject) -> Unit) {
         it("message", messageObj(event.message, user))
         discordContexts(user, channel, event.guild.blockOptional().orElse(null), it)
     }
@@ -58,7 +58,8 @@ object ContextExtensions {
                 if (!booleans[0]) {
                     booleans[0] = true
                     messageObj(channel.createMessage {
-                        it.setContent(first().castToString().stripMentions(channel, guild).let { it.substring(0, min(1999, it.length)) })
+                        it.setAllowedMentions(AllowedMentions.builder().build())
+                        it.setContent(first().castToString().let { it.substring(0, min(1999, it.length)) })
                     }.block()!!, user)
                 } else undefined()
             })
@@ -85,13 +86,13 @@ object ContextExtensions {
                 undefined()
             })
             it("author", message.author.map<PESLObject>(ContextExtensions::userObj).orElse(undefined()))
-            it("content", stringObj(message.content.orElse("")))
+            it("content", stringObj(message.content))
             it("edit", funObj {
                 validateArgs(1)
                 if (!booleans[1]) {
                     booleans[1] = true
                     messageObj(message.edit {
-                        it.setContent(first().castToString().stripMentions(message.channel.block()!!, message.guild.blockOptional().orElse(null)).let { it.substring(0, min(1999, it.length)) })
+                        it.setContent(first().castToString().let { it.substring(0, min(1999, it.length)) })
                     }.block()!!, user)
                 } else undefined()
             })

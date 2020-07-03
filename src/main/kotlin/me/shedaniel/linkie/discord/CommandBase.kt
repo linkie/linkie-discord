@@ -1,9 +1,9 @@
 package me.shedaniel.linkie.discord
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.util.Snowflake
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider

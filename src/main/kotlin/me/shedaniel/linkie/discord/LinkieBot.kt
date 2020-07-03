@@ -2,21 +2,18 @@
 
 package me.shedaniel.linkie.discord
 
+import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
-import discord4j.core.`object`.entity.Channel
-import discord4j.core.`object`.entity.TextChannel
+import discord4j.core.`object`.entity.channel.Channel
+import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
-import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.guild.MemberJoinEvent
 import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.namespaces.*
-import java.time.Duration
-import java.util.*
-import kotlin.concurrent.schedule
 
 fun main() {
     start(
@@ -31,8 +28,8 @@ fun main() {
         // This is only used for shedaniel's server, if you are hosting this yourself please remove this.
         registerWelcomeMessages(client)
 
-        client.eventDispatcher.on(ReadyEvent::class.java).subscribe {
-            client.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
+        gateway.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+            gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
     }
 }
@@ -67,14 +64,14 @@ fun registerCommands(commands: CommandApi) {
 }
 
 private fun registerWelcomeMessages(client: DiscordClient) {
-    client.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
+    gateway.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 432055962233470986L) {
-            client.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
+            gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
                 val member = event.member
                 val guild = event.guild.block()
                 (textChannel as TextChannel).createMessage {
                     it.setEmbed {
-                        it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount?.asInt}")
+                        it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount}")
                         it.setThumbnail(member.avatarUrl)
                         it.setTimestampToNow()
                         it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
@@ -85,9 +82,9 @@ private fun registerWelcomeMessages(client: DiscordClient) {
             }
         }
     }
-    client.eventDispatcher.on(MemberLeaveEvent::class.java).subscribe { event ->
+    gateway.eventDispatcher.on(MemberLeaveEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 432055962233470986L) {
-            client.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
+            gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
                 val member = event.member.orElse(null) ?: return@send
                 (textChannel as TextChannel).createMessage {
                     it.setEmbed {
