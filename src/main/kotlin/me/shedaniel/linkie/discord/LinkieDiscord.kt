@@ -40,8 +40,8 @@ inline fun start(
     if (isDebug)
         info("Linkie Bot (Debug Mode)")
     else info("Linkie Bot")
-    Timer().schedule(0, Duration.ofMinutes(5).toMillis()) { System.gc() }
-    Timer().schedule(0, Duration.ofSeconds(10).toMillis()) {
+    Timer().schedule(0, Duration.ofMinutes(1).toMillis()) { System.gc() }
+    Timer().schedule(0, Duration.ofSeconds(1).toMillis()) {
         trace(String.format("Total: %s, Free: %s",
                 Runtime.getRuntime().totalMemory(),
                 Runtime.getRuntime().freeMemory()))
