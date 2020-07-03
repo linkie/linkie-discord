@@ -65,12 +65,6 @@ object ContextExtensions {
             })
             it("id", stringObj(channel.id.asString()))
             it("mention", stringObj(channel.mention))
-            it("getMessage", funObj {
-                validateArgs(1)
-                val first = first()
-                if (first is NumberObject) messageObj(channel.getMessageById(Snowflake.of(first.value.toLong())).block()!!)
-                else messageObj(channel.getMessageById(Snowflake.of(first.castToString())).block()!!)
-            })
         }
     }
 
