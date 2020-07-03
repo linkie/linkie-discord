@@ -12,9 +12,12 @@ import me.shedaniel.linkie.discord.validateNotEmpty
 object EvaluateCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty("$cmd <script>")
+        var string = args.joinToString(" ").trim()
+        if (string.startsWith("```")) string = string.substring(3)
+        if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext().context {
             ContextExtensions.commandContexts(event, user, cmd, args, channel, it)
-        }, args.joinToString(" "))
+        }, string)
     }
 
     override fun getName(): String? = "Evaluate Script"
