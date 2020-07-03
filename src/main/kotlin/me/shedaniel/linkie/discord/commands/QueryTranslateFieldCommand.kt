@@ -1,5 +1,6 @@
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -10,18 +11,17 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 import kotlin.math.min
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (source.reloading)
-            throw IllegalStateException("Mappings (ID: ${source.id}) is reloading now, please try again in 5 seconds.")
-        if (target.reloading)
-            throw IllegalStateException("Mappings (ID: ${target.id}) is reloading now, please try again in 5 seconds.")
-        if (args.size !in 1..2)
-            throw InvalidUsageException("!$cmd <search> [version]")
-        val sourceMappingsProvider = if (args.size == 1) MappingsProvider.empty() else source.getProvider(args.last())
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        source.validateNamespace()
+        target.validateNamespace()
+        args.validateUsage(1..2, "$cmd <search> [version]")
+        val sourceMappingsProvider = if (args.size == 1) MappingsProvider.empty(source) else source.getProvider(args.last())
         val allVersions = source.getAllSortedVersions().toMutableList()
         allVersions.retainAll(target.getAllSortedVersions())
         if (sourceMappingsProvider.isEmpty() && args.size == 2) {
@@ -31,8 +31,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                     else allVersions.joinToString(", "))
         }
         sourceMappingsProvider.injectDefaultVersion(source.getProvider(allVersions.first()))
-        if (sourceMappingsProvider.isEmpty())
-            throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
+        sourceMappingsProvider.validateDefaultVersionNotEmpty()
         val targetMappingsProvider = target.getProvider(sourceMappingsProvider.version!!)
         if (targetMappingsProvider.isEmpty()) {
             throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
@@ -40,30 +39,63 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                         allVersions.take(20).joinToString(", ") + ", etc"
                     else allVersions.joinToString(", "))
         }
+        require(!args.first().replace('.', '/').contains('/')) { "Query with classes are not available with translating queries." }
         val searchTerm = args.first().replace('.', '/').onlyClass()
-        var message = channel.createEmbed {
-            it.apply {
-                setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                setTimestampToNow()
-                var desc = "Searching up fields for **${source.id} ${sourceMappingsProvider.version}**."
-                if (!sourceMappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-                setDescription(desc)
-            }
-        }.block() ?: throw NullPointerException("Unknown Message!")
-        try {
-            val sourceMappings = sourceMappingsProvider.mappingsContainer!!.invoke()
-            message = message.edit {
-                it.setEmbed {
-                    it.apply {
-                        setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                        setTimestampToNow()
-                        var desc = "Searching up fields for **${target.id} ${targetMappingsProvider.version}**."
-                        if (!targetMappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-                        setDescription(desc)
+        val sourceVersion = sourceMappingsProvider.version!!
+        val targetVersion = targetMappingsProvider.version!!
+        val message = AtomicReference<Message?>()
+        var page = 0
+        val maxPage = AtomicInteger(-1)
+        val remappedFields = ValueKeeper(Duration.ofMinutes(2)) { build(searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, channel, maxPage) }
+        message.get().editOrCreate(channel) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
+            buildReactions(remappedFields.timeToKeep) {
+                if (maxPage.get() > 1) register("⬅") {
+                    if (page > 0) {
+                        page--
+                        msg.editOrCreate(channel) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
                     }
                 }
-            }.block() ?: throw NullPointerException("Unknown Message!")
-            val targetMappings = targetMappingsProvider.mappingsContainer!!.invoke()
+                registerB("❌") {
+                    msg.delete().subscribe()
+                    false
+                }
+                if (maxPage.get() > 1) register("➡") {
+                    if (page < maxPage.get() - 1) {
+                        page++
+                        msg.editOrCreate(channel) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
+                    }
+                }
+            }.build(msg, user)
+        }
+    }
+
+    private fun build(
+            searchTerm: String,
+            sourceProvider: MappingsProvider,
+            targetProvider: MappingsProvider,
+            user: User,
+            message: AtomicReference<Message?>,
+            channel: MessageChannel,
+            maxPage: AtomicInteger
+    ): MutableMap<String, String> {
+        if (sourceProvider.cached!!) message.get().editOrCreate(channel) {
+            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+            setTimestampToNow()
+            var desc = "Searching up fields for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
+            if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+            setDescription(desc)
+        }.block().also { message.set(it) }
+        if (targetProvider.cached!!) message.get().editOrCreate(channel) {
+            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+            setTimestampToNow()
+            var desc = "Searching up fields for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."
+            if (!targetProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+            setDescription(desc)
+        }.block()
+        return getCatching(message.get(), channel, user) {
+            val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
+            val targetMappings = targetProvider.mappingsContainer!!.invoke()
             val sourceFields = mutableMapOf<Field, Class>()
             sourceMappings.classes.forEach { clazz ->
                 clazz.fields.forEach {
@@ -89,61 +121,19 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                 }
                 throw NullPointerException("No results found!")
             }
-            var page = 0
-            val maxPage = ceil(remappedFields.size / 5.0).toInt()
-            val sourceFieldsList = remappedFields.keys.toList()
-            message.edit { it.setEmbed { it.buildMessage(remappedFields, sourceFieldsList, sourceMappings.version, page, user, maxPage) } }.subscribe { msg ->
-                if (channel.type.name.startsWith("GUILD_"))
-                    msg.removeAllReactions().block()
-                msg.subscribeReactions("⬅", "❌", "➡")
-                api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when (it.userId) {
-                        api.selfId.get() -> {
-                        }
-                        user.id -> {
-                            if (!it.emoji.asUnicodeEmoji().isPresent) {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
-                            } else {
-                                val unicode = it.emoji.asUnicodeEmoji().get()
-                                if (unicode.raw == "❌") {
-                                    msg.delete().subscribe()
-                                } else if (unicode.raw == "⬅") {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                    if (page > 0) {
-                                        page--
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedFields, sourceFieldsList, sourceMappings.version, page, user, maxPage) } }.subscribe()
-                                    }
-                                } else if (unicode.raw == "➡") {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                    if (page < maxPage - 1) {
-                                        page++
-                                        msg.edit { it.setEmbed { it.buildMessage(remappedFields, sourceFieldsList, sourceMappings.version, page, user, maxPage) } }.subscribe()
-                                    }
-                                } else {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                }
-                            }
-                        }
-                        else -> msg.removeReaction(it.emoji, it.userId).subscribe()
-                    }
-                }
-            }
-        } catch (t: Throwable) {
-            try {
-                message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
-            } catch (throwable2: Throwable) {
-                throwable2.addSuppressed(t)
-                throw throwable2
-            }
+
+            maxPage.set(ceil(remappedFields.size / 5.0).toInt())
+            return@getCatching remappedFields
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(remappedFields: MutableMap<String, String>, sourceFieldsList: List<String>, version: String, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(remappedFields: MutableMap<String, String>, version: String, page: Int, author: User, maxPage: Int) {
         setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings (Page ${page + 1}/$maxPage)")
+        else setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings")
         var desc = ""
-        sourceFieldsList.dropAndTake(5 * page, 5).forEach {
+        remappedFields.keys.dropAndTake(5 * page, 5).forEach {
             if (desc.isNotEmpty())
                 desc += "\n"
             val targetName = remappedFields[it]

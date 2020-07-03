@@ -1,62 +1,101 @@
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.utils.*
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.LinkedHashMap
 import kotlin.math.ceil
 import kotlin.math.min
 
 class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
-            if (args.size !in 2..3)
-                throw InvalidUsageException("!$cmd <namespace> <search> [version]\n" +
-                        "Do !namespaces for list of namespaces.")
-        } else if (args.size !in 1..2)
-            throw InvalidUsageException("!$cmd <search> [version]")
+            args.validateUsage(2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
+        } else args.validateUsage(1..2, "$cmd <namespace> <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
-        val mappingsArgs = if (this.namespace == null) args.drop(1).toTypedArray() else args
-        if (namespace.reloading)
-            throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
+        if (this.namespace == null) args.removeAt(0)
+        namespace.validateNamespace()
 
-        val mappingsProvider = if (mappingsArgs.size == 1) MappingsProvider.empty() else namespace.getProvider(mappingsArgs.last())
-        if (mappingsProvider.isEmpty() && mappingsArgs.size == 2) {
+        val mappingsProvider = if (args.size == 1) MappingsProvider.empty(namespace) else namespace.getProvider(args.last())
+        if (mappingsProvider.isEmpty() && args.size == 2) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + mappingsArgs.last() + "\nVersions: " +
+            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
                     if (list.size > 20)
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", "))
         }
-        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id?.asLong()))
-        if (mappingsProvider.isEmpty())
-            throw IllegalStateException("Invalid Default Version! Linkie might be reloading its cache right now.")
-        val searchKey = mappingsArgs.first().replace('.', '/')
-        val hasClass = searchKey.contains('/')
-        val hasWildcard = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
-
-        val message = if (mappingsProvider.cached!! && !hasWildcard) null else {
-            channel.createEmbed {
-                it.apply {
-                    setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                    setTimestampToNow()
-                    var desc = "Searching up methods for **${namespace.id} ${mappingsProvider.version}**.\nIf you are stuck with this message, please do the command again."
-                    if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
-                    if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-                    setDescription(desc)
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id.asLong()))
+        mappingsProvider.validateDefaultVersionNotEmpty()
+        val message = AtomicReference<Message?>()
+        val searchKey = args.first().replace('.', '/')
+        val version = mappingsProvider.version!!
+        var page = 0
+        val maxPage = AtomicInteger(-1)
+        val methods = ValueKeeper(Duration.ofMinutes(2)) { build(searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
+        message.get().editOrCreate(channel) { buildMessage(namespace, methods.get().second, methods.get().first, page, user, maxPage.get()) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
+            buildReactions(methods.timeToKeep) {
+                if (maxPage.get() > 1) register("⬅") {
+                    if (page > 0) {
+                        page--
+                        msg.editOrCreate(channel) { buildMessage(namespace, methods.get().second, methods.get().first, page, user, maxPage.get()) }.subscribe()
+                    }
                 }
-            }.block() ?: throw NullPointerException("Unknown Message!")
+                registerB("❌") {
+                    msg.delete().subscribe()
+                    false
+                }
+                if (maxPage.get() > 1) register("➡") {
+                    if (page < maxPage.get() - 1) {
+                        page++
+                        msg.editOrCreate(channel) { buildMessage(namespace, methods.get().second, methods.get().first, page, user, maxPage.get()) }.subscribe()
+                    }
+                }
+            }.build(msg, user)
         }
-        try {
-            val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
+    }
+
+    private enum class FindMethodMethod {
+        INTERMEDIARY,
+        MAPPED,
+        OBF_CLIENT,
+        OBF_SERVER,
+        OBF_MERGED,
+        WILDCARD
+    }
+
+    private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
+
+    private fun build(
+            searchKey: String,
+            provider: MappingsProvider,
+            user: User,
+            message: AtomicReference<Message?>,
+            channel: MessageChannel,
+            maxPage: AtomicInteger,
+            hasClass: Boolean = searchKey.contains('/'),
+            hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
+    ): Pair<MappingsContainer, List<MethodWrapper>> {
+        if (provider.cached!!) message.get().editOrCreate(channel) {
+            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+            setTimestampToNow()
+            var desc = "Searching up methods for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
+            if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
+            if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+            setDescription(desc)
+        }.block().also { message.set(it) }
+        return getCatching(message.get(), channel, user) {
+            val mappingsContainer = provider.mappingsContainer!!.invoke()
             val classes = mutableMapOf<Class, FindMethodMethod>()
             if (hasClass) {
                 val clazzKey = searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass()
@@ -154,70 +193,18 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                 }
                 throw NullPointerException("No results found!")
             }
-            var page = 0
-            val maxPage = ceil(sortedMethods.size / 5.0).toInt()
-            message.editOrCreate(channel) { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) }.subscribe { msg ->
-                if (channel.type.name.startsWith("GUILD_"))
-                    msg.removeAllReactions().block()
-                msg.subscribeReactions("⬅", "❌", "➡")
-                api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when (it.userId) {
-                        api.selfId.get() -> {
-                        }
-                        user.id -> {
-                            if (!it.emoji.asUnicodeEmoji().isPresent) {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
-                            } else {
-                                val unicode = it.emoji.asUnicodeEmoji().get()
-                                if (unicode.raw == "❌") {
-                                    msg.delete().subscribe()
-                                } else if (unicode.raw == "⬅") {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                    if (page > 0) {
-                                        page--
-                                        msg.edit { it.setEmbed { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                    }
-                                } else if (unicode.raw == "➡") {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                    if (page < maxPage - 1) {
-                                        page++
-                                        msg.edit { it.setEmbed { it.buildMessage(namespace, sortedMethods, mappingsContainer, page, user, maxPage) } }.subscribe()
-                                    }
-                                } else {
-                                    msg.removeReaction(it.emoji, it.userId).subscribe()
-                                }
-                            }
-                        }
-                        else -> msg.removeReaction(it.emoji, it.userId).subscribe()
-                    }
-                }
-            }
-        } catch (t: Throwable) {
-            try {
-                message.editOrCreate(channel) { it.generateThrowable(t, user) }.subscribe()
-            } catch (throwable2: Throwable) {
-                throwable2.addSuppressed(t)
-                throw throwable2
-            }
+
+            maxPage.set(ceil(sortedMethods.size / 5.0).toInt())
+            return@getCatching mappingsContainer to sortedMethods
         }
     }
-
-    private enum class FindMethodMethod {
-        INTERMEDIARY,
-        MAPPED,
-        OBF_CLIENT,
-        OBF_SERVER,
-        OBF_MERGED,
-        WILDCARD
-    }
-
-    private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
     private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedMethods: List<MethodWrapper>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
         if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
         else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
+        else setTitle("List of ${mappingsContainer.name} Mappings")
         var desc = ""
         sortedMethods.dropAndTake(5 * page, 5).forEach {
             if (desc.isNotEmpty())

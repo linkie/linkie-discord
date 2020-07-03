@@ -19,10 +19,11 @@ repositories {
 }
 
 dependencies {
-    compile("me.shedaniel:linkie-core:1.0.12")
-    compile("com.discord4j:discord4j-core:3.0.11") {
+    compile("me.shedaniel:linkie-core:1.0.17")
+    compile("com.discord4j:discord4j-core:3.0.14") {
         force = true
     }
+    compile("com.github.jearmstrong21:PESL:1cc5501493")
 }
 
 jar {

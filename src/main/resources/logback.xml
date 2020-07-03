@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- custom coloring conversion -->
+    <conversionRule conversionWord="highlightex" converterClass="me.shedaniel.linkie.discord.logging.HighlightingCompositeConverterEx" />
+    
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%highlightex([%d{HH:mm:ss}] [%logger{36}/%level]): %msg%n</Pattern>
+        </layout>
+    </appender>
+
+    <logger name="me.shedaniel.linkie" level="DEBUG" />
+    <logger name="discord4j" level="INFO" />
+    <logger name="reactor" level="INFO" />
+    <logger name="io.netty" level="INFO" />
+
+    <root level="TRACE">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

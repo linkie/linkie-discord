@@ -1,26 +1,25 @@
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsContainer
+import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.*
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
 object RandomClassCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (args.size != 3)
-            throw InvalidUsageException("!$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateUsage(3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
-        if (namespace.reloading)
-            throw IllegalStateException("Mappings (ID: ${namespace.id}) is reloading now, please try again in 5 seconds.")
+        namespace.validateNamespace()
         val mappingsProvider = namespace.getProvider(args[1])
         if (mappingsProvider.isEmpty()) {
             val list = namespace.getAllSortedVersions()
@@ -30,55 +29,38 @@ object RandomClassCommand : CommandBase {
                     else list.joinToString(", "))
         }
         val count = args[2].toIntOrNull()
-        if (count == null || count !in 1..20) {
-            throw IllegalArgumentException("Invalid Amount: ${args[2]}")
-        }
-        val message = channel.createEmbed {
-            it.apply {
-                setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                setTimestampToNow()
-                var desc = "Searching up classes for **${namespace.id} ${mappingsProvider.version}**."
-                if (!mappingsProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-                setDescription(desc)
-            }
-        }.block() ?: throw NullPointerException("Unknown Message!")
-        try {
-            val mappingsContainer = mappingsProvider.mappingsContainer!!.invoke()
-            message.edit { it.setEmbed { it.buildMessage(mappingsContainer, count, user) } }.subscribe { msg ->
-                if (channel.type.name.startsWith("GUILD_"))
-                    msg.removeAllReactions().block()
-                msg.subscribeReactions("❌", "🔁")
-                api.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == msg.id }.take(Duration.ofMinutes(15)).subscribe {
-                    when (it.userId) {
-                        api.selfId.get() -> {
-                        }
-                        user.id -> {
-                            if (!it.emoji.asUnicodeEmoji().isPresent) {
-                                msg.removeReaction(it.emoji, it.userId).subscribe()
-                            } else {
-                                val unicode = it.emoji.asUnicodeEmoji().get()
-                                when (unicode.raw) {
-                                    "❌" -> msg.delete().subscribe()
-                                    "🔁" -> {
-                                        message.edit { it.setEmbed { it.buildMessage(mappingsContainer, count, user) } }.subscribe()
-                                        msg.removeReaction(it.emoji, it.userId).subscribe()
-                                    }
-                                    else -> msg.removeReaction(it.emoji, it.userId).subscribe()
-                                }
-                            }
-                        }
-                        else -> msg.removeReaction(it.emoji, it.userId).subscribe()
-                    }
+        require(count in 1..20) { "Invalid Amount: ${args[2]}" }
+        val message = AtomicReference<Message?>()
+        val version = mappingsProvider.version!!
+        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message, channel) }
+        message.get().editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
+            buildReactions(mappingsContainer.timeToKeep) {
+                registerB("❌") {
+                    msg.delete().subscribe()
+                    false
                 }
-            }
-        } catch (t: Throwable) {
-            try {
-                message.edit { it.setEmbed { it.generateThrowable(t, user) } }.subscribe()
-            } catch (throwable2: Throwable) {
-                throwable2.addSuppressed(t)
-                throw throwable2
-            }
+                register("🔁") {
+                    msg.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
+                }
+            }.build(msg, user)
         }
+    }
+
+    private fun build(
+            provider: MappingsProvider,
+            user: User,
+            message: AtomicReference<Message?>,
+            channel: MessageChannel
+    ): MappingsContainer {
+        if (provider.cached!!) message.get().editOrCreate(channel) {
+            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+            setTimestampToNow()
+            var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
+            if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+            setDescription(desc)
+        }.block().also { message.set(it) }
+        return provider.mappingsContainer!!.invoke()
     }
 
     private fun EmbedCreateSpec.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {

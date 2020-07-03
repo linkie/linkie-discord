@@ -30,11 +30,12 @@ class CommandApi(val prefix: String) {
                     val content = message.substring(prefix.length)
                     val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)
                     val cmd = split[0].toLowerCase()
-                    val args = split.drop(1).toTypedArray()
+                    val args = split.drop(1).toMutableList()
                     if (cmd in commandMap)
                         commandMap[cmd]!!.execute(event, user, cmd, args, channel)
                 }
             }.exceptionOrNull()?.also { throwable ->
+                if (throwable is SuppressedException) return@also
                 try {
                     channel.createEmbed { it.generateThrowable(throwable, user) }.subscribe()
                 } catch (throwable2: Exception) {

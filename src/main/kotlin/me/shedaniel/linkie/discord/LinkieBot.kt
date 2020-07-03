@@ -14,6 +14,9 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.namespaces.*
+import java.time.Duration
+import java.util.*
+import kotlin.concurrent.schedule
 
 fun main() {
     start(
@@ -60,6 +63,7 @@ fun registerCommands(commands: CommandApi) {
     commands.registerCommand(RandomClassCommand, "randc")
     commands.registerCommand(NamespacesCommand, "namespaces")
     commands.registerCommand(AWCommand, "allaccesswidener")
+    commands.registerCommand(EvaluateCommand, "eval", "evaluate")
 }
 
 private fun registerWelcomeMessages(client: DiscordClient) {

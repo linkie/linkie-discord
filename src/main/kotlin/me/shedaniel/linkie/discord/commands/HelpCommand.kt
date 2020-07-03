@@ -3,24 +3,22 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.discord.*
 
 object HelpCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: Array<String>, channel: MessageChannel) {
-        if (args.isNotEmpty())
-            throw InvalidUsageException("!$cmd")
+    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateEmpty(cmd)
         val prefix = commandApi.prefix
         val commandCategories = CommandCategory.getValues(event.guildId.orElse(null)).filter { c ->
             commandApi.commands.filter { it.key.getCategory() == c && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }.isNotEmpty()
         }
         commandCategories.forEachIndexed { index, category ->
-            channel.createEmbed {
-                if (index == 0) it.setTitle("Linkie Help Command")
-                else category.description?.let(it::setTitle)
+            channel.createEmbedMessage {
+                if (index == 0) setTitle("Linkie Help Command")
+                else category.description?.let(this::setTitle)
                 if (index == commandCategories.size - 1) {
-                    it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                    it.setTimestampToNow()
+                    setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+                    setTimestampToNow()
                 }
                 commandApi.commands.filter { it.key.getCategory() == category && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }
                         .toSortedMap(compareBy { it.getName() })
@@ -28,7 +26,7 @@ object HelpCommand : CommandBase {
                             if (values.isEmpty()) return@forEach
                             val name = cmd.getName() ?: return@forEach
                             val desc = cmd.getDescription() ?: return@forEach
-                            it.addInlineField(name, "Value: ${values.joinToString { "$prefix$it" }}\n$desc")
+                            addInlineField(name, "Value: ${values.joinToString { "$prefix$it" }}\n$desc")
                         }
             }.subscribe()
         }
