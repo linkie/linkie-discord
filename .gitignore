@@ -6,8 +6,8 @@ target
 
 build/
 .linkie-cache/
-config/
-tricks/
+config/*.json
+tricks/*.json
 
 out/
 
