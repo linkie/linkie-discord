@@ -1,23 +1,14 @@
 package me.shedaniel.linkie.discord
 
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class CommandApi(val prefix: String) {
-    private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
-    internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
-
-    fun registerCommand(command: CommandBase, vararg l: String): CommandApi {
-        for (ll in l)
-            commandMap[ll.toLowerCase()] = command
-        commands.getOrPut(command, ::mutableSetOf).addAll(l)
-        return this
-    }
-
+class CommandMap(private val commandAcceptor: CommandAcceptor, val prefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block()
         val user: User? = event.message.author.orElse(null)
@@ -28,11 +19,10 @@ class CommandApi(val prefix: String) {
             runCatching {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
-                    val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty).toTypedArray() else arrayOf(content)
+                    val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty) else listOf(content)
                     val cmd = split[0].toLowerCase()
                     val args = split.drop(1).toMutableList()
-                    if (cmd in commandMap)
-                        commandMap[cmd]!!.execute(event, user, cmd, args, channel)
+                    commandAcceptor.execute(event, user, cmd, args, channel)
                 }
             }.exceptionOrNull()?.also { throwable ->
                 if (throwable is SuppressedException) return@also
@@ -45,6 +35,10 @@ class CommandApi(val prefix: String) {
             }
         }
     }
+}
+
+interface CommandAcceptor {
+    fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
 fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {

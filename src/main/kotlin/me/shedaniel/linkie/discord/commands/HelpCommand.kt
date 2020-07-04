@@ -1,16 +1,16 @@
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.*
 
 object HelpCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateEmpty(cmd)
-        val prefix = commandApi.prefix
+        val prefix = commandMap.prefix
         val commandCategories = CommandCategory.getValues(event.guildId.orElse(null)).filter { c ->
-            commandApi.commands.filter { it.key.getCategory() == c && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }.isNotEmpty()
+            CommandHandler.commands.filter { it.key.getCategory() == c && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }.isNotEmpty()
         }
         commandCategories.forEachIndexed { index, category ->
             channel.createEmbedMessage {
@@ -20,7 +20,7 @@ object HelpCommand : CommandBase {
                     setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                     setTimestampToNow()
                 }
-                commandApi.commands.filter { it.key.getCategory() == category && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }
+                CommandHandler.commands.filter { it.key.getCategory() == category && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }
                         .toSortedMap(compareBy { it.getName() })
                         .forEach { (cmd, values) ->
                             if (values.isEmpty()) return@forEach

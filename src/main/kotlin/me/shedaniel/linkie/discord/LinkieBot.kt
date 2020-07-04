@@ -3,7 +3,6 @@
 package me.shedaniel.linkie.discord
 
 import discord4j.common.util.Snowflake
-import discord4j.core.DiscordClient
 import discord4j.core.`object`.entity.channel.Channel
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.core.`object`.presence.Activity
@@ -13,6 +12,8 @@ import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
+import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.namespaces.*
 import java.io.File
 import java.util.*
@@ -27,17 +28,19 @@ fun main() {
             properties.forEach { key, value -> System.setProperty(key.toString(), value.toString()) }
         }
     }
+    TricksManager.load()
+    ConfigManager.load()
     start(
             YarnNamespace,
             SpigotNamespace,
             PlasmaNamespace,
             MCPNamespace,
             MojangNamespace
-    ) { commands, client ->
-        registerCommands(commands)
+    ) {
+        registerCommands(CommandHandler)
 
         // This is only used for shedaniel's server, if you are hosting this yourself please remove this.
-        registerWelcomeMessages(client)
+        registerWelcomeMessages()
 
         gateway.eventDispatcher.on(ReadyEvent::class.java).subscribe {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
@@ -45,7 +48,7 @@ fun main() {
     }
 }
 
-fun registerCommands(commands: CommandApi) {
+fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryClassMethod(null), "c", "class")
     commands.registerCommand(QueryClassMethod(Namespaces["yarn"]), "yc", "yarnc")
     commands.registerCommand(QueryClassMethod(Namespaces["plasma"]), "plasmac")
@@ -72,9 +75,12 @@ fun registerCommands(commands: CommandApi) {
     commands.registerCommand(NamespacesCommand, "namespaces")
     commands.registerCommand(AWCommand, "allaccesswidener")
     commands.registerCommand(EvaluateCommand, "eval", "evaluate")
+    commands.registerCommand(RunTrickCommand, "run")
+    commands.registerCommand(AddTrickCommand, "trickadd")
+    commands.registerCommand(RemoveTrickCommand, "trickremove")
 }
 
-private fun registerWelcomeMessages(client: DiscordClient) {
+private fun registerWelcomeMessages() {
     gateway.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
         if (event.guildId.asLong() == 432055962233470986L) {
             gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->

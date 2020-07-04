@@ -29,13 +29,14 @@ val api: DiscordClient by lazy {
     DiscordClientBuilder.create(System.getenv("TOKEN") ?: System.getProperty("linkie.token") ?: throw NullPointerException("Invalid Token: null")).build()
 }
 val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
-var commandApi: CommandApi = CommandApi(if (isDebug) "!!" else "!")
+var commandMap: CommandMap = CommandMap(CommandHandler, if (isDebug) "!!" else "!")
+var trickMap: CommandMap = CommandMap(TrickHandler, if (isDebug) "??" else "?")
 var gateway by Delegates.notNull<GatewayDiscordClient>()
 
 inline fun start(
         vararg namespaces: Namespace,
         cycleMs: Long = 1800000,
-        crossinline setup: (CommandApi, DiscordClient) -> Unit
+        crossinline setup: () -> Unit
 ) {
     if (isDebug)
         info("Linkie Bot (Debug Mode)")
@@ -48,8 +49,9 @@ inline fun start(
     }
     gateway = api.login().block()!!
     Namespaces.init(*namespaces, cycleMs = cycleMs)
-    setup(commandApi, api)
-    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandApi::onMessageCreate)
+    setup()
+    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandMap::onMessageCreate)
+    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(trickMap::onMessageCreate)
 }
 
 val User.discriminatedName: String

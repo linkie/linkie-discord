@@ -1,5 +1,12 @@
 package me.shedaniel.linkie.discord.scripting
 
+import discord4j.core.`object`.entity.channel.AllowedMentions
+import discord4j.core.`object`.entity.channel.MessageChannel
+import discord4j.core.event.domain.message.MessageCreateEvent
+import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.tricks.ContentType
+import me.shedaniel.linkie.discord.tricks.Trick
+import me.shedaniel.linkie.discord.validateInGuild
 import p0nki.pesl.api.PESLContext
 import p0nki.pesl.api.PESLEvalException
 import p0nki.pesl.api.`object`.PESLObject
@@ -9,6 +16,7 @@ import p0nki.pesl.api.parse.PESLParser
 import p0nki.pesl.api.token.PESLTokenList
 import p0nki.pesl.api.token.PESLTokenizeException
 import p0nki.pesl.api.token.PESLTokenizer
+import kotlin.math.min
 
 object LinkieScripting {
     private val tokenizer by lazy { PESLTokenizer() }
@@ -37,6 +45,31 @@ object LinkieScripting {
             val node = parseExpression(cmd, tokens)
             evalNode(context, node)
         }
+    }
+
+    inline fun evalTrick(channel: MessageChannel, args: MutableList<String>, trick: Trick, crossinline context: () -> PESLContext) {
+        when (trick.contentType) {
+            ContentType.SCRIPT -> {
+                eval(context(), trick.content)
+            }
+            ContentType.TEXT -> {
+                channel.createMessage {
+                    it.setAllowedMentions(AllowedMentions.builder().build())
+                    it.setContent(trick.content.format(*args.toTypedArray()).let { it.substring(0, min(1999, it.length)) })
+                }.subscribe()
+            }
+            else -> throw IllegalStateException("Invalid Script Type: ${trick.contentType}")
+        }
+    }
+
+    fun validateTrickName(name: String) {
+        if (!name.all { it == '_' || it == '-' || it in 'a'..'z' || it in '0'..'9' || it == '.' })
+            throw IllegalArgumentException("$name is an illegal trick name, it contains non [a-z0-9_.-] character(s).")
+    }
+
+    fun validateGuild(event: MessageCreateEvent) {
+        event.validateInGuild()
+        require(ConfigManager[event.guildId.get().asLong()].tricksEnabled) { "Tricks are not enabled on this server." }
     }
 
     private fun parseTokens(cmd: String): PESLTokenList {

@@ -60,7 +60,13 @@ fun MutableList<String>.validateUsage(length: Int, usage: String) {
 
 fun MutableList<String>.validateUsage(length: IntRange, usage: String) {
     if (size !in length) {
-        throw InvalidUsageException("${commandApi.prefix}$usage")
+        throw InvalidUsageException("${commandMap.prefix}$usage")
+    }
+}
+
+fun MessageCreateEvent.validateInGuild() {
+    if (!guildId.isPresent) {
+        throw IllegalStateException("This command is only available in servers.")
     }
 }
 
