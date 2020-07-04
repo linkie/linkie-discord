@@ -9,7 +9,7 @@
         </layout>
     </appender>
 
-    <logger name="me.shedaniel.linkie" level="TRACE" />
+    <logger name="me.shedaniel.linkie" level="DEBUG" />
     <logger name="discord4j" level="INFO" />
     <logger name="reactor" level="INFO" />
     <logger name="io.netty" level="INFO" />

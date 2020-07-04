@@ -16,7 +16,6 @@ interface CommandBase {
     fun getDescription(): String? = null
 
     fun getCategory(): CommandCategory = CommandCategory.NORMAL
-
 }
 
 inline fun CommandBase.runCatching(message: Message?, channel: MessageChannel, user: User, crossinline run: () -> Unit) {
@@ -83,11 +82,12 @@ fun MappingsProvider.validateDefaultVersionNotEmpty() {
 }
 
 enum class CommandCategory(val description: String?) {
-    NORMAL(null);
+    NORMAL(null),
+    TRICK("Scripting");
 
     companion object {
         fun getValues(guildId: Snowflake?): Array<CommandCategory> {
-            return arrayOf(NORMAL)
+            return values()
         }
     }
 }

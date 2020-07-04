@@ -23,13 +23,15 @@ object AddTrickCommand : CommandBase {
         if (content.startsWith("```")) content = content.substring(3)
         if (content.endsWith("```")) content = content.substring(0, content.length - 3)
         require(!content.isBlank()) { "Empty Trick!" }
+        val l = System.currentTimeMillis()
         TricksManager.addTrick(Trick(
                 id = UUID.randomUUID(),
                 author = user.id.asLong(),
                 name = name,
                 content = content,
                 contentType = type,
-                creation = System.currentTimeMillis(),
+                creation = l,
+                modified = l,
                 guildId = event.guildId.get().asLong()
         ))
         channel.createEmbedMessage {
@@ -42,4 +44,5 @@ object AddTrickCommand : CommandBase {
 
     override fun getName(): String? = "Add Trick"
     override fun getDescription(): String? = "Add a trick"
+    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

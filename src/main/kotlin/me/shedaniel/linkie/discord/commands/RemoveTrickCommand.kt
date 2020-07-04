@@ -27,4 +27,5 @@ object RemoveTrickCommand : CommandBase {
 
     override fun getName(): String? = "Remove Trick"
     override fun getDescription(): String? = "Remove a trick"
+    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }
