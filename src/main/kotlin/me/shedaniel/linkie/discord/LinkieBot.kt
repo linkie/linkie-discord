@@ -78,6 +78,7 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(RunTrickCommand, "run")
     commands.registerCommand(AddTrickCommand, "trickadd")
     commands.registerCommand(RemoveTrickCommand, "trickremove")
+    commands.registerCommand(ListTrickCommand, "listtricks")
 }
 
 private fun registerWelcomeMessages() {
