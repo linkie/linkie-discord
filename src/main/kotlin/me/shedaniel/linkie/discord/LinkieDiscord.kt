@@ -26,7 +26,7 @@ import kotlin.concurrent.schedule
 import kotlin.properties.Delegates
 
 val api: DiscordClient by lazy {
-    DiscordClientBuilder.create(System.getenv("TOKEN") ?: throw NullPointerException("Invalid Token: null")).build()
+    DiscordClientBuilder.create(System.getenv("TOKEN") ?: System.getProperty("linkie.token") ?: throw NullPointerException("Invalid Token: null")).build()
 }
 val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
 var commandApi: CommandApi = CommandApi(if (isDebug) "!!" else "!")

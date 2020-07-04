@@ -14,8 +14,19 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.namespaces.*
+import java.io.File
+import java.util.*
 
 fun main() {
+    File(File(System.getProperty("user.dir")), ".properties").apply {
+        if (exists()) {
+            val properties = Properties()
+            reader().use {
+                properties.load(it)
+            }
+            properties.forEach { key, value -> System.setProperty(key.toString(), value.toString()) }
+        }
+    }
     start(
             YarnNamespace,
             SpigotNamespace,
