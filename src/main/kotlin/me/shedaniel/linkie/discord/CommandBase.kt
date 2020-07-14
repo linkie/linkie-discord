@@ -66,8 +66,8 @@ fun MutableList<String>.validateUsage(length: IntRange, usage: String) {
 }
 
 fun Member.validateAdmin() {
-    if (basePermissions.block()?.contains(Permission.MANAGE_GUILD) != true) {
-        throw IllegalStateException("This command requires `Manage Guild` permission!")
+    if (basePermissions.block()?.contains(Permission.ADMINISTRATOR) != true) {
+        throw IllegalStateException("This command requires `Administrator` permission!")
     }
 }
 
