@@ -81,6 +81,9 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(ListTricksCommand, "listtricks")
     commands.registerCommand(ListAllTricksCommand, "listalltricks")
     commands.registerCommand(TrickInfoCommand, "trickinfo")
+    commands.registerCommand(SetValueCommand, "value-set")
+    commands.registerCommand(GetValueCommand, "value-get")
+    commands.registerCommand(ValueListCommand, "value-list")
 }
 
 private fun registerWelcomeMessages() {

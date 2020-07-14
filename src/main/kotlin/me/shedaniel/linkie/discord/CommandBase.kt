@@ -1,10 +1,12 @@
 package me.shedaniel.linkie.discord
 
 import discord4j.common.util.Snowflake
+import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.Permission
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
@@ -60,6 +62,12 @@ fun MutableList<String>.validateUsage(length: Int, usage: String) {
 fun MutableList<String>.validateUsage(length: IntRange, usage: String) {
     if (size !in length) {
         throw InvalidUsageException("${commandMap.prefix}$usage")
+    }
+}
+
+fun Member.validateAdmin() {
+    if (basePermissions.block()?.contains(Permission.MANAGE_GUILD) != true) {
+        throw IllegalStateException("This command requires `Manage Guild` permission!")
     }
 }
 
