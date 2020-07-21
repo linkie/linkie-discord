@@ -7,7 +7,7 @@ import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
-import me.shedaniel.linkie.discord.scripting.LinkieScripting.context
+import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.validateNotEmpty
 
 object EvaluateCommand : CommandBase {
@@ -16,8 +16,8 @@ object EvaluateCommand : CommandBase {
         var string = args.joinToString(" ").trim()
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
-        LinkieScripting.eval(LinkieScripting.simpleContext().context {
-            ContextExtensions.commandContexts(event, user, args, channel, it)
+        LinkieScripting.eval(LinkieScripting.simpleContext.push {
+            ContextExtensions.commandContexts(event, user, args, channel, this)
         }, string)
     }
 

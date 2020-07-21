@@ -7,7 +7,7 @@ import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
-import me.shedaniel.linkie.discord.scripting.LinkieScripting.context
+import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.validateUsage
 
@@ -18,8 +18,8 @@ object RunTrickCommand : CommandBase {
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
         LinkieScripting.evalTrick(channel, args, trick) {
-            LinkieScripting.simpleContext().context {
-                ContextExtensions.commandContexts(event, user, args, channel, it)
+            LinkieScripting.simpleContext.push {
+                ContextExtensions.commandContexts(event, user, args, channel, this)
             }
         }
     }

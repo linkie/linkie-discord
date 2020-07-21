@@ -9,6 +9,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, val prefix: String) {
+    private val splitRegex = "\\s".toRegex()
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block()
         val user: User? = event.message.author.orElse(null)
@@ -19,7 +20,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, val prefix: Strin
             runCatching {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
-                    val split = if (content.contains(" ")) content.split(" ").dropLastWhile(String::isEmpty) else listOf(content)
+                    val split = if (content.contains(splitRegex)) content.split(splitRegex).dropLastWhile(String::isEmpty) else listOf(content)
                     val cmd = split[0].toLowerCase()
                     val args = split.drop(1).toMutableList()
                     commandAcceptor.execute(event, user, cmd, args, channel)

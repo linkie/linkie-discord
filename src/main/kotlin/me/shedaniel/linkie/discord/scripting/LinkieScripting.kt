@@ -9,6 +9,7 @@ import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.validateInGuild
 import p0nki.pesl.api.PESLContext
 import p0nki.pesl.api.PESLEvalException
+import p0nki.pesl.api.`object`.MapLikeObject
 import p0nki.pesl.api.`object`.PESLObject
 import p0nki.pesl.api.parse.ASTNode
 import p0nki.pesl.api.parse.PESLParseException
@@ -21,22 +22,19 @@ import kotlin.math.min
 object LinkieScripting {
     private val tokenizer by lazy { PESLTokenizer() }
     private val parser by lazy { PESLParser() }
-    val simpleContext = simpleContext()
-
-    fun simpleContext() = context {
-        it("math", ContextExtensions.math)
-        it("system", ContextExtensions.system)
-    }
-
-    inline fun context(crossinline builder: ((String, PESLObject) -> Unit) -> Unit): PESLContext {
-        return PESLContext(null, mutableMapOf()).context(builder)
-    }
-
-    inline fun PESLContext.context(crossinline builder: ((String, PESLObject) -> Unit) -> Unit): PESLContext {
-        builder { key, value ->
-            this[key] = value
-        }
-        return this
+    val simpleContext = context {
+        flatAdd(ContextExtensions.math)
+        flatAdd(ContextExtensions.system)
+        this["math"] = ContextExtensions.math
+        this["system"] = ContextExtensions.system
+        this["typeof"] = ContextExtensions.typeOf
+        this["number"] = ContextExtensions.parseNumber
+        this["parseNumber"] = ContextExtensions.parseNumber
+        this["range"] = ContextExtensions.range
+        this["dir"] = ContextExtensions.dir
+        this["copy"] = ContextExtensions.copy
+        this["equals"] = ContextExtensions.equals
+        this["deepEquals"] = ContextExtensions.deepEquals
     }
 
     fun eval(context: PESLContext, cmd: String) {
@@ -95,6 +93,29 @@ object LinkieScripting {
             throw EvalException(e)
         }
     }
+}
+
+operator fun PESLContext.set(key: String, value: PESLObject) = let(key, value)
+operator fun MapLikeObject.get(key: String) = getKey(key)
+
+inline fun context(crossinline builder: PESLContext.() -> Unit): PESLContext {
+    return PESLContext().clearAll().apply(builder)
+}
+
+fun PESLContext.clearAll(): PESLContext = apply {
+    keys().forEach { this[it] = ContextExtensions.undefined() }
+}
+
+fun PESLContext.flatAdd(obj: PESLObject): PESLContext = apply {
+    if (obj is MapLikeObject) {
+        obj.keys().forEach { key ->
+            this[key] = obj[key]
+        }
+    }
+}
+
+inline fun PESLContext.push(crossinline builder: PESLContext.() -> Unit): PESLContext {
+    return push().apply(builder)
 }
 
 class EvalException(private val exception: PESLEvalException) : RuntimeException() {

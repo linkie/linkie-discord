@@ -6,7 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
-import me.shedaniel.linkie.discord.scripting.LinkieScripting.context
+import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 
 object TrickHandler : CommandAcceptor {
@@ -16,8 +16,8 @@ object TrickHandler : CommandAcceptor {
             if (!ConfigManager[guildId].tricksEnabled) return
             val trick = TricksManager[cmd to guildId] ?: return
             LinkieScripting.evalTrick(channel, args, trick) {
-                LinkieScripting.simpleContext().context {
-                    ContextExtensions.commandContexts(event, user, args, channel, it)
+                LinkieScripting.simpleContext.push {
+                    ContextExtensions.commandContexts(event, user, args, channel, this)
                 }
             }
         }
