@@ -23,7 +23,7 @@ dependencies {
     compile("com.discord4j:discord4j-core:3.1.0.RC4") {
         force = true
     }
-    compile("com.github.jearmstrong21:PESL:7109e5634e")
+    compile("com.github.jearmstrong21:PESL:6ca53afd7c")
 }
 
 jar {
