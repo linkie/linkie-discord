@@ -13,6 +13,7 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.invites.InvitesTracker
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.namespaces.*
 import java.io.File
@@ -45,6 +46,7 @@ fun main() {
         gateway.eventDispatcher.on(ReadyEvent::class.java).subscribe {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
+        InvitesTracker(432055962233470986L, 737858943421775966L).init()
     }
 }
 
@@ -94,7 +96,7 @@ private fun registerWelcomeMessages() {
                 val guild = event.guild.block()
                 (textChannel as TextChannel).createMessage {
                     it.setEmbed {
-                        it.setTitle("Welcome **${member.discriminatedName}**! #${guild?.memberCount}")
+                        it.setTitle("Welcome **${member.discriminatedName}**!")
                         it.setThumbnail(member.avatarUrl)
                         it.setTimestampToNow()
                         it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +

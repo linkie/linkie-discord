@@ -5,9 +5,9 @@ package me.shedaniel.linkie.discord.scripting
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.AllowedMentions
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.AllowedMentions
 import me.shedaniel.linkie.discord.discriminatedName
 import me.shedaniel.linkie.discord.setTimestampToNow
 import p0nki.pesl.api.PESLContext
@@ -22,7 +22,7 @@ object ContextExtensions {
     val typeOf = PESLBuiltins.TYPEOF!!
     val parseNumber = PESLBuiltins.PARSE_NUMBER!!
     val dir = PESLBuiltins.DIR!!
-    val copy = funObj { 
+    val copy = funObj {
         validateArgs(1)
         PESLDataUtils.copy(first())
     }
