@@ -53,7 +53,7 @@ object RandomClassCommand : CommandBase {
             message: AtomicReference<Message?>,
             channel: MessageChannel
     ): MappingsContainer {
-        if (provider.cached!!) message.get().editOrCreate(channel) {
+        if (!provider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."

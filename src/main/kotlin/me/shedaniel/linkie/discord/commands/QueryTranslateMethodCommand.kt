@@ -78,14 +78,14 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
             channel: MessageChannel,
             maxPage: AtomicInteger
     ): MutableMap<String, String> {
-        if (sourceProvider.cached!!) message.get().editOrCreate(channel) {
+        if (!sourceProvider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             setDescription(desc)
         }.block().also { message.set(it) }
-        if (targetProvider.cached!!) message.get().editOrCreate(channel) {
+        else if (!targetProvider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."

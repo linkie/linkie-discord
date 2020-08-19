@@ -76,7 +76,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
             channel: MessageChannel,
             maxPage: AtomicInteger
     ): Pair<MappingsContainer, List<Class>> {
-        if (provider.cached!!) message.get().editOrCreate(channel) {
+        if (!provider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
@@ -106,6 +106,8 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                     throw NullPointerException("No results found! `$searchKey` looks like a method!")
                 } else if (searchKey.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a field!")
+                } else if (searchKey.firstOrNull()?.isLowerCase() == true || searchKey.firstOrNull()?.isDigit() == true) {
+                    throw NullPointerException("No results found! `$searchKey` doesn't looks like a class!")
                 }
                 throw NullPointerException("No results found!")
             }

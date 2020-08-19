@@ -86,7 +86,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             hasClass: Boolean = searchKey.contains('/'),
             hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
     ): Pair<MappingsContainer, List<FieldWrapper>> {
-        if (provider.cached!!) message.get().editOrCreate(channel) {
+        if (!provider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up fields for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."

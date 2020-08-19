@@ -86,7 +86,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
             hasClass: Boolean = searchKey.contains('/'),
             hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
     ): Pair<MappingsContainer, List<MethodWrapper>> {
-        if (provider.cached!!) message.get().editOrCreate(channel) {
+        if (!provider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
@@ -206,7 +206,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${mappingsContainer.name} Mappings")
         var desc = ""
-        sortedMethods.dropAndTake(5 * page, 5).forEach {
+        sortedMethods.dropAndTake(3 * page, 3).forEach {
             if (desc.isNotEmpty())
                 desc += "\n\n"
             val obfMap = LinkedHashMap<String, String>()

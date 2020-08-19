@@ -79,14 +79,14 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
             channel: MessageChannel,
             maxPage: AtomicInteger
     ): MutableMap<String, String> {
-        if (sourceProvider.cached!!) message.get().editOrCreate(channel) {
+        if (!sourceProvider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             setDescription(desc)
         }.block().also { message.set(it) }
-        if (targetProvider.cached!!) message.get().editOrCreate(channel) {
+        else if (!targetProvider.cached!!) message.get().editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."
@@ -111,6 +111,8 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
                     throw NullPointerException("No results found! `$searchTerm` looks like a method!")
                 } else if (searchTerm.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a field!")
+                } else if (searchTerm.firstOrNull()?.isLowerCase() == true || searchTerm.firstOrNull()?.isDigit() == true) {
+                    throw NullPointerException("No results found! `$searchTerm` doesn't looks like a class!")
                 }
                 throw NullPointerException("No results found!")
             }
