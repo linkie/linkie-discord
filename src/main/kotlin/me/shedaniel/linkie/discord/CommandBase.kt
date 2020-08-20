@@ -10,6 +10,7 @@ import discord4j.rest.util.Permission
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.discord.config.ConfigManager
 
 interface CommandBase {
     fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
@@ -80,6 +81,14 @@ fun MessageCreateEvent.validateInGuild() {
 fun Namespace.validateNamespace() {
     if (reloading) {
         throw IllegalStateException("Namespace (ID: $id) is reloading now, please try again in 5 seconds.")
+    }
+}
+
+fun Namespace.validateGuild(event: MessageCreateEvent) {
+    if (event.guildId.isPresent) {
+        if (!ConfigManager[event.guildId.get().asLong()].isMappingsEnabled(id)) {
+            throw IllegalStateException("Namespace (ID: $id) is disabled on this server.")
+        }
     }
 }
 

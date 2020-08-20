@@ -20,7 +20,9 @@ import kotlin.math.min
 class QueryTranslateClassCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         source.validateNamespace()
+        source.validateGuild(event)
         target.validateNamespace()
+        target.validateGuild(event)
         args.validateUsage(1..2, "$cmd <search> [version]")
         val sourceMappingsProvider = if (args.size == 1) MappingsProvider.empty(source) else source.getProvider(args.last())
         val allVersions = source.getAllSortedVersions().toMutableList()

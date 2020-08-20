@@ -9,7 +9,9 @@ object ConfigManager {
     private val configsFolder get() = File(File(System.getProperty("user.dir")), "config").also { it.mkdirs() }
     private val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
     private val configValues: MutableList<ConfigValueProvider> = mutableListOf(
-            simpleValue("tricks.enabled", value({ tricksEnabled.toString() }) { tricksEnabled = it.toBoolean() })
+            simpleValue("tricks.enabled", value({ tricksEnabled.toString() }) { tricksEnabled = it.toBoolean() }),
+            simpleValue("mappings.whitelist", value({ whitelistedMappings.joinToString(",") }) { whitelistedMappings = it.split(",").toList().filter { it.isNotBlank() } }),
+            simpleValue("mappings.blacklist", value({ blacklistedMappings.joinToString(",") }) { blacklistedMappings = it.split(",").toList().filter { it.isNotBlank() } })
     )
 
     fun load() {

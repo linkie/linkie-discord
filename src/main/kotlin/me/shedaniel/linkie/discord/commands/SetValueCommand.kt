@@ -10,7 +10,7 @@ object SetValueCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
-        args.validateUsage(2..Int.MAX_VALUE, "$cmd <property> <value>")
+        args.validateUsage(1..Int.MAX_VALUE, "$cmd <property> <value>")
         val config = ConfigManager[event.guildId.get().asLong()]
         val property = args[0].toLowerCase()
         val value = args.asSequence().drop(1).joinToString(" ")

@@ -20,6 +20,7 @@ object RandomClassCommand : CommandBase {
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
         namespace.validateNamespace()
+        namespace.validateGuild(event)
         val mappingsProvider = namespace.getProvider(args[1])
         if (mappingsProvider.isEmpty()) {
             val list = namespace.getAllSortedVersions()

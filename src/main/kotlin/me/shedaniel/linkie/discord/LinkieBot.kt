@@ -33,7 +33,6 @@ fun main() {
     ConfigManager.load()
     start(
             YarnNamespace,
-            SpigotNamespace,
             PlasmaNamespace,
             MCPNamespace,
             MojangNamespace

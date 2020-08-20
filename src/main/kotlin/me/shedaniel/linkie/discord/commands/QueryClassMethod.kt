@@ -7,6 +7,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.MatchResult
 import me.shedaniel.linkie.utils.containsOrMatchWildcard
 import me.shedaniel.linkie.utils.dropAndTake
@@ -28,6 +29,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
         namespace.validateNamespace()
+        namespace.validateGuild(event)
 
         val mappingsProvider = if (args.size == 1) MappingsProvider.empty(namespace) else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
@@ -37,7 +39,11 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", "))
         }
-        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(cmd, channel.id.asLong()))
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(if (namespace == YarnNamespace) when (channel.id.asLong()) {
+            602959845842485258 -> "legacy"
+            661088839464386571 -> "patchwork"
+            else -> namespace.getDefaultMappingChannel()
+        } else namespace.getDefaultMappingChannel()))
         mappingsProvider.validateDefaultVersionNotEmpty()
         val message = AtomicReference<Message?>()
         val version = mappingsProvider.version!!

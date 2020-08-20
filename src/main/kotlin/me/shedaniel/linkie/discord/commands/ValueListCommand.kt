@@ -51,8 +51,10 @@ object ValueListCommand : CommandBase {
         setTimestampToNow()
         properties.dropAndTake(page * 5, 5).forEach { property ->
             val value = ConfigManager.getValueOf(config, property)
-            addInlineField(property, "Value: `$value`")
+            if (value.isEmpty()) addInlineField(property, "Value:")
+            else addInlineField(property, "Value: `$value`")
         }
+        setDescription("More information about Server Rule at https://github.com/shedaniel/linkie-discord/wiki/Server-Rules")
     }
 
     override fun getName(): String? = "List Values Command"

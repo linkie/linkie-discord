@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compile("me.shedaniel:linkie-core:1.0.29")
+    compile("me.shedaniel:linkie-core:1.0.30")
     compile("com.discord4j:discord4j-core:3.1.0") {
         force = true
     }
