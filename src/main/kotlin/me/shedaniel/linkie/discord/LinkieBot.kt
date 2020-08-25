@@ -15,7 +15,10 @@ import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.invites.InvitesTracker
 import me.shedaniel.linkie.discord.tricks.TricksManager
-import me.shedaniel.linkie.namespaces.*
+import me.shedaniel.linkie.namespaces.MCPNamespace
+import me.shedaniel.linkie.namespaces.MojangNamespace
+import me.shedaniel.linkie.namespaces.PlasmaNamespace
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import java.io.File
 import java.util.*
 
