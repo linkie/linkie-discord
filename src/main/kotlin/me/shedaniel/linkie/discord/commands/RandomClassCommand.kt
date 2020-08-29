@@ -34,7 +34,7 @@ object RandomClassCommand : CommandBase {
         val message = AtomicReference<Message?>()
         val version = mappingsProvider.version!!
         val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message, channel) }
-        message.get().editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
+        message.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(mappingsContainer.timeToKeep) {
                 registerB("❌") {
@@ -42,7 +42,7 @@ object RandomClassCommand : CommandBase {
                     false
                 }
                 register("🔁") {
-                    msg.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
+                    message.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
                 }
             }.build(msg, user)
         }
@@ -54,7 +54,7 @@ object RandomClassCommand : CommandBase {
             message: AtomicReference<Message?>,
             channel: MessageChannel
     ): MappingsContainer {
-        if (!provider.cached!!) message.get().editOrCreate(channel) {
+        if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."

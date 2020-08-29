@@ -2,6 +2,7 @@ package me.shedaniel.linkie.discord.commands
 
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -13,6 +14,7 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ListTricksCommand : CommandBase {
@@ -27,8 +29,9 @@ object ListTricksCommand : CommandBase {
             val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() && it.author == member.id.asLong() }.sortedBy { it.name }
             list to ceil(list.size / 5.0).toInt()
         }
-        channel.createEmbedMessage { buildMessage(tricks.get().first, page, user, member, tricks.get().second) }.subscribe { message ->
-            message.tryRemoveAllReactions().block()
+        val message = AtomicReference<Message?>()
+        channel.createEmbedMessage { buildMessage(tricks.get().first, page, user, member, tricks.get().second) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
             buildReactions(tricks.timeToKeep) {
                 if (tricks.get().second > 1) register("⬅") {
                     if (page > 0) {
@@ -37,7 +40,7 @@ object ListTricksCommand : CommandBase {
                     }
                 }
                 registerB("❌") {
-                    message.delete().subscribe()
+                    msg.delete().subscribe()
                     false
                 }
                 if (tricks.get().second > 1) register("➡") {
@@ -46,7 +49,7 @@ object ListTricksCommand : CommandBase {
                         message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, member, tricks.get().second) }.subscribe()
                     }
                 }
-            }.build(message, user)
+            }.build(msg, user)
         }
     }
 

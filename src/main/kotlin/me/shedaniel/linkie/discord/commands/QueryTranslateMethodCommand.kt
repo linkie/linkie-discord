@@ -48,13 +48,13 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
         var page = 0
         val maxPage = AtomicInteger(-1)
         val remappedMethods = ValueKeeper(Duration.ofMinutes(2)) { build(searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, channel, maxPage) }
-        message.get().editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
+        message.editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(remappedMethods.timeToKeep) {
                 if (maxPage.get() > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        msg.editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -64,7 +64,7 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
                 if (maxPage.get() > 1) register("➡") {
                     if (page < maxPage.get() - 1) {
                         page++
-                        msg.editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel) { buildMessage(remappedMethods.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -80,21 +80,21 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
             channel: MessageChannel,
             maxPage: AtomicInteger
     ): MutableMap<String, String> {
-        if (!sourceProvider.cached!!) message.get().editOrCreate(channel) {
+        if (!sourceProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             setDescription(desc)
-        }.block().also { message.set(it) }
-        else if (!targetProvider.cached!!) message.get().editOrCreate(channel) {
+        }.block()
+        else if (!targetProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!targetProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             setDescription(desc)
         }.block()
-        return getCatching(message.get(), channel, user) {
+        return getCatching(message, channel, user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
             val targetMappings = targetProvider.mappingsContainer!!.invoke()
             val sourceMethods = mutableMapOf<Method, Class>()

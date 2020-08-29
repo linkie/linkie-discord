@@ -1,5 +1,6 @@
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -11,6 +12,7 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ListAllTricksCommand : CommandBase {
@@ -23,8 +25,9 @@ object ListAllTricksCommand : CommandBase {
             val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() }.sortedBy { it.name }
             list to ceil(list.size / 5.0).toInt()
         }
-        channel.createEmbedMessage { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe { message ->
-            message.tryRemoveAllReactions().block()
+        val message = AtomicReference<Message?>()
+        message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
             buildReactions(tricks.timeToKeep) {
                 if (tricks.get().second > 1) register("⬅") {
                     if (page > 0) {
@@ -33,7 +36,7 @@ object ListAllTricksCommand : CommandBase {
                     }
                 }
                 registerB("❌") {
-                    message.delete().subscribe()
+                    msg.delete().subscribe()
                     false
                 }
                 if (tricks.get().second > 1) register("➡") {
@@ -42,7 +45,7 @@ object ListAllTricksCommand : CommandBase {
                         message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe()
                     }
                 }
-            }.build(message, user)
+            }.build(msg, user)
         }
     }
 

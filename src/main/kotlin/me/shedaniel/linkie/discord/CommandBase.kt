@@ -11,6 +11,7 @@ import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
+import java.util.concurrent.atomic.AtomicReference
 
 interface CommandBase {
     fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
@@ -21,7 +22,7 @@ interface CommandBase {
     fun getCategory(): CommandCategory = CommandCategory.NORMAL
 }
 
-inline fun CommandBase.runCatching(message: Message?, channel: MessageChannel, user: User, crossinline run: () -> Unit) {
+inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, crossinline run: () -> Unit) {
     try {
         run()
     } catch (t: Throwable) {
@@ -34,7 +35,7 @@ inline fun CommandBase.runCatching(message: Message?, channel: MessageChannel, u
     }
 }
 
-inline fun <T> CommandBase.getCatching(message: Message?, channel: MessageChannel, user: User, crossinline run: () -> T): T {
+inline fun <T> CommandBase.getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, crossinline run: () -> T): T {
     try {
         return run()
     } catch (t: Throwable) {

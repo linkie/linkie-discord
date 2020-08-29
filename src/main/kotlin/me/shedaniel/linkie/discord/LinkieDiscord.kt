@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.schedule
 import kotlin.properties.Delegates
 
@@ -86,16 +87,16 @@ fun Message.subscribeReactions(vararg unicodes: String) {
     }
 }
 
-inline fun Message?.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
-    return if (this == null) {
+inline fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
+    return if (get() == null) {
         channel.createMessage {
             it.setEmbed { createSpec(it) }
-        }
+        }.doOnSuccess { set(it) }
     } else {
-        edit {
+        get()!!.edit {
             it.setEmbed { createSpec(it) }
-        }
-    } ?: throw NullPointerException("Unknown Message!")
+        }.doOnSuccess { set(it) }
+    }
 }
 
 fun Message.tryRemoveReaction(emoji: ReactionEmoji, userId: Snowflake) {

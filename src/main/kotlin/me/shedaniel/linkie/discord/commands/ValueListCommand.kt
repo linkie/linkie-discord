@@ -1,5 +1,6 @@
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -9,6 +10,7 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.config.GuildConfig
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ValueListCommand : CommandBase {
@@ -20,8 +22,9 @@ object ValueListCommand : CommandBase {
         val properties = ConfigManager.getProperties().toMutableList()
         var page = 0
         val maxPage = ceil(properties.size / 5.0).toInt()
-        channel.createEmbedMessage { buildMessage(config, properties, user, page, maxPage) }.subscribe { message ->
-            message.tryRemoveAllReactions().block()
+        val message = AtomicReference<Message?>()
+        message.editOrCreate(channel) { buildMessage(config, properties, user, page, maxPage) }.subscribe { msg ->
+            msg.tryRemoveAllReactions().block()
             buildReactions(Duration.ofMinutes(2)) {
                 if (maxPage > 1) register("⬅") {
                     if (page > 0) {
@@ -30,7 +33,7 @@ object ValueListCommand : CommandBase {
                     }
                 }
                 registerB("❌") {
-                    message.delete().subscribe()
+                    msg.delete().subscribe()
                     false
                 }
                 if (maxPage > 1) register("➡") {
@@ -39,7 +42,7 @@ object ValueListCommand : CommandBase {
                         message.editOrCreate(channel) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
                     }
                 }
-            }.build(message, user)
+            }.build(msg, user)
         }
     }
 
