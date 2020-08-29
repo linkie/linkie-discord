@@ -42,11 +42,11 @@ inline fun start(
         info("Linkie Bot (Debug Mode)")
     else info("Linkie Bot")
     Timer().schedule(0, Duration.ofMinutes(1).toMillis()) { System.gc() }
-    Timer().schedule(0, Duration.ofSeconds(1).toMillis()) {
-        trace(String.format("Total: %s, Free: %s",
-                Runtime.getRuntime().totalMemory(),
-                Runtime.getRuntime().freeMemory()))
-    }
+//    Timer().schedule(0, Duration.ofSeconds(1).toMillis()) {
+//        trace(String.format("Total: %s, Free: %s",
+//                Runtime.getRuntime().totalMemory(),
+//                Runtime.getRuntime().freeMemory()))
+//    }
     gateway = api.login().block()!!
     Namespaces.init(*namespaces, cycleMs = cycleMs)
     setup()

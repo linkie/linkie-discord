@@ -1,13 +1,16 @@
 package me.shedaniel.linkie.discord.config
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 
 object ConfigManager {
     private val configs = mutableMapOf<Long, GuildConfig>()
     private val configsFolder get() = File(File(System.getProperty("user.dir")), "config").also { it.mkdirs() }
-    private val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
     private val configValues: MutableList<ConfigValueProvider> = mutableListOf(
             simpleValue("tricks.enabled", value({ tricksEnabled.toString() }) { tricksEnabled = it.toBoolean() }),
             simpleValue("mappings.whitelist", value({ whitelistedMappings.joinToString(",") }) { whitelistedMappings = it.split(",").toList().filter { it.isNotBlank() } }),
@@ -17,7 +20,7 @@ object ConfigManager {
     fun load() {
         val tempConfigs = mutableMapOf<Long, GuildConfig>()
         configsFolder.listFiles { _, name -> name.endsWith(".json") }?.forEach { configFile ->
-            tempConfigs[configFile.nameWithoutExtension.toLong()] = json.parse(GuildConfig.serializer(), configFile.readText())
+            tempConfigs[configFile.nameWithoutExtension.toLong()] = json.decodeFromString(GuildConfig.serializer(), configFile.readText())
         }
         configs.clear()
         configs.putAll(tempConfigs)
@@ -27,9 +30,7 @@ object ConfigManager {
     fun save() {
         configs.forEach { (guildId, config) ->
             val configFile = File(configsFolder, "$guildId.json")
-            if (configFile.exists().not()) {
-                configFile.writeText(json.stringify(GuildConfig.serializer(), config))
-            }
+            configFile.writeText(json.encodeToString(GuildConfig.serializer(), config))
         }
     }
 

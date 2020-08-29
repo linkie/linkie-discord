@@ -1,7 +1,6 @@
 package me.shedaniel.linkie.discord.tricks
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import me.shedaniel.linkie.utils.error
 import java.io.File
 import java.util.*
@@ -9,12 +8,15 @@ import java.util.*
 object TricksManager {
     val tricks = mutableMapOf<UUID, Trick>()
     private val tricksFolder get() = File(File(System.getProperty("user.dir")), "tricks").also { it.mkdirs() }
-    private val json = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
     fun load() {
         val tempTricks = mutableMapOf<UUID, Trick>()
         tricksFolder.listFiles { _, name -> name.endsWith(".json") }?.forEach { trickFile ->
-            val trick = json.parse(Trick.serializer(), trickFile.readText())
+            val trick = json.decodeFromString(Trick.serializer(), trickFile.readText())
             if (trick.id.toString() == trickFile.nameWithoutExtension) tempTricks[trick.id] = trick
             else {
                 error("Invalid tricks file: " + trickFile.name)
@@ -29,7 +31,7 @@ object TricksManager {
         tricks.forEach { (uuid, trick) ->
             val trickFile = File(tricksFolder, "$uuid.json")
             if (trickFile.exists().not()) {
-                trickFile.writeText(json.stringify(Trick.serializer(), trick))
+                trickFile.writeText(json.encodeToString(Trick.serializer(), trick))
             }
         }
     }

@@ -1,8 +1,8 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
@@ -39,11 +39,13 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", "))
         }
-        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(if (namespace == YarnNamespace) when (channel.id.asLong()) {
-            602959845842485258 -> "legacy"
-            661088839464386571 -> "patchwork"
-            else -> namespace.getDefaultMappingChannel()
-        } else namespace.getDefaultMappingChannel()))
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider {
+            if (namespace == YarnNamespace) when (channel.id.asLong()) {
+                602959845842485258 -> "legacy"
+                661088839464386571 -> "patchwork"
+                else -> namespace.getDefaultMappingChannel()
+            } else namespace.getDefaultMappingChannel()
+        })
         mappingsProvider.validateDefaultVersionNotEmpty()
         val message = AtomicReference<Message?>()
         val version = mappingsProvider.version!!

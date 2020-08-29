@@ -1,8 +1,8 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
@@ -36,11 +36,13 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", "))
         }
-        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider(if (namespace == YarnNamespace) when (channel.id.asLong()) {
-            602959845842485258 -> "legacy"
-            661088839464386571 -> "patchwork"
-            else -> namespace.getDefaultMappingChannel()
-        } else namespace.getDefaultMappingChannel()))
+        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider {
+            if (namespace == YarnNamespace) when (channel.id.asLong()) {
+                602959845842485258 -> "legacy"
+                661088839464386571 -> "patchwork"
+                else -> namespace.getDefaultMappingChannel()
+            } else namespace.getDefaultMappingChannel()
+        })
         mappingsProvider.validateDefaultVersionNotEmpty()
         val message = AtomicReference<Message?>()
         val searchKey = args.first().replace('.', '/')
@@ -221,17 +223,23 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
                 if (it.field.obfName.client != null) obfMap["client"] = it.field.obfName.client!!
                 if (it.field.obfName.server != null) obfMap["server"] = it.field.obfName.server!!
             }
-            desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
-                    ?: it.parent.intermediaryName}.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
+            desc += "**MC ${mappingsContainer.version}: ${
+                it.parent.mappedName
+                        ?: it.parent.intermediaryName
+            }.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
                     "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
             if (namespace.supportsFieldDescription()) {
-                desc += "\n__Type__: `${(it.field.mappedDesc
-                        ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()}`"
+                desc += "\n__Type__: `${
+                    (it.field.mappedDesc
+                            ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()
+                }`"
             }
             if (namespace.supportsMixin()) {
-                desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                        ?: it.parent.intermediaryName};${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
+                desc += "\n__Mixin Target__: `L${
+                    it.parent.mappedName
+                            ?: it.parent.intermediaryName
+                };${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
                         "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
             }
             if (namespace.supportsAT()) {
