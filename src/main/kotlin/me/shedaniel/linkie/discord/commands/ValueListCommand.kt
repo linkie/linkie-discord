@@ -14,10 +14,10 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ValueListCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
-        args.validateEmpty(cmd)
+        args.validateEmpty(prefix, cmd)
         val config = ConfigManager[event.guildId.get().asLong()]
         val properties = ConfigManager.getProperties().toMutableList()
         var page = 0

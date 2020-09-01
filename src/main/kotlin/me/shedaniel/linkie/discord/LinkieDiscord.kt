@@ -30,8 +30,8 @@ val api: DiscordClient by lazy {
     DiscordClientBuilder.create(System.getenv("TOKEN") ?: System.getProperty("linkie.token") ?: throw NullPointerException("Invalid Token: null")).build()
 }
 val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
-var commandMap: CommandMap = CommandMap(CommandHandler, if (isDebug) "!!" else "!")
-var trickMap: CommandMap = CommandMap(TrickHandler, if (isDebug) "??" else "?")
+var commandMap: CommandMap = CommandMap(CommandHandler, if (isDebug) "@" else "!")
+var trickMap: CommandMap = CommandMap(TrickHandler, if (isDebug) "@@" else "!!")
 var gateway by Delegates.notNull<GatewayDiscordClient>()
 
 inline fun start(

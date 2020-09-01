@@ -18,9 +18,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ListTricksCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
-        args.validateUsage(1, "$cmd [userId]")
+        args.validateUsage(prefix, 1, "$cmd [userId]")
         val memberId = if (args.isEmpty()) user.id.asLong() else (args.first().toLongOrNull() ?: throw NullPointerException("Member id must be a number!"))
         val guild = event.guild.block()!!
         val member = guild.getMemberById(Snowflake.of(memberId)).block() ?: throw NullPointerException("Failed to find member with the id $memberId")

@@ -18,10 +18,10 @@ import kotlin.math.ceil
 import kotlin.math.min
 
 class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
-            args.validateUsage(2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
-        } else args.validateUsage(1..2, "$cmd <namespace> <search> [version]")
+            args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
+        } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)

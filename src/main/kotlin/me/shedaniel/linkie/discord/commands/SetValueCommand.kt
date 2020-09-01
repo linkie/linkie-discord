@@ -7,10 +7,10 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 
 object SetValueCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
-        args.validateUsage(1..Int.MAX_VALUE, "$cmd <property> <value>")
+        args.validateUsage(prefix, 1..Int.MAX_VALUE, "$cmd <property> <value>")
         val config = ConfigManager[event.guildId.get().asLong()]
         val property = args[0].toLowerCase()
         val value = args.asSequence().drop(1).joinToString(" ")

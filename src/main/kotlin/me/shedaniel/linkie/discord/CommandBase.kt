@@ -14,7 +14,7 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import java.util.concurrent.atomic.AtomicReference
 
 interface CommandBase {
-    fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 
     fun getName(): String? = null
     fun getDescription(): String? = null
@@ -49,21 +49,21 @@ inline fun <T> CommandBase.getCatching(message: AtomicReference<Message?>, chann
     }
 }
 
-fun MutableList<String>.validateEmpty(usage: String) {
-    validateUsage(0, usage)
+fun MutableList<String>.validateEmpty(prefix: String, usage: String) {
+    validateUsage(prefix, 0, usage)
 }
 
-fun MutableList<String>.validateNotEmpty(usage: String) {
-    validateUsage(1..Int.MAX_VALUE, usage)
+fun MutableList<String>.validateNotEmpty(prefix: String, usage: String) {
+    validateUsage(prefix, 1..Int.MAX_VALUE, usage)
 }
 
-fun MutableList<String>.validateUsage(length: Int, usage: String) {
-    validateUsage(length..length, usage)
+fun MutableList<String>.validateUsage(prefix: String, length: Int, usage: String) {
+    validateUsage(prefix, length..length, usage)
 }
 
-fun MutableList<String>.validateUsage(length: IntRange, usage: String) {
+fun MutableList<String>.validateUsage(prefix: String, length: IntRange, usage: String) {
     if (size !in length) {
-        throw InvalidUsageException("${commandMap.prefix}$usage")
+        throw InvalidUsageException("$prefix$usage")
     }
 }
 

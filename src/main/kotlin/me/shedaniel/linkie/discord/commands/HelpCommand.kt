@@ -6,9 +6,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.*
 
 object HelpCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateEmpty(cmd)
-        val prefix = commandMap.prefix
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateEmpty(prefix, cmd)
         val commandCategories = CommandCategory.getValues(event.guildId.orElse(null)).filter { c ->
             CommandHandler.commands.filter { it.key.getCategory() == c && it.key.getName() != null && it.key.getDescription() != null && it.value.isNotEmpty() }.isNotEmpty()
         }

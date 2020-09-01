@@ -4,7 +4,6 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
@@ -17,12 +16,12 @@ import kotlin.math.ceil
 import kotlin.math.min
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         source.validateNamespace()
         source.validateGuild(event)
         target.validateNamespace()
         target.validateGuild(event)
-        args.validateUsage(1..2, "$cmd <search> [version]")
+        args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
         val sourceMappingsProvider = if (args.size == 1) MappingsProvider.empty(source) else source.getProvider(args.last())
         val allVersions = source.getAllSortedVersions().toMutableList()
         allVersions.retainAll(target.getAllSortedVersions())

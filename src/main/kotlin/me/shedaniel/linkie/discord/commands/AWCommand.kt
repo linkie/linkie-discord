@@ -6,8 +6,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.*
 
 object AWCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateEmpty(cmd)
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateEmpty(prefix, cmd)
         channel.createEmbedMessage {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()

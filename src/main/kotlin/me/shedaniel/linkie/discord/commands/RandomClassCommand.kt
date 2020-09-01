@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
 object RandomClassCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateUsage(3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateUsage(prefix, 3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
                 ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
         namespace.validateNamespace()

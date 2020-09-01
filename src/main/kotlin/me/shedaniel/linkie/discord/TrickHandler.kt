@@ -10,7 +10,10 @@ import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 
 object TrickHandler : CommandAcceptor {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun getPrefix(event: MessageCreateEvent): String? =
+            event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].tricksPrefix }
+    
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (event.guildId.isPresent) {
             val guildId = event.guildId.get().asLong()
             if (!ConfigManager[guildId].tricksEnabled) return

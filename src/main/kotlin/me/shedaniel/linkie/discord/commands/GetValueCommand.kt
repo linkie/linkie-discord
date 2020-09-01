@@ -7,10 +7,10 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 
 object GetValueCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
-        args.validateUsage(1, "$cmd <property>")
+        args.validateUsage(prefix, 1, "$cmd <property>")
         val config = ConfigManager[event.guildId.get().asLong()]
         val property = args[0].toLowerCase()
         val value = ConfigManager.getValueOf(config, property)

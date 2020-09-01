@@ -3,6 +3,7 @@ package me.shedaniel.linkie.discord
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import me.shedaniel.linkie.discord.config.ConfigManager
 
 object CommandHandler : CommandAcceptor {
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
@@ -15,8 +16,11 @@ object CommandHandler : CommandAcceptor {
         return this
     }
 
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun getPrefix(event: MessageCreateEvent): String? =
+            event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
+
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (cmd in commandMap)
-            commandMap[cmd]!!.execute(event, user, cmd, args, channel)
+            commandMap[cmd]!!.execute(event, prefix, user, cmd, args, channel)
     }
 }

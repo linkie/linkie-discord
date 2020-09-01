@@ -15,8 +15,8 @@ object FTBDramaCommand : CommandBase {
         isLenient = true
     }
 
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateEmpty(cmd)
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateEmpty(prefix, cmd)
         val jsonText = URL("https://ftb-drama.herokuapp.com/json").readText()
         val jsonObject = json.parseToJsonElement(jsonText).jsonObject
         val text = jsonObject["drama"]!!.jsonPrimitive.content

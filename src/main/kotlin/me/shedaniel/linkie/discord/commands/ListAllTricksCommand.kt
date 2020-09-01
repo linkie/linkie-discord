@@ -16,9 +16,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ListAllTricksCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
-        args.validateEmpty(cmd)
+        args.validateEmpty(prefix, cmd)
         val guild = event.guild.block()!!
         var page = 0
         val tricks = ValueKeeper(Duration.ofMinutes(2)) {

@@ -9,9 +9,9 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.tricks.canManageTrick
 
 object RemoveTrickCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
-        args.validateUsage(1, "$cmd <name>")
+        args.validateUsage(prefix, 1, "$cmd <name>")
         val name = args.first()
         LinkieScripting.validateTrickName(name)
         val trick = TricksManager[name to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$name`")

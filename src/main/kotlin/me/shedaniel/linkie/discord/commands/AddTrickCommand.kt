@@ -11,9 +11,9 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import java.util.*
 
 object AddTrickCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
-        args.validateUsage(2..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
+        args.validateUsage(prefix, 2..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
         val name = args.first()
         LinkieScripting.validateTrickName(name)
         args.removeAt(0)
