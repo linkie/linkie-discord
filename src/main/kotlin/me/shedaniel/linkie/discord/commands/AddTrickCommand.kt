@@ -19,7 +19,7 @@ object AddTrickCommand : CommandBase {
         args.removeAt(0)
         val type = if (args[0] == "--script") ContentType.SCRIPT else ContentType.TEXT
         if (type == ContentType.SCRIPT) args.removeAt(0)
-        var content = args.joinToString(" ").trim()
+        var content = args.joinToString(" ").trim { it == '\n' }
         if (content.startsWith("```")) content = content.substring(3)
         if (content.endsWith("```")) content = content.substring(0, content.length - 3)
         require(!content.isBlank()) { "Empty Trick!" }

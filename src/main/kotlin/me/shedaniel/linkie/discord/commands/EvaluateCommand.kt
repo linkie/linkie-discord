@@ -13,7 +13,7 @@ import me.shedaniel.linkie.discord.validateNotEmpty
 object EvaluateCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd <script>")
-        var string = args.joinToString(" ").trim()
+        var string = args.joinToString(" ")
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext.push {

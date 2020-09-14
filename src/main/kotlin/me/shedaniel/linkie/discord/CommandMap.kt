@@ -8,8 +8,7 @@ import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class CommandMap(private val commandAcceptor: CommandAcceptor, val defaultPrefix: String) {
-    private val splitRegex = "\\s".toRegex()
+class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block()
         val user: User? = event.message.author.orElse(null)
@@ -21,7 +20,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, val defaultPrefix
             runCatching {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
-                    val split = if (content.contains(splitRegex)) content.split(splitRegex).dropLastWhile(String::isEmpty) else listOf(content)
+                    val split = content.splitArgs().dropLastWhile(String::isEmpty)
                     val cmd = split[0].toLowerCase()
                     val args = split.drop(1).toMutableList()
                     commandAcceptor.execute(event, prefix, user, cmd, args, channel)
@@ -36,6 +35,22 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, val defaultPrefix
                 }
             }
         }
+    }
+
+    fun String.splitArgs(): List<String> {
+        val args = mutableListOf<String>()
+        val stringBuilder = StringBuilder()
+        forEach {
+            val whitespace = it.isWhitespace()
+            if (whitespace) {
+                args.add(stringBuilder.toString())
+                stringBuilder.clear()
+            }
+            if (it == '\n' || !whitespace) {
+                stringBuilder.append(it)
+            }
+        }
+        return args
     }
 }
 
