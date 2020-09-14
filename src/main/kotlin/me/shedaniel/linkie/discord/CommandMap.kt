@@ -50,6 +50,8 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                 stringBuilder.append(it)
             }
         }
+        if (stringBuilder.isNotEmpty())
+            args.add(stringBuilder.toString())
         return args
     }
 }
