@@ -145,6 +145,8 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                     "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
             if (namespace.supportsAW()) {
                 desc += "\n__AW__: `<access> class ${it.mappedName ?: it.intermediaryName}`"
+            } else if (namespace.supportsAT()) {
+                desc += "\n__AT__: `public class ${it.intermediaryName.replace('/', '.')}`"
             }
         }
         setDescription(desc.substring(0, min(desc.length, 2000)))
