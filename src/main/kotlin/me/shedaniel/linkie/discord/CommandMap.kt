@@ -10,20 +10,20 @@ import kotlinx.coroutines.launch
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
-        val channel = event.message.channel.block()
-        val user: User? = event.message.author.orElse(null)
+        val channel = event.message.channel.block() ?: return
+        val user = event.message.author.orElse(null)?.takeUnless { it.isBot } ?: return
         val message: String = event.message.content
         val prefix = commandAcceptor.getPrefix(event) ?: defaultPrefix
-        if (user == null || user.isBot || channel == null)
-            return
         GlobalScope.launch {
             runCatching {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
                     val split = content.splitArgs().dropLastWhile(String::isEmpty)
-                    val cmd = split[0].toLowerCase()
-                    val args = split.drop(1).toMutableList()
-                    commandAcceptor.execute(event, prefix, user, cmd, args, channel)
+                    if (split.isNotEmpty()) {
+                        val cmd = split[0].toLowerCase()
+                        val args = split.drop(1).toMutableList()
+                        commandAcceptor.execute(event, prefix, user, cmd, args, channel)
+                    }
                 }
             }.exceptionOrNull()?.also { throwable ->
                 if (throwable is SuppressedException) return@also

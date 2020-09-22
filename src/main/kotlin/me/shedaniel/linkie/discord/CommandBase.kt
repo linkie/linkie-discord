@@ -11,6 +11,7 @@ import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 interface CommandBase {
@@ -67,9 +68,11 @@ fun MutableList<String>.validateUsage(prefix: String, length: IntRange, usage: S
     }
 }
 
-fun Member.validateAdmin() {
-    if (basePermissions.block()?.contains(Permission.ADMINISTRATOR) != true) {
-        throw IllegalStateException("This command requires `Administrator` permission!")
+fun Member.validateAdmin() = validatePermissions(Permission.ADMINISTRATOR)
+
+fun Member.validatePermissions(permission: Permission) {
+    if (basePermissions.block()?.contains(permission) != true) {
+        throw IllegalStateException("This command requires `${permission.name.toLowerCase(Locale.ROOT).capitalize()}` permission!")
     }
 }
 

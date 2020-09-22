@@ -2,14 +2,19 @@
 
 package me.shedaniel.linkie.discord.scripting
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
+import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.AllowedMentions
+import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.discriminatedName
+import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.setTimestampToNow
+import me.shedaniel.linkie.discord.validatePermissions
 import p0nki.pesl.api.PESLContext
 import p0nki.pesl.api.PESLEvalException
 import p0nki.pesl.api.`object`.*
@@ -55,7 +60,8 @@ object ContextExtensions {
     }
 
     fun commandContexts(event: MessageCreateEvent, user: User, args: MutableList<String>, channel: MessageChannel, context: PESLContext) {
-        context["message"] = messageObj(event.message, user)
+        context["args"] = arrayObj(args.map { stringObj(it) })
+        context["message"] = messageObj(event.message, user, false)
         discordContexts(user, channel, event.guild.blockOptional().orElse(null), context)
     }
 
@@ -71,7 +77,7 @@ object ContextExtensions {
                         it.setDescription(last().castToString().let { it.substring(0, min(1999, it.length)) })
                         it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                         it.setTimestampToNow()
-                    }.block()!!, user)
+                    }.block()!!, user, false)
                 } else undefined()
             })
             it("sendMessage", funObj {
@@ -81,7 +87,7 @@ object ContextExtensions {
                     messageObj(channel.createMessage {
                         it.setAllowedMentions(AllowedMentions.builder().build())
                         it.setContent(first().castToString().let { it.substring(0, min(1999, it.length)) })
-                    }.block()!!, user)
+                    }.block()!!, user, false)
                 } else undefined()
             })
             it("id", stringObj(channel.id.asString()))
@@ -89,11 +95,14 @@ object ContextExtensions {
         }
     }
 
-    fun messageObj(message: Message, user: User? = null): MapObject {
-        val booleans = booleanArrayOf(false, false)
+    fun messageObj(message: Message, user: User? = null, needPermsToDelete: Boolean = true): MapObject {
+        val booleans = booleanArrayOf(false, message.author.get().id != gateway.selfId)
         return mapObj {
-            it("delete", funObj {
+            it("id", stringObj(message.id.asString()))
+            it("deleteMessage", funObj {
                 validateArgs(0)
+                if (needPermsToDelete)
+                    (user as? Member)?.apply { validatePermissions(Permission.MANAGE_MESSAGES) }
                 if (!booleans[0]) {
                     booleans[0] = true
                     message.delete().subscribe()
@@ -108,7 +117,7 @@ object ContextExtensions {
                     booleans[1] = true
                     messageObj(message.edit {
                         it.setContent(first().castToString().let { it.substring(0, min(1999, it.length)) })
-                    }.block()!!, user)
+                    }.block()!!, user, false)
                 } else undefined()
             })
             it("editAsEmbed", funObj {
@@ -124,7 +133,7 @@ object ContextExtensions {
                             }
                             it.setTimestampToNow()
                         }
-                    }.block()!!, user)
+                    }.block()!!, user, false)
                 } else undefined()
             })
         }
@@ -161,6 +170,8 @@ object ContextExtensions {
     fun stringObj(string: String) = StringObject(string)
     fun boolObj(boolean: Boolean) = BooleanObject(boolean)
     fun arrayObj(list: List<PESLObject>) = ArrayObject(list)
+
+    fun PESLObject.toId(): Snowflake = Snowflake.of(castToString())
 
     fun List<PESLObject>.validateArgs(vararg size: Int) {
         PESLEvalException.validArgumentListLength(this, *size)

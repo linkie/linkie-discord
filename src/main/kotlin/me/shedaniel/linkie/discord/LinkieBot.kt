@@ -68,11 +68,11 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryClassMethod(Namespaces["mojang"]), "mmc", "mojmapc")
     commands.registerCommand(QueryMethodCommand(Namespaces["mojang"]), "mmm", "mojmapm")
     commands.registerCommand(QueryFieldCommand(Namespaces["mojang"]), "mmf", "mojmapm")
-    
+
     commands.registerCommand(QueryClassMethod(Namespaces["plasma"]), "plasmac")
     commands.registerCommand(QueryMethodCommand(Namespaces["plasma"]), "plasmam")
     commands.registerCommand(QueryFieldCommand(Namespaces["plasma"]), "plasmaf")
-    
+
     commands.registerCommand(QueryTranslateClassCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefyc", "voldec", "vc")
     commands.registerCommand(QueryTranslateMethodCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefym", "voldem", "vm")
     commands.registerCommand(QueryTranslateFieldCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefyf", "voldef", "vf")
@@ -93,7 +93,7 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryTranslateClassCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpc")
     commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpm")
     commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpf")
-    
+
     commands.registerCommand(HelpCommand, "help", "commands")
     commands.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
     commands.registerCommand(FTBDramaCommand, "ftbdrama", "drama")
