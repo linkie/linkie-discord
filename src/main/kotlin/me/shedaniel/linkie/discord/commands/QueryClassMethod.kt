@@ -115,7 +115,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                 } else if (searchKey.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a field!")
                 } else if (searchKey.firstOrNull()?.isLowerCase() == true || searchKey.firstOrNull()?.isDigit() == true) {
-                    throw NullPointerException("No results found! `$searchKey` doesn't looks like a class!")
+                    throw NullPointerException("No results found! `$searchKey` doesn't look like a class!")
                 }
                 throw NullPointerException("No results found!")
             }

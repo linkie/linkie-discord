@@ -114,7 +114,7 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
                 } else if (searchTerm.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a field!")
                 } else if (searchTerm.firstOrNull()?.isLowerCase() == true || searchTerm.firstOrNull()?.isDigit() == true) {
-                    throw NullPointerException("No results found! `$searchTerm` doesn't looks like a class!")
+                    throw NullPointerException("No results found! `$searchTerm` doesn't look like a class!")
                 }
                 throw NullPointerException("No results found!")
             }
