@@ -15,7 +15,7 @@ object AboutCommand : CommandBase {
             setDescription("A mappings bot created by <@430615025066049538>.")
             addField("Library Src", "https://github.com/shedaniel/linkie-core/")
             addField("Bot Src", "https://github.com/shedaniel/linkie-discord/")
-            addField("License", "GNU v3")
+            addField("License", "Apache 2.0")
             addField("Invite", "https://discordapp.com/oauth2/authorize?client_id=472081983925780490&permissions=10304&scope=bot")
             setTimestampToNow()
         }.subscribe()
