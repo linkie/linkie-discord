@@ -3,6 +3,7 @@ package me.shedaniel.linkie.discord.scripting
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.AllowedMentions
+import kotlinx.coroutines.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
@@ -88,9 +89,21 @@ object LinkieScripting {
 
     private fun evalNode(context: PESLContext, node: ASTNode) {
         try {
-            node.evaluate(context)
-        } catch (e: PESLEvalException) {
-            throw EvalException(e)
+            var t: Throwable? = null
+            runBlocking {
+                withTimeout(3000) {
+                    GlobalScope.launch(Dispatchers.IO) {
+                        try {
+                            node.evaluate(context)
+                        } catch (throwable: Throwable) {
+                            t = throwable
+                        }
+                    }.join()
+                }
+            }
+            t?.let { throw it }
+        } catch (throwable: Throwable) {
+            throw if (throwable is PESLEvalException) EvalException(throwable) else throwable
         }
     }
 }
@@ -117,6 +130,8 @@ fun PESLContext.flatAdd(obj: PESLObject): PESLContext = apply {
 inline fun PESLContext.push(crossinline builder: PESLContext.() -> Unit): PESLContext {
     return push().apply(builder)
 }
+
+class TimeoutCancellationException : RuntimeException()
 
 class EvalException(private val exception: PESLEvalException) : RuntimeException() {
     override val message: String?
