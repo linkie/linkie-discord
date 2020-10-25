@@ -1,6 +1,5 @@
 let UNICODE = [":boom:", ":zero:", ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:"]
 
-console.log(args)
 if (args.length < 2)
     throw "Invalid Usage! [width] [height]"
 
