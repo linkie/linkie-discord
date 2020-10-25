@@ -60,7 +60,7 @@ object LinkieScripting {
                         val engine = Context.newBuilder("js")
                             .allowExperimentalOptions(true)
                             .allowHostAccess(HostAccess.NONE)
-//                            .option("js.console", "false")
+                            .option("js.console", "false")
                             .option("js.nashorn-compat", "true")
                             .build()
                         try {
