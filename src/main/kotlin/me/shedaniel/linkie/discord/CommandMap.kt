@@ -7,6 +7,8 @@ import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
@@ -66,7 +68,19 @@ fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) 
     setColor(Color.RED)
     user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
     setTimestampToNow()
-    addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)
+    when {
+        throwable is org.graalvm.polyglot.PolyglotException -> {
+            val details = throwable.localizedMessage ?: ""
+            addField("Error occurred while processing the command", "```$details```", false)
+        }
+        throwable.javaClass.name.startsWith("org.graalvm") -> {
+            val details = throwable.localizedMessage ?: ""
+            addField("Error occurred while processing the command", "```" + throwable.javaClass.name + (if (details.isEmpty()) "" else ":\n") + details + "```", false)
+        }
+        else -> {
+            addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)
+        }
+    }
     if (isDebug)
         throwable.printStackTrace()
 }

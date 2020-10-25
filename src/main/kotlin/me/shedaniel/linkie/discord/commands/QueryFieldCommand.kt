@@ -7,6 +7,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
 import java.time.Duration
@@ -23,7 +24,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
         } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
-                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
+            ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
         namespace.validateNamespace()
         namespace.validateGuild(event)
@@ -31,10 +32,12 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         val mappingsProvider = if (args.size == 1) MappingsProvider.empty(namespace) else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (list.size > 20)
-                        list.take(20).joinToString(", ") + ", etc"
-                    else list.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (list.size > 20)
+                            list.take(20).joinToString(", ") + ", etc"
+                        else list.joinToString(", ")
+            )
         }
         mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider {
             if (namespace == YarnNamespace) when (channel.id.asLong()) {
@@ -85,14 +88,14 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
     private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
 
     private fun build(
-            searchKey: String,
-            provider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel,
-            maxPage: AtomicInteger,
-            hasClass: Boolean = searchKey.contains('/'),
-            hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
+        searchKey: String,
+        provider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
+        maxPage: AtomicInteger,
+        hasClass: Boolean = searchKey.contains('/'),
+        hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): Pair<MappingsContainer, List<FieldWrapper>> {
         if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
@@ -225,20 +228,20 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             }
             desc += "**MC ${mappingsContainer.version}: ${
                 it.parent.mappedName
-                        ?: it.parent.intermediaryName
+                    ?: it.parent.intermediaryName
             }.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
                     "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
             if (namespace.supportsFieldDescription()) {
                 desc += "\n__Type__: `${
                     (it.field.mappedDesc
-                            ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()
+                        ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()
                 }`"
             }
             if (namespace.supportsMixin()) {
                 desc += "\n__Mixin Target__: `L${
                     it.parent.mappedName
-                            ?: it.parent.intermediaryName
+                        ?: it.parent.intermediaryName
                 };${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
                         "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
             }
@@ -279,23 +282,23 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
     }
 
     private fun localisePrimitive(char: Char): String =
-            when (char) {
-                'Z' -> "boolean"
-                'C' -> "char"
-                'B' -> "byte"
-                'S' -> "short"
-                'I' -> "int"
-                'F' -> "float"
-                'J' -> "long"
-                'D' -> "double"
-                else -> char.toString()
-            }
+        when (char) {
+            'Z' -> "boolean"
+            'C' -> "char"
+            'B' -> "byte"
+            'S' -> "short"
+            'I' -> "int"
+            'F' -> "float"
+            'J' -> "long"
+            'D' -> "double"
+            else -> char.toString()
+        }
 
     override fun getName(): String? =
-            if (namespace != null) namespace.id.capitalize() + " Field Query"
-            else "Field Query"
+        if (namespace != null) namespace.id.capitalize() + " Field Query"
+        else "Field Query"
 
     override fun getDescription(): String? =
-            if (namespace != null) "Queries ${namespace.id} field entries."
-            else "Queries field entries."
+        if (namespace != null) "Queries ${namespace.id} field entries."
+        else "Queries field entries."
 }

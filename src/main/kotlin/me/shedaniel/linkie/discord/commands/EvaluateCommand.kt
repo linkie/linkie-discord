@@ -17,7 +17,7 @@ object EvaluateCommand : CommandBase {
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext.push {
-            ContextExtensions.commandContexts(event, user, args, channel, this)
+            ContextExtensions.commandContexts(event, user, emptyList(), channel, this)
         }, string)
     }
 

@@ -13,11 +13,12 @@ object CommandHandler : CommandAcceptor {
         for (ll in l)
             commandMap[ll.toLowerCase()] = command
         commands.getOrPut(command, ::mutableSetOf).addAll(l)
+        command.postRegister()
         return this
     }
 
     override fun getPrefix(event: MessageCreateEvent): String? =
-            event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
+        event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
 
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (cmd in commandMap)

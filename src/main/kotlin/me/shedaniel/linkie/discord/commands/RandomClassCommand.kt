@@ -1,14 +1,15 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -18,16 +19,18 @@ object RandomClassCommand : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateUsage(prefix, 3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
-                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
+            ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
         namespace.validateNamespace()
         namespace.validateGuild(event)
         val mappingsProvider = namespace.getProvider(args[1])
         if (mappingsProvider.isEmpty()) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (list.size > 20)
-                        list.take(20).joinToString(", ") + ", etc"
-                    else list.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (list.size > 20)
+                            list.take(20).joinToString(", ") + ", etc"
+                        else list.joinToString(", ")
+            )
         }
         val count = args[2].toIntOrNull()
         require(count in 1..20) { "Invalid Amount: ${args[2]}" }
@@ -49,10 +52,10 @@ object RandomClassCommand : CommandBase {
     }
 
     private fun build(
-            provider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel
+        provider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
     ): MappingsContainer {
         if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)

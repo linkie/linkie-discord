@@ -8,6 +8,7 @@ import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
@@ -28,19 +29,23 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         val allVersions = source.getAllSortedVersions().toMutableList()
         allVersions.retainAll(target.getAllSortedVersions())
         if (sourceMappingsProvider.isEmpty() && args.size == 2) {
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (allVersions.size > 20)
-                        allVersions.take(20).joinToString(", ") + ", etc"
-                    else allVersions.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (allVersions.size > 20)
+                            allVersions.take(20).joinToString(", ") + ", etc"
+                        else allVersions.joinToString(", ")
+            )
         }
         sourceMappingsProvider.injectDefaultVersion(source.getProvider(allVersions.first()))
         sourceMappingsProvider.validateDefaultVersionNotEmpty()
         val targetMappingsProvider = target.getProvider(sourceMappingsProvider.version!!)
         if (targetMappingsProvider.isEmpty()) {
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (allVersions.size > 20)
-                        allVersions.take(20).joinToString(", ") + ", etc"
-                    else allVersions.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (allVersions.size > 20)
+                            allVersions.take(20).joinToString(", ") + ", etc"
+                        else allVersions.joinToString(", ")
+            )
         }
         val searchTerm = args.first().replace('.', '/').onlyClass()
         val sourceVersion = sourceMappingsProvider.version!!
@@ -73,13 +78,13 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
     }
 
     private fun build(
-            searchTerm: String,
-            sourceProvider: MappingsProvider,
-            targetProvider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel,
-            maxPage: AtomicInteger,
+        searchTerm: String,
+        sourceProvider: MappingsProvider,
+        targetProvider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
+        maxPage: AtomicInteger,
     ): MutableMap<String, String> {
         if (!sourceProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)

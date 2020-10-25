@@ -1,12 +1,13 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
 import java.time.Duration
@@ -23,7 +24,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
         } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
-                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
+            ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
         namespace.validateNamespace()
         namespace.validateGuild(event)
@@ -31,10 +32,12 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         val mappingsProvider = if (args.size == 1) MappingsProvider.empty(namespace) else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (list.size > 20)
-                        list.take(20).joinToString(", ") + ", etc"
-                    else list.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (list.size > 20)
+                            list.take(20).joinToString(", ") + ", etc"
+                        else list.joinToString(", ")
+            )
         }
         mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider {
             if (namespace == YarnNamespace) when (channel.id.asLong()) {
@@ -85,14 +88,14 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
     private data class MethodWrapper(val method: Method, val parent: Class, val cm: FindMethodMethod)
 
     private fun build(
-            searchKey: String,
-            provider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel,
-            maxPage: AtomicInteger,
-            hasClass: Boolean = searchKey.contains('/'),
-            hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*"
+        searchKey: String,
+        provider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
+        maxPage: AtomicInteger,
+        hasClass: Boolean = searchKey.contains('/'),
+        hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): Pair<MappingsContainer, List<MethodWrapper>> {
         if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
@@ -222,14 +225,20 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                 if (it.method.obfName.client != null) obfMap["client"] = it.method.obfName.client!!
                 if (it.method.obfName.server != null) obfMap["server"] = it.method.obfName.server!!
             }
-            desc += "**MC ${mappingsContainer.version}: ${it.parent.mappedName
-                    ?: it.parent.intermediaryName}.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
+            desc += "**MC ${mappingsContainer.version}: ${
+                it.parent.mappedName
+                    ?: it.parent.intermediaryName
+            }.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
                     "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
                     "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
             if (namespace.supportsMixin()) {
-                desc += "\n__Mixin Target__: `L${it.parent.mappedName
-                        ?: it.parent.intermediaryName};${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${it.method.mappedDesc
-                        ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
+                desc += "\n__Mixin Target__: `L${
+                    it.parent.mappedName
+                        ?: it.parent.intermediaryName
+                };${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${
+                    it.method.mappedDesc
+                        ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)
+                }`"
             }
             if (namespace.supportsAT()) {
                 desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
@@ -244,13 +253,13 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
     }
 
     private fun String.mapObfDescToNamed(container: MappingsContainer): String =
-            remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
+        remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
 
     override fun getName(): String? =
-            if (namespace != null) namespace.id.capitalize() + " Method Query"
-            else "Method Query"
+        if (namespace != null) namespace.id.capitalize() + " Method Query"
+        else "Method Query"
 
     override fun getDescription(): String? =
-            if (namespace != null) "Queries ${namespace.id} method entries."
-            else "Queries method entries."
+        if (namespace != null) "Queries ${namespace.id} method entries."
+        else "Queries method entries."
 }

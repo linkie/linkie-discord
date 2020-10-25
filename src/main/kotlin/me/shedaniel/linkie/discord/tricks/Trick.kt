@@ -2,10 +2,8 @@ package me.shedaniel.linkie.discord.tricks
 
 import discord4j.core.`object`.entity.Member
 import discord4j.rest.util.Permission
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Serializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -15,15 +13,15 @@ import java.util.*
 
 @Serializable
 data class Trick(
-        @Serializable(with = UUIDSerializer::class)
-        val id: UUID,
-        val name: String,
-        val guildId: Long,
-        val author: Long,
-        val creation: Long,
-        val modified: Long,
-        val contentType: ContentType,
-        val content: String
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val name: String,
+    val guildId: Long,
+    val author: Long,
+    val creation: Long,
+    val modified: Long,
+    val contentType: ContentType,
+    val content: String
 )
 
 object UUIDSerializer : KSerializer<UUID> {
@@ -33,7 +31,7 @@ object UUIDSerializer : KSerializer<UUID> {
 }
 
 fun Member.canManageTrick(trick: Trick): Boolean =
-        id.asLong() == trick.author || basePermissions.block()?.contains(Permission.MANAGE_CHANNELS) == true
+    id.asLong() == trick.author || basePermissions.block()?.contains(Permission.MANAGE_CHANNELS) == true
 
 enum class ContentType {
     UNKNOWN,

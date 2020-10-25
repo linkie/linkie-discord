@@ -6,11 +6,16 @@ import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.core.event.domain.InviteCreateEvent
 import discord4j.core.event.domain.guild.MemberJoinEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
-import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.api
+import me.shedaniel.linkie.discord.gateway
+import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
 class InvitesTracker(
-        private val guildId: Long,
-        private val channelId: Long
+    private val guildId: Long,
+    private val channelId: Long
 ) {
     private val inviteEntries = mutableMapOf<String, InviteEntry>()
 
@@ -62,9 +67,9 @@ class InvitesTracker(
     }
 
     data class InviteEntry(
-            val code: String,
-            val creatorId: Long,
-            val creatorDiscriminatedName: String,
-            val uses: Int
+        val code: String,
+        val creatorId: Long,
+        val creatorDiscriminatedName: String,
+        val uses: Int
     )
 }

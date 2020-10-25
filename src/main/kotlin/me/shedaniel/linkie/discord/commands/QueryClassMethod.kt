@@ -7,6 +7,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.MatchResult
 import me.shedaniel.linkie.utils.containsOrMatchWildcard
@@ -26,7 +27,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
         } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
-                ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
+            ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
         namespace.validateNamespace()
         namespace.validateGuild(event)
@@ -34,10 +35,12 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         val mappingsProvider = if (args.size == 1) MappingsProvider.empty(namespace) else namespace.getProvider(args.last())
         if (mappingsProvider.isEmpty() && args.size == 2) {
             val list = namespace.getAllSortedVersions()
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (list.size > 20)
-                        list.take(20).joinToString(", ") + ", etc"
-                    else list.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (list.size > 20)
+                            list.take(20).joinToString(", ") + ", etc"
+                        else list.joinToString(", ")
+            )
         }
         mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider {
             if (namespace == YarnNamespace) when (channel.id.asLong()) {
@@ -77,12 +80,12 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
     }
 
     private fun build(
-            searchKey: String,
-            provider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel,
-            maxPage: AtomicInteger
+        searchKey: String,
+        provider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
+        maxPage: AtomicInteger,
     ): Pair<MappingsContainer, List<Class>> {
         if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
@@ -153,10 +156,10 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
     }
 
     override fun getName(): String? =
-            if (namespace != null) namespace.id.capitalize() + " Class Query"
-            else "Class Query"
+        if (namespace != null) namespace.id.capitalize() + " Class Query"
+        else "Class Query"
 
     override fun getDescription(): String? =
-            if (namespace != null) "Queries ${namespace.id} class entries."
-            else "Queries class entries."
+        if (namespace != null) "Queries ${namespace.id} class entries."
+        else "Queries class entries."
 }

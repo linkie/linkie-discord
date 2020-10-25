@@ -15,6 +15,8 @@ import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.invites.InvitesTracker
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
@@ -35,10 +37,10 @@ fun main() {
     TricksManager.load()
     ConfigManager.load()
     start(
-            YarnNamespace,
-            PlasmaNamespace,
-            MCPNamespace,
-            MojangNamespace
+        YarnNamespace,
+        PlasmaNamespace,
+        MCPNamespace,
+        MojangNamespace
     ) {
         registerCommands(CommandHandler)
 
@@ -111,6 +113,8 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(SetValueCommand, "value-set")
     commands.registerCommand(GetValueCommand, "value-get")
     commands.registerCommand(ValueListCommand, "value-list")
+    commands.registerCommand(TricksCommand, "trick")
+    commands.registerCommand(ValueCommand, "value")
 }
 
 private fun registerWelcomeMessages() {
@@ -124,9 +128,11 @@ private fun registerWelcomeMessages() {
                         it.setTitle("Welcome **${member.discriminatedName}**!")
                         it.setThumbnail(member.avatarUrl)
                         it.setTimestampToNow()
-                        it.setDescription("Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
-                                "\n" +
-                                "Anyways, enjoy your stay!")
+                        it.setDescription(
+                            "Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
+                                    "\n" +
+                                    "Anyways, enjoy your stay!"
+                        )
                     }
                 }.subscribe()
             }

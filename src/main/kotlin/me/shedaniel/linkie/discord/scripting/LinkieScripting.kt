@@ -8,45 +8,25 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.validateInGuild
-import p0nki.pesl.api.PESLContext
-import p0nki.pesl.api.PESLEvalException
-import p0nki.pesl.api.`object`.MapLikeObject
-import p0nki.pesl.api.`object`.PESLObject
-import p0nki.pesl.api.parse.ASTNode
-import p0nki.pesl.api.parse.PESLParseException
-import p0nki.pesl.api.parse.PESLParser
-import p0nki.pesl.api.token.PESLTokenList
-import p0nki.pesl.api.token.PESLTokenizeException
-import p0nki.pesl.api.token.PESLTokenizer
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.HostAccess
+import org.graalvm.polyglot.Value
+import org.graalvm.polyglot.proxy.ProxyObject
 import kotlin.math.min
 
 object LinkieScripting {
-    private val tokenizer by lazy { PESLTokenizer() }
-    private val parser by lazy { PESLParser() }
     val simpleContext = context {
         flatAdd(ContextExtensions.math)
         flatAdd(ContextExtensions.system)
         this["math"] = ContextExtensions.math
         this["system"] = ContextExtensions.system
-        this["typeof"] = ContextExtensions.typeOf
         this["number"] = ContextExtensions.parseNumber
         this["parseNumber"] = ContextExtensions.parseNumber
         this["range"] = ContextExtensions.range
-        this["dir"] = ContextExtensions.dir
-        this["copy"] = ContextExtensions.copy
         this["equals"] = ContextExtensions.equals
-        this["deepEquals"] = ContextExtensions.deepEquals
     }
 
-    fun eval(context: PESLContext, cmd: String) {
-        val tokens = parseTokens(cmd)
-        while (tokens.hasAny()) {
-            val node = parseExpression(cmd, tokens)
-            evalNode(context, node)
-        }
-    }
-
-    inline fun evalTrick(channel: MessageChannel, args: MutableList<String>, trick: Trick, crossinline context: () -> PESLContext) {
+    inline fun evalTrick(channel: MessageChannel, args: MutableList<String>, trick: Trick, crossinline context: () -> ScriptingContext) {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 eval(context(), trick.content)
@@ -71,30 +51,23 @@ object LinkieScripting {
         require(ConfigManager[event.guildId.get().asLong()].tricksEnabled) { "Tricks are not enabled on this server." }
     }
 
-    private fun parseTokens(cmd: String): PESLTokenList {
-        try {
-            return tokenizer.tokenize(cmd)
-        } catch (e: PESLTokenizeException) {
-            throw TokenizeException(cmd, e)
-        }
-    }
-
-    private fun parseExpression(cmd: String, tokens: PESLTokenList): ASTNode {
-        try {
-            return parser.parseExpression(tokens)
-        } catch (e: PESLParseException) {
-            throw ParseException(cmd, e)
-        }
-    }
-
-    private fun evalNode(context: PESLContext, node: ASTNode) {
+    fun eval(context: ScriptingContext, script: String) {
         try {
             var t: Throwable? = null
             runBlocking {
                 withTimeout(3000) {
                     GlobalScope.launch(Dispatchers.IO) {
+                        val engine = Context.newBuilder("js")
+                            .allowExperimentalOptions(true)
+                            .allowHostAccess(HostAccess.NONE)
+//                            .option("js.console", "false")
+                            .option("js.nashorn-compat", "true")
+                            .build()
                         try {
-                            node.evaluate(context)
+                            engine.getBindings("js").also {
+                                context.applyTo(it)
+                            }
+                            engine.eval("js", script)
                         } catch (throwable: Throwable) {
                             t = throwable
                         }
@@ -103,59 +76,84 @@ object LinkieScripting {
             }
             t?.let { throw it }
         } catch (throwable: Throwable) {
-            throw if (throwable is PESLEvalException) EvalException(throwable) else throwable
+            throw throwable
         }
     }
 }
 
-operator fun PESLContext.set(key: String, value: PESLObject) = let(key, value)
-operator fun MapLikeObject.get(key: String) = getKey(key)
-
-inline fun context(crossinline builder: PESLContext.() -> Unit): PESLContext {
-    return PESLContext().clearAll().apply(builder)
+inline fun context(name: String? = null, crossinline builder: ScriptingContext.() -> Unit): ScriptingContext {
+    return ScriptingContext(name).apply(builder)
 }
 
-fun PESLContext.clearAll(): PESLContext = apply {
-    keys().forEach { this[it] = ContextExtensions.undefined() }
-}
-
-fun PESLContext.flatAdd(obj: PESLObject): PESLContext = apply {
-    if (obj is MapLikeObject) {
-        obj.keys().forEach { key ->
-            this[key] = obj[key]
-        }
-    }
-}
-
-inline fun PESLContext.push(crossinline builder: PESLContext.() -> Unit): PESLContext {
+inline fun ScriptingContext.push(crossinline builder: ScriptingContext.() -> Unit): ScriptingContext {
     return push().apply(builder)
 }
 
-class TimeoutCancellationException : RuntimeException()
+interface NamedProxyObject : ProxyObject
 
-class EvalException(private val exception: PESLEvalException) : RuntimeException() {
-    override val message: String?
-        get() = exception.`object`.toString()
-}
+class ScriptingContext(val name: String? = null, val map: MutableMap<String, Any?> = mutableMapOf()) {
+    val keys get() = map.keys
 
-class TokenizeException(private val cmd: String, private val exception: PESLTokenizeException) : RuntimeException() {
-    override val message: String?
-        get() = buildString {
-            append("${exception.localizedMessage}\n\n")
-            append(cmd)
-            append('\n')
-            for (i in 1..exception.index) append(' ')
-            append('^')
+    fun push(): ScriptingContext = ScriptingContext(name, LinkedHashMap(map))
+    override fun toString(): String = name ?: super.toString()
+    operator fun get(key: String): Any? = map[key]
+    operator fun set(key: String, value: Any?) = when (value) {
+        is ScriptingContext -> map.put(key, value.toProxyObject())
+        is ContextExtensions.NameableProxyExecutable -> {
+            value.name = "\"$key\""
+            map.put(key, value)
         }
+        else -> map.put(key, value)
+    }
+    
+    fun toProxyObject(): NamedProxyObject {
+        val delegate = ProxyObject.fromMap(map)
+        return object : NamedProxyObject {
+            override fun getMember(key: String?): Any? = delegate.getMember(key)
+            override fun getMemberKeys(): Any? = delegate.memberKeys
+            override fun hasMember(key: String?): Boolean = delegate.hasMember(key)
+            override fun putMember(key: String?, value: Value?) = delegate.putMember(key, value)
+            override fun removeMember(key: String?): Boolean = delegate.removeMember(key)
+            override fun toString(): String = name ?: super.toString()
+        }
+    }
+
+    fun flatAdd(obj: ScriptingContext): ScriptingContext = apply {
+        obj.map.keys.forEach { key ->
+            this[key] = obj[key]
+        }
+    }
+
+    fun applyTo(bindings: Value) {
+        map.forEach { (key, value) ->
+            bindings.putMember(key, value)
+        }
+    }
 }
 
-class ParseException(private val cmd: String, private val exception: PESLParseException) : RuntimeException() {
-    override val message: String?
-        get() = buildString {
-            append("${exception.localizedMessage}\n\n")
-            append(cmd)
-            append('\n')
-            for (i in 1..exception.token.start) append(' ')
-            for (i in exception.token.start until exception.token.end) append('^')
-        }
-}
+//class EvalException(private val exception: PESLEvalException) : RuntimeException() {
+//    override val message: String?
+//        get() = exception.`object`.toString()
+//}
+//
+//class TokenizeException(private val cmd: String, private val exception: PESLTokenizeException) : RuntimeException() {
+//    override val message: String?
+//        get() = buildString {
+//            append("${exception.localizedMessage}\n\n")
+//            append(cmd)
+//            append('\n')
+//            for (i in 1..exception.index) append(' ')
+//            append('^')
+//        }
+//}
+//
+//class ParseException(private val cmd: String, private val exception: PESLParseException) : RuntimeException() {
+//    override val message: String?
+//        get() = buildString {
+//            append("${exception.localizedMessage}\n\n")
+//            append(cmd)
+//            append('\n')
+//            for (i in 1..exception.token.start) append(' ')
+//            for (i in exception.token.start until exception.token.end) append('^')
+//        }
+//}

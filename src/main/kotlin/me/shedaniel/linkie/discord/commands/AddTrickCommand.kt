@@ -3,11 +3,16 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.CommandBase
+import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
+import me.shedaniel.linkie.discord.validateUsage
 import java.util.*
 
 object AddTrickCommand : CommandBase {
@@ -24,7 +29,8 @@ object AddTrickCommand : CommandBase {
         if (content.endsWith("```")) content = content.substring(0, content.length - 3)
         require(!content.isBlank()) { "Empty Trick!" }
         val l = System.currentTimeMillis()
-        TricksManager.addTrick(Trick(
+        TricksManager.addTrick(
+            Trick(
                 id = UUID.randomUUID(),
                 author = user.id.asLong(),
                 name = name,
@@ -33,7 +39,8 @@ object AddTrickCommand : CommandBase {
                 creation = l,
                 modified = l,
                 guildId = event.guildId.get().asLong()
-        ))
+            )
+        )
         channel.createEmbedMessage {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()

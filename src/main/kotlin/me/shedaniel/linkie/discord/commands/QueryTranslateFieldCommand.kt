@@ -1,12 +1,13 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import java.time.Duration
@@ -26,19 +27,23 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         val allVersions = source.getAllSortedVersions().toMutableList()
         allVersions.retainAll(target.getAllSortedVersions())
         if (sourceMappingsProvider.isEmpty() && args.size == 2) {
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (allVersions.size > 20)
-                        allVersions.take(20).joinToString(", ") + ", etc"
-                    else allVersions.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (allVersions.size > 20)
+                            allVersions.take(20).joinToString(", ") + ", etc"
+                        else allVersions.joinToString(", ")
+            )
         }
         sourceMappingsProvider.injectDefaultVersion(source.getProvider(allVersions.first()))
         sourceMappingsProvider.validateDefaultVersionNotEmpty()
         val targetMappingsProvider = target.getProvider(sourceMappingsProvider.version!!)
         if (targetMappingsProvider.isEmpty()) {
-            throw NullPointerException("Invalid Version: " + args.last() + "\nVersions: " +
-                    if (allVersions.size > 20)
-                        allVersions.take(20).joinToString(", ") + ", etc"
-                    else allVersions.joinToString(", "))
+            throw NullPointerException(
+                "Invalid Version: " + args.last() + "\nVersions: " +
+                        if (allVersions.size > 20)
+                            allVersions.take(20).joinToString(", ") + ", etc"
+                        else allVersions.joinToString(", ")
+            )
         }
         require(!args.first().replace('.', '/').contains('/')) { "Query with classes are not available with translating queries." }
         val searchTerm = args.first().replace('.', '/').onlyClass()
@@ -72,13 +77,13 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
     }
 
     private fun build(
-            searchTerm: String,
-            sourceProvider: MappingsProvider,
-            targetProvider: MappingsProvider,
-            user: User,
-            message: AtomicReference<Message?>,
-            channel: MessageChannel,
-            maxPage: AtomicInteger
+        searchTerm: String,
+        sourceProvider: MappingsProvider,
+        targetProvider: MappingsProvider,
+        user: User,
+        message: AtomicReference<Message?>,
+        channel: MessageChannel,
+        maxPage: AtomicInteger,
     ): MutableMap<String, String> {
         if (!sourceProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
@@ -112,7 +117,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                 val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@forEach
                 val targetField = targetClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@forEach
                 remappedFields[(sourceClassParent.mappedName ?: sourceClassParent.intermediaryName).onlyClass() + "." + (sourceField.mappedName
-                        ?: sourceField.intermediaryName)] = (targetClass.mappedName ?: targetClass.intermediaryName).onlyClass() + "." + (targetField.mappedName ?: targetField.intermediaryName)
+                    ?: sourceField.intermediaryName)] = (targetClass.mappedName ?: targetClass.intermediaryName).onlyClass() + "." + (targetField.mappedName ?: targetField.intermediaryName)
             }
             if (remappedFields.isEmpty()) {
                 if (searchTerm.startsWith("method_") || searchTerm.startsWith("func_")) {

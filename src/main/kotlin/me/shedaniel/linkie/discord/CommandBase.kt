@@ -11,6 +11,9 @@ import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.editOrCreate
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
@@ -21,6 +24,67 @@ interface CommandBase {
     fun getDescription(): String? = null
 
     fun getCategory(): CommandCategory = CommandCategory.NORMAL
+    fun postRegister() {}
+}
+
+open class SubCommandHolder : CommandBase {
+    private val subcommands = mutableMapOf<String, SubCommandBase>()
+    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        args.validateNotEmpty(prefix, "$cmd help")
+
+        when (val subcommand = args[0].toLowerCase(Locale.ROOT)) {
+            "help" -> {
+                channel.createEmbedMessage {
+                    setTitle("Help for $cmd")
+                    subcommands.forEach { (key, subcommand) ->
+                        addInlineField(subcommand.name, "Command: $prefix$cmd $key [...]")
+                    }
+                }.subscribe()
+            }
+            in subcommands -> {
+                subcommands[subcommand]!!.execute(event, prefix, user, "$cmd $subcommand", args.drop(1).toMutableList(), channel)
+            }
+            else -> {
+                throw InvalidUsageException("$prefix help")
+            }
+        }
+    }
+
+    override fun postRegister() {
+        javaClass.declaredFields.forEach { field ->
+            if (field.type.isAssignableFrom(SubCommandReactor::class.java)) {
+                val name = field.name.toLowerCase(Locale.ROOT)
+                field.isAccessible = true
+                val reactor = field.get(this) as SubCommandReactor
+                subcommands[name] = object : SubCommandBase {
+                    override val name: String = name
+                    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) =
+                        reactor.execute(event, prefix, user, cmd, args, channel)
+
+                }
+            }
+        }
+    }
+
+    fun subCmd(reactor: (event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) -> Unit): SubCommandReactor = object : SubCommandReactor {
+        override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+            reactor(event, prefix, user, cmd, args, channel)
+        }
+    }
+
+    fun subCmd(reactor: CommandBase): SubCommandReactor = object : SubCommandReactor {
+        override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+            reactor.execute(event, prefix, user, cmd, args, channel)
+        }
+    }
+}
+
+interface SubCommandBase : SubCommandReactor {
+    val name: String
+}
+
+interface SubCommandReactor {
+    fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
 inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, crossinline run: () -> Unit) {

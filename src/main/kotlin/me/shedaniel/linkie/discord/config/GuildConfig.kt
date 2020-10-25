@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GuildConfig(
-        var prefix: String? = null,
-        var tricksPrefix: String? = null,
-        var tricksEnabled: Boolean = true,
-        var whitelistedMappings: List<String> = listOf(),
-        var blacklistedMappings: List<String> = listOf()
+    var prefix: String? = null,
+    var tricksPrefix: String? = null,
+    var tricksEnabled: Boolean = true,
+    var whitelistedMappings: List<String> = listOf(),
+    var blacklistedMappings: List<String> = listOf()
 ) {
     fun isMappingsEnabled(namespace: String): Boolean {
         if (whitelistedMappings.isNotEmpty())
