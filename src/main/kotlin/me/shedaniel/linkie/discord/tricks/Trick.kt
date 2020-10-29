@@ -1,6 +1,8 @@
 package me.shedaniel.linkie.discord.tricks
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.User
 import discord4j.rest.util.Permission
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -9,6 +11,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import me.shedaniel.linkie.discord.scripting.*
 import java.util.*
 
 @Serializable
@@ -21,8 +24,80 @@ data class Trick(
     val creation: Long,
     val modified: Long,
     val contentType: ContentType,
-    val content: String
+    val flags: List<Char> = emptyList(),
+    val content: String,
 )
+
+object TrickFlags {
+    val flags = mutableMapOf<Char, Flag>()
+
+    init {
+        flags['g'] = buildFlag("get user from id", Permission.MANAGE_MESSAGES) {
+            this["getUser"] = funObj {
+                validateArgs(1)
+                val id = first().getAsString()
+                var user: User? = null
+                val guild = it.event.guild.block()!!
+                runCatching {
+                    user = guild.getMemberById(Snowflake.of(id)).block()
+                }
+                if (user == null && id.startsWith("<@!") && id.endsWith(">")) {
+                    user = guild.getMemberById(Snowflake.of(id.substring(3, id.length - 1))).block()
+                }
+                if (user == null && id.startsWith("<@") && id.endsWith(">")) {
+                    user = guild.getMemberById(Snowflake.of(id.substring(2, id.length - 1))).block()
+                }
+                if (user == null)
+                    throw IllegalStateException("Failed to get user from \"$id\"")
+                ContextExtensions.userObj(it, user!!)
+            }
+        }
+        flags['p'] = buildFlag("open private channel", Permission.MANAGE_MESSAGES) {}
+        flags['l'] = buildFlag("get last message", Permission.MANAGE_MESSAGES) {
+            this["getLastMessage"] = funObj {
+                validateArgs(0)
+                val channel = it.event.message.channel.block()!!
+                val message = channel.getMessagesBefore(it.event.message.id).filter { !it.author.get().isBot }.blockFirst() ?: throw IllegalStateException("Failed to get message!")
+                ContextExtensions.messageObj(it, message, it.event.message.author.get())
+            }
+        }
+    }
+}
+
+interface Flag {
+    val name: String
+    fun validatePermission(member: Member)
+    fun extendContext(evalContext: EvalContext, context: ScriptingContext)
+
+    fun Member.requirePermission(permission: Permission) {
+        if (basePermissions.block()?.contains(permission) != true) {
+            throw IllegalStateException("Using \"${name.toLowerCase(Locale.ROOT).capitalize()}\" requires `${permission.name.toLowerCase(Locale.ROOT).capitalize()}` permission!")
+        }
+    }
+
+    fun Member.requirePermissions(vararg permissions: Permission) {
+        val set = basePermissions.block()
+        permissions.forEach {
+            if (set?.contains(it) != true) {
+                throw IllegalStateException("Using \"${name.toLowerCase(Locale.ROOT).capitalize()}\" requires `${it.name.toLowerCase(Locale.ROOT).capitalize()}` permission!")
+            }
+        }
+    }
+}
+
+fun buildFlag(name: String, vararg permissions: Permission, builder: ScriptingContext.(EvalContext) -> Unit): Flag =
+    object : Flag {
+        override val name: String
+            get() = name
+
+        override fun validatePermission(member: Member) {
+            member.requirePermissions(*permissions)
+        }
+
+        override fun extendContext(evalContext: EvalContext, context: ScriptingContext) {
+            builder(context, evalContext)
+        }
+    }
 
 object UUIDSerializer : KSerializer<UUID> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)

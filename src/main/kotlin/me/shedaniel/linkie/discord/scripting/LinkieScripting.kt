@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
+import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.validateInGuild
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.HostAccess
@@ -26,15 +27,22 @@ object LinkieScripting {
         this["equals"] = ContextExtensions.equals
     }
 
-    inline fun evalTrick(channel: MessageChannel, args: MutableList<String>, trick: Trick, crossinline context: () -> ScriptingContext) {
+    inline fun evalTrick(evalContext: EvalContext, channel: MessageChannel, trick: Trick, crossinline context: () -> ScriptingContext) {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
-                eval(context(), trick.content)
+                val scriptingContext = context()
+                val member = evalContext.event.member.get()
+                trick.flags.forEach {
+                    val flag = TrickFlags.flags[it]!!
+                    flag.validatePermission(member)
+                    flag.extendContext(evalContext, scriptingContext)
+                }
+                eval(scriptingContext, trick.content)
             }
             ContentType.TEXT -> {
                 channel.createMessage {
                     it.setAllowedMentions(AllowedMentions.builder().build())
-                    it.setContent(trick.content.format(*args.toTypedArray()).let { it.substring(0, min(1999, it.length)) })
+                    it.setContent(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) })
                 }.subscribe()
             }
             else -> throw IllegalStateException("Invalid Script Type: ${trick.contentType}")
@@ -59,9 +67,13 @@ object LinkieScripting {
                     GlobalScope.launch(Dispatchers.IO) {
                         val engine = Context.newBuilder("js")
                             .allowExperimentalOptions(true)
-                            .allowHostAccess(HostAccess.NONE)
+                            .allowHostAccess(HostAccess.newBuilder()
+                                .allowArrayAccess(true)
+                                .allowListAccess(true)
+                                .build())
                             .option("js.console", "false")
                             .option("js.nashorn-compat", "true")
+                            .option("js.experimental-foreign-object-prototype", "true")
                             .build()
                         try {
                             engine.getBindings("js").also {
@@ -105,7 +117,7 @@ class ScriptingContext(val name: String? = null, val map: MutableMap<String, Any
         }
         else -> map.put(key, value)
     }
-    
+
     fun toProxyObject(): NamedProxyObject {
         val delegate = ProxyObject.fromMap(map)
         return object : NamedProxyObject {

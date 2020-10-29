@@ -3,11 +3,13 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
+import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.createEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
@@ -22,12 +24,46 @@ object AddTrickCommand : CommandBase {
         val name = args.first()
         LinkieScripting.validateTrickName(name)
         args.removeAt(0)
-        val type = if (args[0] == "--script") ContentType.SCRIPT else ContentType.TEXT
-        if (type == ContentType.SCRIPT) args.removeAt(0)
+        var type = ContentType.TEXT
+        val flags = mutableListOf<Char>()
+        val iterator = args.iterator()
+        while (iterator.hasNext()) {
+            val arg = iterator.next()
+            if (arg.startsWith("-")) {
+                when {
+                    arg == "--script" -> {
+                        iterator.remove()
+                        type = ContentType.SCRIPT
+                    }
+                    arg.startsWith("--") -> {
+                        throw IllegalStateException("Flag '$arg' does not exist!")
+                    }
+                    arg.length >= 2 -> {
+                        iterator.remove()
+                        flags.addAll(arg.substring(1).toCharArray().toList())
+                    }
+                }
+            } else break
+        }
+        if (flags.contains('s')) {
+            type = ContentType.SCRIPT
+            flags.remove('s')
+        }
+        val member = event.member.get()
+        if (flags.isNotEmpty()) {
+            if (member.basePermissions.block()?.contains(Permission.MANAGE_MESSAGES) != true) {
+                throw IllegalStateException("Adding tricks with flags requires `${Permission.MANAGE_MESSAGES.name.toLowerCase(Locale.ROOT).capitalize()}` permission!")
+            }
+        }
+        flags.forEach {
+            if (!TrickFlags.flags.containsKey(it)) {
+                throw IllegalStateException("Flag '$it' does not exist!")
+            }
+        }
         var content = args.joinToString(" ").trim { it == '\n' }
         if (content.startsWith("```")) content = content.substring(3)
         if (content.endsWith("```")) content = content.substring(0, content.length - 3)
-        require(!content.isBlank()) { "Empty Trick!" }
+        require(content.isNotBlank()) { "Empty Trick!" }
         val l = System.currentTimeMillis()
         TricksManager.addTrick(
             Trick(
@@ -38,7 +74,8 @@ object AddTrickCommand : CommandBase {
                 contentType = type,
                 creation = l,
                 modified = l,
-                guildId = event.guildId.get().asLong()
+                guildId = event.guildId.get().asLong(),
+                flags = flags
             )
         )
         channel.createEmbedMessage {

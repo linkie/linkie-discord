@@ -100,36 +100,37 @@ object ContextExtensions {
         }
     }
 
-    fun discordContexts(user: User, channel: MessageChannel, context: ScriptingContext) {
-        context["channel"] = channelObj(user, channel)
+    fun discordContexts(evalContext: EvalContext, user: User, channel: MessageChannel, context: ScriptingContext) {
+        context["channel"] = channelObj(evalContext, user, channel)
     }
 
-    fun commandContexts(event: MessageCreateEvent, user: User, args: List<String>, channel: MessageChannel, context: ScriptingContext) {
-        context["args"] = ProxyArray.fromList(args)
-        context["message"] = messageObj(event.message, user, false)
-        discordContexts(user, channel, context)
+    fun commandContexts(evalContext: EvalContext, user: User, channel: MessageChannel, context: ScriptingContext) {
+        context["args"] = ProxyArray.fromList(evalContext.args)
+        context["message"] = messageObj(evalContext, evalContext.event.message, user, false)
+        context["flags"] = ProxyArray.fromList(evalContext.flags.toList())
+        discordContexts(evalContext, user, channel, context)
     }
 
-    fun channelObj(user: User, channel: MessageChannel): ScriptingContext {
+    fun channelObj(evalContext: EvalContext, user: User, channel: MessageChannel): ScriptingContext {
         val booleans = booleanArrayOf(false)
         return context("Channel") {
             this["sendEmbed"] = funObj {
                 validateArgs(1, 2)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(channel.createEmbed {
+                    messageObj(evalContext, channel.createEmbed {
                         if (size == 2) it.setTitle(first().getAsString())
                         it.setDescription(last().getAsString().let { it.substring(0, min(1999, it.length)) })
                         it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                         it.setTimestampToNow()
                     }.block()!!, user, false)
-                } else throw IllegalStateException("Scripts can nnot send more than 1 message.")
+                } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
             this["sendMessage"] = funObj {
                 validateArgs(1)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(channel.createMessage {
+                    messageObj(evalContext, channel.createMessage {
                         it.setAllowedMentions(AllowedMentions.builder().build())
                         it.setContent(first().getAsString().let { it.substring(0, min(1999, it.length)) })
                     }.block()!!, user, false)
@@ -140,7 +141,7 @@ object ContextExtensions {
         }
     }
 
-    fun messageObj(message: Message, user: User? = null, needPermsToDelete: Boolean = true): ScriptingContext {
+    fun messageObj(evalContext: EvalContext, message: Message, user: User? = null, needPermsToDelete: Boolean = true): ScriptingContext {
         val booleans = booleanArrayOf(false, message.author.get().id != gateway.selfId)
         return context("Message") {
             this["id"] = message.id.asString()
@@ -154,13 +155,13 @@ object ContextExtensions {
                 }
                 null
             }
-            this["author"] = message.authorAsMember.blockOptional().map(ContextExtensions::userObj).getOrNull() ?: message.author.map(ContextExtensions::userObj).getOrNull()
+            this["author"] = message.authorAsMember.blockOptional().map { userObj(evalContext, it) }.getOrNull() ?: message.author.map { userObj(evalContext, it) }.getOrNull()
             this["content"] = message.content
             this["edit"] = funObj {
                 validateArgs(1)
                 if (!booleans[1]) {
                     booleans[1] = true
-                    messageObj(message.edit {
+                    messageObj(evalContext, message.edit {
                         it.setContent(first().getAsString().let { it.substring(0, min(1999, it.length)) })
                     }.block()!!, user, false)
                 } else null
@@ -169,7 +170,7 @@ object ContextExtensions {
                 validateArgs(1, 2)
                 if (!booleans[1]) {
                     booleans[1] = true
-                    messageObj(message.edit {
+                    messageObj(evalContext, message.edit {
                         it.setEmbed {
                             if (size == 2) it.setTitle(first().getAsString())
                             it.setDescription(last().getAsString().let { it.substring(0, min(1999, it.length)) })
@@ -190,7 +191,7 @@ object ContextExtensions {
         }
     }
 
-    fun userObj(user: User): ScriptingContext = context(user.javaClass.simpleName) {
+    fun userObj(evalContext: EvalContext, user: User): ScriptingContext = context(user.javaClass.simpleName) {
         this["username"] = user.username
         this["discriminator"] = user.discriminator
         this["discriminatedName"] = user.discriminatedName
@@ -207,6 +208,11 @@ object ContextExtensions {
             validateArgs(0)
             (user as? Member)?.presence?.block()?.let { presenceObj(it) }
         }
+        if (evalContext.hasFlag('p'))
+            this["openPrivateChannel"] = funObj {
+                validateArgs(0)
+                channelObj(evalContext, evalContext.event.message.author.get(), user.privateChannel.block()!!)
+            }
     }
 
     fun presenceObj(presence: Presence): ScriptingContext = context("Presence") {
@@ -226,43 +232,51 @@ object ContextExtensions {
     interface NameableProxyExecutable : ProxyExecutable {
         var name: String?
     }
+}
 
-    fun funObj(arguments: List<Value>.() -> Any?): ProxyExecutable {
-        return object : NameableProxyExecutable {
-            override fun execute(vararg values: Value): Any? {
-                val any = arguments(values.toList())
-                if (any is ScriptingContext)
-                    return any.toProxyObject()
-                return any
-            }
-
-            override var name: String? = null
-            override fun toString(): String = name ?: super.toString()
+fun funObj(arguments: List<Value>.() -> Any?): ProxyExecutable {
+    return object : ContextExtensions.NameableProxyExecutable {
+        override fun execute(vararg values: Value): Any? {
+            val any = arguments(values.toList())
+            if (any is ScriptingContext)
+                return any.toProxyObject()
+            return any
         }
+
+        override var name: String? = null
+        override fun toString(): String = name ?: super.toString()
     }
+}
 
-    fun Value.getAsString(): String {
-        if (isString) return asString()
-        if (isNull) return "null"
-        throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
-    }
+fun Value.getAsString(): String {
+    if (isString) return asString()
+    if (isNull) return "null"
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
+}
 
-    fun Value.getAsDouble(): Double {
-        if (isNumber) return asDouble()
-        throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to double!")
-    }
+fun Value.getAsDouble(): Double {
+    if (isNumber) return asDouble()
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to double!")
+}
 
-    fun Value.getAsBoolean(): Boolean {
-        if (isBoolean) return asBoolean()
-        throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
-    }
+fun Value.getAsBoolean(): Boolean {
+    if (isBoolean) return asBoolean()
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
+}
 
-    fun Value.errorInferredName(): String = toString()
+fun Value.errorInferredName(): String = toString()
 
-    fun List<Value>.validateArgs(vararg size: Int) {
-        if (this.size !in size)
-            throw UnsupportedOperationException("Invalid amount of arguments!")
-    }
+fun List<Value>.validateArgs(vararg size: Int) {
+    if (this.size !in size)
+        throw IllegalArgumentException("Invalid amount of arguments!")
+}
 
-    fun Instant.toProxyInstant(): ProxyInstant = this.let { ProxyInstant.from(it) }
+fun Instant.toProxyInstant(): ProxyInstant = this.let { ProxyInstant.from(it) }
+
+data class EvalContext(
+    val event: MessageCreateEvent,
+    val flags: List<Char>,
+    val args: List<String>,
+) {
+    fun hasFlag(c: Char): Boolean = flags.contains(c)
 }

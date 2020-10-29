@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
+import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.validateNotEmpty
@@ -17,7 +18,11 @@ object EvaluateCommand : CommandBase {
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext.push {
-            ContextExtensions.commandContexts(event, user, emptyList(), channel, this)
+            ContextExtensions.commandContexts(EvalContext(
+                event,
+                emptyList(),
+                emptyList()
+            ), user, channel, this)
         }, string)
     }
 

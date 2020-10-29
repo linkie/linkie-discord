@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
+import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
@@ -17,9 +18,17 @@ object RunTrickCommand : CommandBase {
         args.validateUsage(prefix, 1, "$cmd <trick>")
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        LinkieScripting.evalTrick(channel, args, trick) {
+        LinkieScripting.evalTrick(EvalContext(
+            event,
+            trick.flags,
+            args
+        ), channel, trick) {
             LinkieScripting.simpleContext.push {
-                ContextExtensions.commandContexts(event, user, args, channel, this)
+                ContextExtensions.commandContexts(EvalContext(
+                    event,
+                    trick.flags,
+                    args
+                ), user, channel, this)
             }
         }
     }
