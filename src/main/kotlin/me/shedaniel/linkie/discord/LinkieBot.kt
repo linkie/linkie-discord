@@ -46,7 +46,7 @@ fun main() {
     ConfigManager.load()
     GlobalScope.launch {
         // netty server to allow status pages to ping this bot
-        embeddedServer(Netty, port = 61462) {
+        embeddedServer(Netty, port = System.getProperty("PORT").toInt()) {
             routing {
                 get("/status") {
                     call.respondText("""{}""", ContentType.Application.Json)
