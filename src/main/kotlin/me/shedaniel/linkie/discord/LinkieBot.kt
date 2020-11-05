@@ -10,6 +10,14 @@ import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.guild.MemberJoinEvent
 import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
+import io.ktor.application.*
+import io.ktor.http.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
@@ -36,6 +44,16 @@ fun main() {
     }
     TricksManager.load()
     ConfigManager.load()
+    GlobalScope.launch {
+        // netty server to allow status pages to ping this bot
+        embeddedServer(Netty, port = 61462) {
+            routing {
+                get("/status") {
+                    call.respondText("""{}""", ContentType.Application.Json)
+                }
+            }
+        }.start(wait = true)
+    }
     start(
         YarnNamespace,
         PlasmaNamespace,

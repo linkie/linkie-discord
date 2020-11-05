@@ -23,10 +23,12 @@ repositories {
 }
 
 dependencies {
-    depend("me.shedaniel:linkie-core:1.0.39")
-    depend("com.discord4j:discord4j-core:3.1.0", true)
-    depend("org.graalvm.js:js-scriptengine:20.2.0")
-    depend("org.graalvm.js:js:20.2.0")
+    depend "me.shedaniel:linkie-core:1.0.39"
+    depend "com.discord4j:discord4j-core:3.1.0", true
+    depend "org.graalvm.js:js-scriptengine:20.2.0"
+    depend "org.graalvm.js:js:20.2.0"
+    depend "io.ktor:ktor-server-core:$ktor_version"
+    depend "io.ktor:ktor-server-netty:$ktor_version"
 //        exclude(module: "truffle-api")
 //    compile("org.graalvm.sdk:graal-sdk:20.2.0")
 //    compile("org.graalvm.truffle:truffle-api:20.2.0")
