@@ -25,7 +25,7 @@ var gateway by Delegates.notNull<GatewayDiscordClient>()
 inline fun start(
     vararg namespaces: Namespace,
     cycleMs: Long = 1800000,
-    crossinline setup: () -> Unit
+    setup: () -> Unit
 ) {
     if (isDebug)
         info("Linkie Bot (Debug Mode)")

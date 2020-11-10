@@ -14,15 +14,13 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.collections.LinkedHashMap
 import kotlin.math.ceil
-import kotlin.math.min
 
 class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
-        } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
+        } else args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
@@ -97,7 +95,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): Pair<MappingsContainer, List<FieldWrapper>> {
-        if (!provider.cached!!) message.editOrCreate(channel) {
+        if (!provider.cached!! || hasWildcard) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up fields for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
@@ -198,7 +196,9 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
                 }
             }
             if (sortedFields.isEmpty()) {
-                if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
+                if (!searchKey.onlyClass().isValidIdentifier()) {
+                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                } else if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a method!")
                 } else if (searchKey.startsWith("class_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a class!")
@@ -217,43 +217,44 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${mappingsContainer.name} Mappings")
-        var desc = ""
-        sortedFields.dropAndTake(5 * page, 5).forEach {
-            if (desc.isNotEmpty())
-                desc += "\n\n"
-            val obfMap = LinkedHashMap<String, String>()
-            if (!it.field.obfName.isMerged()) {
-                if (it.field.obfName.client != null) obfMap["client"] = it.field.obfName.client!!
-                if (it.field.obfName.server != null) obfMap["server"] = it.field.obfName.server!!
-            }
-            desc += "**MC ${mappingsContainer.version}: ${
-                it.parent.mappedName
-                    ?: it.parent.intermediaryName
-            }.${it.field.mappedName ?: it.field.intermediaryName}**\n" +
-                    "__Name__: " + (if (it.field.obfName.isEmpty()) "" else if (it.field.obfName.isMerged()) "${it.field.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                    "`${it.field.intermediaryName}`" + (if (it.field.mappedName == null || it.field.mappedName == it.field.intermediaryName) "" else " => `${it.field.mappedName}`")
-            if (namespace.supportsFieldDescription()) {
-                desc += "\n__Type__: `${
-                    (it.field.mappedDesc
-                        ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc()
-                }`"
-            }
-            if (namespace.supportsMixin()) {
-                desc += "\n__Mixin Target__: `L${
-                    it.parent.mappedName
-                        ?: it.parent.intermediaryName
-                };${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}:" +
-                        "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
-            }
-            if (namespace.supportsAT()) {
-                desc += "\n__AT__: `public ${(it.parent.mappedName ?: it.parent.intermediaryName).replace('/', '.')}" +
-                        " ${it.field.intermediaryName} # ${if (it.field.mappedName == null) it.field.intermediaryName else it.field.mappedName}`"
-            } else if (namespace.supportsAW()) {
-                desc += "\n__AW__: `<access> field ${it.parent.mappedName ?: it.parent.intermediaryName} ${it.field.mappedName ?: it.field.intermediaryName} " +
-                        "${it.field.mappedDesc ?: it.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
+        buildSafeDescription {
+            sortedFields.dropAndTake(5 * page, 5).forEach { fieldWrapper ->
+                if (isNotEmpty())
+                    appendLine().appendLine()
+                appendLine("**MC ${mappingsContainer.version}: ${fieldWrapper.parent.optimumName}#__${fieldWrapper.field.optimumName}__**")
+                append("__Name__: ")
+                append(fieldWrapper.field.obfName.buildString(nonEmptySuffix = " => "))
+                append("`${fieldWrapper.field.intermediaryName}`")
+                append(fieldWrapper.field.mappedName.mapIfNotNullOrNotEquals(fieldWrapper.field.intermediaryName) { " => `$it`" } ?: "")
+                if (namespace.supportsFieldDescription()) {
+                    appendLine().append("__Type__: ")
+                    append((fieldWrapper.field.mappedDesc ?: fieldWrapper.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)).localiseFieldDesc())
+                }
+                if (namespace.supportsMixin()) {
+                    appendLine().append("__Mixin Target__: `")
+                    append("L${fieldWrapper.parent.optimumName};")
+                    append(fieldWrapper.field.optimumName)
+                    append(':')
+                    append(fieldWrapper.field.mappedDesc ?: fieldWrapper.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer))
+                    append('`')
+                }
+                if (namespace.supportsAT()) {
+                    appendLine().append("__AT__: `public ${fieldWrapper.parent.optimumName.replace('/', '.')} ")
+                    append(fieldWrapper.field.intermediaryName)
+                    append(" # ")
+                    append(fieldWrapper.field.optimumName)
+                    append('`')
+                } else if (namespace.supportsAW()) {
+                    appendLine().append("__AW__: `accessible field ")
+                    append(fieldWrapper.parent.optimumName)
+                    append(' ')
+                    append(fieldWrapper.field.optimumName)
+                    append(' ')
+                    append(fieldWrapper.field.mappedDesc ?: fieldWrapper.field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer))
+                    append('`')
+                }
             }
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
     private fun String.localiseFieldDesc(): String {
@@ -294,11 +295,11 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             else -> char.toString()
         }
 
-    override fun getName(): String? =
+    override fun getName(): String =
         if (namespace != null) namespace.id.capitalize() + " Field Query"
         else "Field Query"
 
-    override fun getDescription(): String? =
+    override fun getDescription(): String =
         if (namespace != null) "Queries ${namespace.id} field entries."
         else "Queries field entries."
 }

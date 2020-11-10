@@ -8,12 +8,17 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
+import me.shedaniel.linkie.Class
+import me.shedaniel.linkie.Field
+import me.shedaniel.linkie.Method
+import me.shedaniel.linkie.Obf
 import me.shedaniel.linkie.discord.gateway
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
 
 fun <T> Optional<T>.getOrNull(): T? = orElse(null)
 fun OptionalInt.getOrNull(): Int? = if (isPresent) asInt else null
@@ -54,8 +59,8 @@ fun Message.subscribeReactions(vararg unicodes: String) {
 
 inline fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
     return if (get() == null) {
-        channel.createMessage {
-            it.setEmbed { createSpec(it) }
+        channel.createEmbedMessage {
+            createSpec(this)
         }.doOnSuccess { set(it) }
     } else {
         get()!!.edit {
@@ -65,20 +70,77 @@ inline fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, cross
 }
 
 fun Message.tryRemoveReaction(emoji: ReactionEmoji, userId: Snowflake) {
-    channel.filter { it.type != Channel.Type.DM }.subscribe { removeReaction(emoji, userId).subscribe() }
+    channel.filter { it.type != Channel.Type.DM }.doOnError { }.subscribe { removeReaction(emoji, userId).subscribe() }
 }
 
 fun Message.tryRemoveAllReactions(): Mono<Void> {
-    return channel.filter { it.type != Channel.Type.DM }.flatMap { removeAllReactions() }
+    return channel.filter { it.type != Channel.Type.DM }.flatMap { removeAllReactions() }.doOnError { }
 }
 
-inline fun buildReactions(duration: Duration = Duration.ofMinutes(10), crossinline builder: ReactionBuilder.() -> Unit): ReactionBuilder {
+fun Obf.buildString(nonEmptySuffix: String? = null): String =
+    when {
+        isEmpty() -> ""
+        isMerged() -> merged!! + (nonEmptySuffix ?: "")
+        else -> buildString {
+            if (client != null) append("client=**$client**")
+            if (server != null) append("server=**$server**")
+            if (nonEmptySuffix != null) append(nonEmptySuffix)
+        }
+    }
+
+fun String?.suffixIfNotNull(suffix: String): String? =
+    mapIfNotNull { it + suffix }
+
+inline fun String?.mapIfNotNull(mapper: (String) -> String): String? =
+    when {
+        isNullOrEmpty() -> this
+        else -> mapper(this)
+    }
+
+inline fun String?.mapIfNotNullOrNotEquals(other: String, mapper: (String) -> String): String? =
+    when {
+        isNullOrEmpty() -> null
+        this == other -> null
+        else -> mapper(this)
+    }
+
+inline fun buildReactions(duration: Duration = Duration.ofMinutes(10), builder: ReactionBuilder.() -> Unit): ReactionBuilder {
     val reactionBuilder = ReactionBuilder(duration)
     builder(reactionBuilder)
     return reactionBuilder
 }
 
 fun MessageChannel.createEmbedMessage(spec: EmbedCreateSpec.() -> Unit): Mono<Message> = createEmbed(spec)
+
+fun EmbedCreateSpec.setSafeDescription(description: String) {
+    setDescription(description.substring(0, min(description.length, 2000)))
+}
+
+inline fun EmbedCreateSpec.buildSafeDescription(builderAction: StringBuilder.() -> Unit) {
+    setSafeDescription(buildString(builderAction))
+}
+
+val Class.optimumName: String
+    get() = mappedName ?: intermediaryName
+
+val Field.optimumName: String
+    get() = mappedName ?: intermediaryName
+
+val Method.optimumName: String
+    get() = mappedName ?: intermediaryName
+
+fun String.isValidIdentifier(): Boolean {
+    forEachIndexed { index, c ->
+        if (index == 0) {
+            if (!Character.isJavaIdentifierStart(c))
+                return false
+        } else {
+            if (!Character.isJavaIdentifierPart(c))
+                return false
+        }
+    }
+    return isNotEmpty()
+}
 
 class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
     private val actions = mutableMapOf<String, () -> Boolean>()

@@ -9,12 +9,14 @@ import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
+import me.shedaniel.linkie.utils.mapFieldIntermediaryDescToNamed
 import me.shedaniel.linkie.utils.onlyClass
+import me.shedaniel.linkie.utils.remapFieldDescriptor
+import org.boon.Str
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
-import kotlin.math.min
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
@@ -84,7 +86,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         message: AtomicReference<Message?>,
         channel: MessageChannel,
         maxPage: AtomicInteger,
-    ): MutableMap<String, String> {
+    ): MutableMap<FieldCompound, String> {
         if (!sourceProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -102,25 +104,28 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         return getCatching(message, channel, user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
             val targetMappings = targetProvider.mappingsContainer!!.invoke()
-            val sourceFields = mutableMapOf<Field, Class>()
-            sourceMappings.classes.forEach { clazz ->
-                clazz.fields.forEach {
-                    if (it.intermediaryName.onlyClass().equals(searchTerm, true) || it.mappedName?.onlyClass()?.equals(searchTerm, true) == true) {
-                        sourceFields[it] = clazz
+            val remappedFields = mutableMapOf<FieldCompound, String>()
+            sourceMappings.classes.forEach { sourceClassParent ->
+                sourceClassParent.fields.forEach inner@{ sourceField ->
+                    if (sourceField.intermediaryName.onlyClass().equals(searchTerm, true) || sourceField.mappedName?.onlyClass()?.equals(searchTerm, true) == true) {
+                        val obfName = sourceField.obfName.merged!!
+                        val parentObfName = sourceClassParent.obfName.merged!!
+                        val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@inner
+                        val targetField = targetClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@inner
+                        remappedFields[FieldCompound(
+                            sourceClassParent.optimumName.onlyClass() + "#" + sourceField.optimumName,
+                            sourceField.obfDesc.merged ?: sourceField.intermediaryDesc.remapFieldDescriptor {
+                                sourceMappings.getClass(it)?.obfName?.merged ?: it
+                            }
+                        )] =
+                            targetClass.optimumName.onlyClass() + "#" + targetField.optimumName
                     }
                 }
             }
-            val remappedFields = mutableMapOf<String, String>()
-            sourceFields.forEach { (sourceField, sourceClassParent) ->
-                val obfName = sourceField.obfName.merged!!
-                val parentObfName = sourceClassParent.obfName.merged!!
-                val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@forEach
-                val targetField = targetClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@forEach
-                remappedFields[(sourceClassParent.mappedName ?: sourceClassParent.intermediaryName).onlyClass() + "." + (sourceField.mappedName
-                    ?: sourceField.intermediaryName)] = (targetClass.mappedName ?: targetClass.intermediaryName).onlyClass() + "." + (targetField.mappedName ?: targetField.intermediaryName)
-            }
             if (remappedFields.isEmpty()) {
-                if (searchTerm.startsWith("method_") || searchTerm.startsWith("func_")) {
+                if (!searchTerm.isValidIdentifier()) {
+                    throw NullPointerException("No results found! `$searchTerm` is not a valid java identifier!")
+                } else if (searchTerm.startsWith("method_") || searchTerm.startsWith("func_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a method!")
                 } else if (searchTerm.startsWith("class_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a class!")
@@ -132,20 +137,24 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
             return@getCatching remappedFields
         }
     }
+    
+    private data class FieldCompound(
+        val optimumName: String,
+        val obfDesc: String
+    ) 
 
-    private fun EmbedCreateSpec.buildMessage(remappedFields: MutableMap<String, String>, version: String, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(remappedFields: MutableMap<FieldCompound, String>, version: String, page: Int, author: User, maxPage: Int) {
         setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings")
         var desc = ""
-        remappedFields.keys.dropAndTake(5 * page, 5).forEach {
+        remappedFields.entries.dropAndTake(5 * page, 5).forEach { (original, remapped) ->
             if (desc.isNotEmpty())
                 desc += "\n"
-            val targetName = remappedFields[it]
-            desc += "**MC $version: $it => `$targetName`**\n"
+            desc += "**MC $version: ${original.optimumName} => `$remapped`**\n"
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
+        setSafeDescription(desc)
     }
 
     override fun getName(): String = "${source.id.capitalize()}->${target.id.capitalize()} Field Command"

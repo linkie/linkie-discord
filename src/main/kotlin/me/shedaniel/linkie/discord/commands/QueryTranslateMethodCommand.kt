@@ -10,11 +10,11 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
+import me.shedaniel.linkie.utils.remapFieldDescriptor
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
-import kotlin.math.min
 
 class QueryTranslateMethodCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
@@ -84,7 +84,7 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
         message: AtomicReference<Message?>,
         channel: MessageChannel,
         maxPage: AtomicInteger,
-    ): MutableMap<String, String> {
+    ): MutableMap<MethodCompound, String> {
         if (!sourceProvider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -102,26 +102,29 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
         return getCatching(message, channel, user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
             val targetMappings = targetProvider.mappingsContainer!!.invoke()
-            val sourceMethods = mutableMapOf<Method, Class>()
-            sourceMappings.classes.forEach { clazz ->
-                clazz.methods.forEach {
-                    if (it.intermediaryName.onlyClass().equals(searchTerm, true) || it.mappedName?.onlyClass()?.equals(searchTerm, true) == true) {
-                        sourceMethods[it] = clazz
+            val remappedMethods = mutableMapOf<MethodCompound, String>()
+            sourceMappings.classes.forEach { sourceClassParent ->
+                sourceClassParent.methods.forEach inner@{ sourceMethod ->
+                    if (sourceMethod.intermediaryName.onlyClass().equals(searchTerm, true) || sourceMethod.mappedName?.onlyClass()?.equals(searchTerm, true) == true) {
+                        val obfName = sourceMethod.obfName.merged!!
+                        val obfDesc = sourceMethod.obfDesc.merged!!
+                        val parentObfName = sourceClassParent.obfName.merged!!
+                        val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@inner
+                        val targetMethod = targetClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@inner
+                        remappedMethods[MethodCompound(
+                            sourceClassParent.optimumName.onlyClass() + "#" + sourceMethod.optimumName,
+                            sourceMethod.obfDesc.merged ?: sourceMethod.intermediaryDesc.remapFieldDescriptor {
+                                sourceMappings.getClass(it)?.obfName?.merged ?: it
+                            }
+                        )] =
+                            targetClass.optimumName.onlyClass() + "#" + targetMethod.optimumName
                     }
                 }
             }
-            val remappedMethods = mutableMapOf<String, String>()
-            sourceMethods.forEach { (sourceMethod, sourceClassParent) ->
-                val obfName = sourceMethod.obfName.merged!!
-                val obfDesc = sourceMethod.obfDesc.merged!!
-                val parentObfName = sourceClassParent.obfName.merged!!
-                val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@forEach
-                val targetMethod = targetClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@forEach
-                remappedMethods[(sourceClassParent.mappedName ?: sourceClassParent.intermediaryName).onlyClass() + "." + (sourceMethod.mappedName
-                    ?: sourceMethod.intermediaryName)] = (targetClass.mappedName ?: targetClass.intermediaryName).onlyClass() + "." + (targetMethod.mappedName ?: targetMethod.intermediaryName)
-            }
             if (remappedMethods.isEmpty()) {
-                if (searchTerm.startsWith("field_")) {
+                if (!searchTerm.isValidIdentifier()) {
+                    throw NullPointerException("No results found! `$searchTerm` is not a valid java identifier!")
+                } else if (searchTerm.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a field!")
                 } else if (searchTerm.startsWith("class_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a class!")
@@ -134,19 +137,23 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(remappedMethods: MutableMap<String, String>, version: String, page: Int, author: User, maxPage: Int) {
+    private data class MethodCompound(
+        val optimumName: String,
+        val obfDesc: String,
+    )
+
+    private fun EmbedCreateSpec.buildMessage(remappedMethods: MutableMap<MethodCompound, String>, version: String, page: Int, author: User, maxPage: Int) {
         setFooter("Requested by " + author.discriminatedName, author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings")
         var desc = ""
-        remappedMethods.keys.dropAndTake(5 * page, 5).forEach {
+        remappedMethods.entries.dropAndTake(5 * page, 5).forEach { (original, remapped) ->
             if (desc.isNotEmpty())
                 desc += "\n"
-            val targetName = remappedMethods[it]
-            desc += "**MC $version: $it => `$targetName`**\n"
+            desc += "**MC $version: ${original.optimumName} => `$remapped`**\n"
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
+        setSafeDescription(desc)
     }
 
     override fun getName(): String = "${source.id.capitalize()}->${target.id.capitalize()} Method Command"

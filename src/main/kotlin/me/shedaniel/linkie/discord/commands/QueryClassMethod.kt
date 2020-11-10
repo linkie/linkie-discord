@@ -9,23 +9,18 @@ import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.namespaces.YarnNamespace
-import me.shedaniel.linkie.utils.MatchResult
-import me.shedaniel.linkie.utils.containsOrMatchWildcard
-import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.similarityOnNull
+import me.shedaniel.linkie.utils.*
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.collections.LinkedHashMap
 import kotlin.math.ceil
-import kotlin.math.min
 
 class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
-        } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
+        } else args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
@@ -87,6 +82,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         channel: MessageChannel,
         maxPage: AtomicInteger,
     ): Pair<MappingsContainer, List<Class>> {
+        val hasWildcard = searchKey == "*"
         if (!provider.cached!!) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -99,7 +95,9 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
             val classes = mutableMapOf<Class, MatchResult>()
 
             mappingsContainer.classes.forEach { clazz ->
-                if (!classes.contains(clazz)) {
+                if (hasWildcard) {
+                    classes[clazz] = MatchResult(true, null, null)
+                } else if (!classes.contains(clazz)) {
                     if (clazz.intermediaryName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
                         if (clazz.mappedName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
                             if (clazz.obfName.client.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
@@ -111,13 +109,18 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                     }
                 }
             }
-            val sortedClasses = classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }.map { it.key }
+            val sortedClasses = when {
+                hasWildcard -> classes.entries.sortedBy { it.key.intermediaryName }
+                else -> classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }
+            }.map { it.key }
             if (sortedClasses.isEmpty()) {
-                if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
+                if (!searchKey.onlyClass().isValidIdentifier()) {
+                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                } else if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a method!")
                 } else if (searchKey.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a field!")
-                } else if (searchKey.firstOrNull()?.isLowerCase() == true || searchKey.firstOrNull()?.isDigit() == true) {
+                } else if ((!searchKey.startsWith("class_") && searchKey.firstOrNull()?.isLowerCase() == true) || searchKey.firstOrNull()?.isDigit() == true) {
                     throw NullPointerException("No results found! `$searchKey` doesn't look like a class!")
                 }
                 throw NullPointerException("No results found!")
@@ -134,32 +137,29 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${mappingsContainer.name} Mappings")
-        var desc = ""
-        sortedClasses.dropAndTake(5 * page, 5).forEach {
-            if (desc.isNotEmpty())
-                desc += "\n\n"
-            val obfMap = LinkedHashMap<String, String>()
-            if (!it.obfName.isMerged()) {
-                if (it.obfName.client != null) obfMap["client"] = it.obfName.client!!
-                if (it.obfName.server != null) obfMap["server"] = it.obfName.server!!
-            }
-            desc += "**MC ${mappingsContainer.version}: ${it.mappedName ?: it.intermediaryName}**\n" +
-                    "__Name__: " + (if (it.obfName.isEmpty()) "" else if (it.obfName.isMerged()) "${it.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                    "`${it.intermediaryName}`" + (if (it.mappedName == null || it.mappedName == it.intermediaryName) "" else " => `${it.mappedName}`")
-            if (namespace.supportsAW()) {
-                desc += "\n__AW__: `<access> class ${it.mappedName ?: it.intermediaryName}`"
-            } else if (namespace.supportsAT()) {
-                desc += "\n__AT__: `public ${it.intermediaryName.replace('/', '.')}`"
+        buildSafeDescription {
+            sortedClasses.dropAndTake(5 * page, 5).forEach { classEntry ->
+                if (isNotEmpty())
+                    appendLine().appendLine()
+                appendLine("**MC ${mappingsContainer.version}: __${classEntry.optimumName}__**")
+                append("__Name__: ")
+                append(classEntry.obfName.buildString(nonEmptySuffix = " => "))
+                append("`${classEntry.intermediaryName}`")
+                append(classEntry.mappedName.mapIfNotNullOrNotEquals(classEntry.intermediaryName) { " => `$it`" } ?: "")
+                if (namespace.supportsAW()) {
+                    appendLine().append("__AW__: `accessible class ${classEntry.optimumName}`")
+                } else if (namespace.supportsAT()) {
+                    appendLine().append("__AT__: `public ${classEntry.intermediaryName.replace('/', '.')}`")
+                }
             }
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
-    override fun getName(): String? =
+    override fun getName(): String =
         if (namespace != null) namespace.id.capitalize() + " Class Query"
         else "Class Query"
 
-    override fun getDescription(): String? =
+    override fun getDescription(): String =
         if (namespace != null) "Queries ${namespace.id} class entries."
         else "Queries class entries."
 }

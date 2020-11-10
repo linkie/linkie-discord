@@ -22,7 +22,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
-        } else args.validateUsage(prefix, 1..2, "$cmd <namespace> <search> [version]")
+        } else args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
         val namespace = this.namespace ?: (Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (this.namespace == null) args.removeAt(0)
@@ -97,7 +97,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): Pair<MappingsContainer, List<MethodWrapper>> {
-        if (!provider.cached!!) message.editOrCreate(channel) {
+        if (!provider.cached!! || hasWildcard) message.editOrCreate(channel) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
@@ -197,7 +197,9 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                 }
             }
             if (sortedMethods.isEmpty()) {
-                if (searchKey.startsWith("class_")) {
+                if (!searchKey.onlyClass().isValidIdentifier()) {
+                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                } else if (searchKey.startsWith("class_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a class!")
                 } else if (searchKey.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchKey` looks like a field!")
@@ -216,50 +218,50 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${mappingsContainer.name} Mappings")
-        var desc = ""
-        sortedMethods.dropAndTake(3 * page, 3).forEach {
-            if (desc.isNotEmpty())
-                desc += "\n\n"
-            val obfMap = LinkedHashMap<String, String>()
-            if (!it.method.obfName.isMerged()) {
-                if (it.method.obfName.client != null) obfMap["client"] = it.method.obfName.client!!
-                if (it.method.obfName.server != null) obfMap["server"] = it.method.obfName.server!!
-            }
-            desc += "**MC ${mappingsContainer.version}: ${
-                it.parent.mappedName
-                    ?: it.parent.intermediaryName
-            }.${it.method.mappedName ?: it.method.intermediaryName}**\n" +
-                    "__Name__: " + (if (it.method.obfName.isEmpty()) "" else if (it.method.obfName.isMerged()) "${it.method.obfName.merged} => " else "${obfMap.entries.joinToString { "${it.key}=**${it.value}**" }} => ") +
-                    "`${it.method.intermediaryName}`" + (if (it.method.mappedName == null || it.method.mappedName == it.method.intermediaryName) "" else " => `${it.method.mappedName}`")
-            if (namespace.supportsMixin()) {
-                desc += "\n__Mixin Target__: `L${
-                    it.parent.mappedName
-                        ?: it.parent.intermediaryName
-                };${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}${
-                    it.method.mappedDesc
-                        ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)
-                }`"
-            }
-            if (namespace.supportsAT()) {
-                desc += "\n__AT__: `public ${(it.parent.intermediaryName).replace('/', '.')}" +
-                        " ${it.method.intermediaryName}${it.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer)}" +
-                        " # ${if (it.method.mappedName == null) it.method.intermediaryName else it.method.mappedName}`"
-            } else if (namespace.supportsAW()) {
-                desc += "\n__AW__: `<access> method ${it.parent.mappedName ?: it.parent.intermediaryName} ${it.method.mappedName ?: it.method.intermediaryName} " +
-                        "${it.method.mappedDesc ?: it.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer)}`"
+        buildSafeDescription {
+            sortedMethods.dropAndTake(3 * page, 3).forEach { methodWrapper ->
+                if (isNotEmpty())
+                    appendLine().appendLine()
+                appendLine("**MC ${mappingsContainer.version}: ${methodWrapper.parent.optimumName}#__${methodWrapper.method.optimumName}__**")
+                append("__Name__: ")
+                append(methodWrapper.method.obfName.buildString(nonEmptySuffix = " => "))
+                append("`${methodWrapper.method.intermediaryName}`")
+                append(methodWrapper.method.mappedName.mapIfNotNullOrNotEquals(methodWrapper.method.intermediaryName) { " => `$it`" } ?: "")
+                if (namespace.supportsMixin()) {
+                    appendLine().append("__Mixin Target__: `")
+                    append("L${methodWrapper.parent.optimumName};")
+                    append(methodWrapper.method.optimumName)
+                    append(methodWrapper.method.mappedDesc ?: methodWrapper.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer))
+                    append('`')
+                }
+                if (namespace.supportsAT()) {
+                    appendLine().append("__AT__: `public ${methodWrapper.parent.optimumName.replace('/', '.')} ")
+                    append(methodWrapper.method.intermediaryName)
+                    append(methodWrapper.method.obfDesc.merged!!.mapObfDescToNamed(mappingsContainer))
+                    append(" # ")
+                    append(methodWrapper.method.optimumName)
+                    append('`')
+                } else if (namespace.supportsAW()) {
+                    appendLine().append("__AW__: `accessible method ")
+                    append(methodWrapper.parent.optimumName)
+                    append(' ')
+                    append(methodWrapper.method.optimumName)
+                    append(' ')
+                    append(methodWrapper.method.mappedDesc ?: methodWrapper.method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappingsContainer))
+                    append('`')
+                }
             }
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
     }
 
     private fun String.mapObfDescToNamed(container: MappingsContainer): String =
         remapMethodDescriptor { container.getClassByObfName(it)?.intermediaryName ?: it }
 
-    override fun getName(): String? =
+    override fun getName(): String =
         if (namespace != null) namespace.id.capitalize() + " Method Query"
         else "Method Query"
 
-    override fun getDescription(): String? =
+    override fun getDescription(): String =
         if (namespace != null) "Queries ${namespace.id} method entries."
         else "Queries method entries."
 }

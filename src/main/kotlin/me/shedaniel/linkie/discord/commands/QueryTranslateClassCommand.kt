@@ -16,7 +16,6 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
-import kotlin.math.min
 
 class QueryTranslateClassCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
@@ -103,22 +102,23 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         return getCatching(message, channel, user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
             val targetMappings = targetProvider.mappingsContainer!!.invoke()
-            val sourceClasses = sourceMappings.classes.filter {
+            val remappedClasses = mutableMapOf<String, String>()
+            sourceMappings.classes.asSequence().filter {
                 it.intermediaryName.onlyClass().equals(searchTerm, false) ||
                         it.mappedName?.onlyClass()?.equals(searchTerm, false) == true
-            }
-            val remappedClasses = mutableMapOf<String, String>()
-            sourceClasses.forEach { yarnClass ->
+            }.forEach { yarnClass ->
                 val obfName = yarnClass.obfName.merged!!
                 val targetClass = targetMappings.getClassByObfName(obfName) ?: return@forEach
-                remappedClasses[yarnClass.mappedName ?: yarnClass.intermediaryName] = targetClass.mappedName ?: targetClass.intermediaryName
+                remappedClasses[yarnClass.optimumName] = targetClass.optimumName
             }
             if (remappedClasses.isEmpty()) {
-                if (searchTerm.startsWith("func_") || searchTerm.startsWith("method_")) {
+                if (!searchTerm.isValidIdentifier()) {
+                    throw NullPointerException("No results found! `$searchTerm` is not a valid java identifier!")
+                } else if (searchTerm.startsWith("func_") || searchTerm.startsWith("method_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a method!")
                 } else if (searchTerm.startsWith("field_")) {
                     throw NullPointerException("No results found! `$searchTerm` looks like a field!")
-                } else if (searchTerm.firstOrNull()?.isLowerCase() == true || searchTerm.firstOrNull()?.isDigit() == true) {
+                } else if ((!searchTerm.startsWith("class_") && searchTerm.firstOrNull()?.isLowerCase() == true) || searchTerm.firstOrNull()?.isDigit() == true) {
                     throw NullPointerException("No results found! `$searchTerm` doesn't look like a class!")
                 }
                 throw NullPointerException("No results found!")
@@ -135,13 +135,12 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         if (maxPage > 1) setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${source.id.capitalize()}->${target.id.capitalize()} Mappings")
         var desc = ""
-        remappedClasses.keys.dropAndTake(5 * page, 5).forEach {
+        remappedClasses.entries.dropAndTake(5 * page, 5).forEach { (original, remapped) ->
             if (desc.isNotEmpty())
                 desc += "\n"
-            val yarnName = remappedClasses[it]
-            desc += "**MC $version: $it => `$yarnName`**\n"
+            desc += "**MC $version: $original => `$remapped`**\n"
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
+        setSafeDescription(desc)
     }
 
     override fun getName(): String = "${source.id.capitalize()}->${target.id.capitalize()} Class Command"

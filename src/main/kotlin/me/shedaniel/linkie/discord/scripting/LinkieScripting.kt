@@ -27,7 +27,7 @@ object LinkieScripting {
         this["equals"] = ContextExtensions.equals
     }
 
-    inline fun evalTrick(evalContext: EvalContext, channel: MessageChannel, trick: Trick, crossinline context: () -> ScriptingContext) {
+    inline fun evalTrick(evalContext: EvalContext, channel: MessageChannel, trick: Trick, context: () -> ScriptingContext) {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 val scriptingContext = context()
@@ -93,11 +93,11 @@ object LinkieScripting {
     }
 }
 
-inline fun context(name: String? = null, crossinline builder: ScriptingContext.() -> Unit): ScriptingContext {
+inline fun context(name: String? = null, builder: ScriptingContext.() -> Unit): ScriptingContext {
     return ScriptingContext(name).apply(builder)
 }
 
-inline fun ScriptingContext.push(crossinline builder: ScriptingContext.() -> Unit): ScriptingContext {
+inline fun ScriptingContext.push(builder: ScriptingContext.() -> Unit): ScriptingContext {
     return push().apply(builder)
 }
 

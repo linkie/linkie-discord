@@ -87,7 +87,7 @@ interface SubCommandReactor {
     fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
-inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, crossinline run: () -> Unit) {
+inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> Unit) {
     try {
         run()
     } catch (t: Throwable) {
@@ -100,7 +100,7 @@ inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: 
     }
 }
 
-inline fun <T> CommandBase.getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, crossinline run: () -> T): T {
+inline fun <T> CommandBase.getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> T): T {
     try {
         return run()
     } catch (t: Throwable) {
