@@ -8,6 +8,7 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TrickFlags
+import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.discord.validateInGuild
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.HostAccess
@@ -40,10 +41,7 @@ object LinkieScripting {
                 eval(scriptingContext, trick.content)
             }
             ContentType.TEXT -> {
-                channel.createMessage {
-                    it.setAllowedMentions(AllowedMentions.builder().build())
-                    it.setContent(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) })
-                }.subscribe()
+                channel.sendMessage(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) }).subscribe()
             }
             else -> throw IllegalStateException("Invalid Script Type: ${trick.contentType}")
         }

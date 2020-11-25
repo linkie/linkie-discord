@@ -11,8 +11,9 @@ import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.tricks.TricksManager
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 import java.util.*
@@ -78,11 +79,11 @@ object AddTrickCommand : CommandBase {
                 flags = flags
             )
         )
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Added Trick")
-            setDescription("Successfully added trick: $name")
+            description = "Successfully added trick: $name"
         }.subscribe()
     }
 

@@ -8,6 +8,7 @@ import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
@@ -30,7 +31,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
             }.exceptionOrNull()?.also { throwable ->
                 if (throwable is SuppressedException) return@also
                 try {
-                    channel.createEmbed { it.generateThrowable(throwable, user) }.subscribe()
+                    channel.sendEmbedMessage { generateThrowable(throwable, user) }.subscribe()
                 } catch (throwable2: Exception) {
                     throwable2.addSuppressed(throwable)
                     throwable2.printStackTrace()

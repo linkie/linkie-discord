@@ -23,7 +23,9 @@ import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.invites.InvitesTracker
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
@@ -141,17 +143,13 @@ private fun registerWelcomeMessages() {
             gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
                 val member = event.member
                 val guild = event.guild.block()
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Welcome **${member.discriminatedName}**!")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestampToNow()
-                        it.setDescription(
-                            "Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
-                                    "\n" +
-                                    "Anyways, enjoy your stay!"
-                        )
-                    }
+                (textChannel as TextChannel).sendEmbedMessage {
+                    setTitle("Welcome **${member.discriminatedName}**!")
+                    setThumbnail(member.avatarUrl)
+                    setTimestampToNow()
+                    description = "Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
+                            "\n" +
+                            "Anyways, enjoy your stay!"
                 }.subscribe()
             }
         }
@@ -160,12 +158,10 @@ private fun registerWelcomeMessages() {
         if (event.guildId.asLong() == 432055962233470986L) {
             gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
                 val member = event.member.orElse(null) ?: return@send
-                (textChannel as TextChannel).createMessage {
-                    it.setEmbed {
-                        it.setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
-                        it.setThumbnail(member.avatarUrl)
-                        it.setTimestampToNow()
-                    }
+                (textChannel as TextChannel).sendEmbedMessage {
+                    setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
+                    setThumbnail(member.avatarUrl)
+                    setTimestampToNow()
                 }.subscribe()
             }
         }

@@ -5,7 +5,8 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateAdmin
@@ -22,11 +23,11 @@ object SetValueCommand : CommandBase {
         val value = args.asSequence().drop(1).joinToString(" ")
         ConfigManager.setValueOf(config, property, value)
         ConfigManager.save()
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setTitle("Successfully Set!")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            setDescription("The value of property `$property` is now set to `$value`.")
+            description = "The value of property `$property` is now set to `$value`."
         }.subscribe()
     }
 

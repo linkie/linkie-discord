@@ -52,14 +52,14 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         val message = AtomicReference<Message?>()
         var page = 0
         val maxPage = AtomicInteger(-1)
-        val remappedClasses = ValueKeeper(Duration.ofMinutes(2)) { build(searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, channel, maxPage) }
-        message.editOrCreate(channel) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
+        val remappedClasses = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, channel, maxPage) }
+        message.editOrCreate(channel, event.message) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(remappedClasses.timeToKeep) {
                 if (maxPage.get() > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -69,7 +69,7 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
                 if (maxPage.get() > 1) register("➡") {
                     if (page < maxPage.get() - 1) {
                         page++
-                        message.editOrCreate(channel) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(remappedClasses.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -77,6 +77,7 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
     }
 
     private fun build(
+        previous: Message,
         searchTerm: String,
         sourceProvider: MappingsProvider,
         targetProvider: MappingsProvider,
@@ -85,19 +86,19 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         channel: MessageChannel,
         maxPage: AtomicInteger,
     ): MutableMap<String, String> {
-        if (!sourceProvider.cached!!) message.editOrCreate(channel) {
+        if (!sourceProvider.cached!!) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            setDescription(desc)
+            description = desc
         }.block()
-        else if (!targetProvider.cached!!) message.editOrCreate(channel) {
+        else if (!targetProvider.cached!!) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!targetProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            setDescription(desc)
+            description = desc
         }.block()
         return getCatching(message, channel, user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()

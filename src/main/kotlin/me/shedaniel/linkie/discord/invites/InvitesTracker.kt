@@ -9,7 +9,7 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.discord.api
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
@@ -37,7 +37,7 @@ class InvitesTracker(
                 }.let {
                     gateway.getChannelById(Snowflake.of(channelId)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
                         val member = event.member
-                        (textChannel as TextChannel).createEmbedMessage {
+                        (textChannel as TextChannel).sendEmbedMessage {
                             setTitle("**${member.discriminatedName}** joined the server.")
                             setThumbnail(member.avatarUrl)
                             setTimestampToNow()

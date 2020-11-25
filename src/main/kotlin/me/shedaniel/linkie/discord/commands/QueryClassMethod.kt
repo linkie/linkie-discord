@@ -50,14 +50,14 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         var page = 0
         val maxPage = AtomicInteger(-1)
         val searchKey = args.first().replace('.', '/')
-        val classes = ValueKeeper(Duration.ofMinutes(2)) { build(searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
-        message.editOrCreate(channel) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe { msg ->
+        val classes = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
+        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(classes.timeToKeep) {
                 if (maxPage.get() > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -67,7 +67,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
                 if (maxPage.get() > 1) register("➡") {
                     if (page < maxPage.get() - 1) {
                         page++
-                        message.editOrCreate(channel) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -75,6 +75,7 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
     }
 
     private fun build(
+        previous: Message,
         searchKey: String,
         provider: MappingsProvider,
         user: User,
@@ -83,12 +84,13 @@ class QueryClassMethod(private val namespace: Namespace?) : CommandBase {
         maxPage: AtomicInteger,
     ): Pair<MappingsContainer, List<Class>> {
         val hasWildcard = searchKey == "*"
-        if (!provider.cached!!) message.editOrCreate(channel) {
+        if (!provider.cached!!) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
-            if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            setDescription(desc)
+            buildSafeDescription {
+                append("Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again.")
+                if (!provider.cached!!) append("\nThis mappings version is not yet cached, might take some time to download.")
+            }
         }.block()
         return getCatching(message, channel, user) {
             val mappingsContainer = provider.mappingsContainer!!.invoke()

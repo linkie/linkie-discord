@@ -27,13 +27,13 @@ object ValueListCommand : CommandBase {
         var page = 0
         val maxPage = ceil(properties.size / 5.0).toInt()
         val message = AtomicReference<Message?>()
-        message.editOrCreate(channel) { buildMessage(config, properties, user, page, maxPage) }.subscribe { msg ->
+        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(Duration.ofMinutes(2)) {
                 if (maxPage > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -43,7 +43,7 @@ object ValueListCommand : CommandBase {
                 if (maxPage > 1) register("➡") {
                     if (page < maxPage - 1) {
                         page++
-                        message.editOrCreate(channel) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -61,7 +61,7 @@ object ValueListCommand : CommandBase {
             if (value.isEmpty()) addInlineField(property, "Value:")
             else addInlineField(property, "Value: `$value`")
         }
-        setDescription("More information about Server Rule at https://github.com/shedaniel/linkie-discord/wiki/Server-Rules")
+        description = "More information about Server Rule at https://github.com/shedaniel/linkie-discord/wiki/Server-Rules"
     }
 
     override fun getName(): String? = "List Values Command"

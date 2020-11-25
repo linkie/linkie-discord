@@ -5,7 +5,8 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateAdmin
@@ -20,11 +21,11 @@ object GetValueCommand : CommandBase {
         val config = ConfigManager[event.guildId.get().asLong()]
         val property = args[0].toLowerCase()
         val value = ConfigManager.getValueOf(config, property)
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setTitle("Value Get!")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            setDescription("The value of property `$property` is set as `$value`.")
+            description = "The value of property `$property` is set as `$value`."
         }.subscribe()
     }
 

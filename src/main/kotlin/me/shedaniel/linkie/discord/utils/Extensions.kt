@@ -8,6 +8,8 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
+import discord4j.core.spec.MessageCreateSpec
+import discord4j.rest.util.AllowedMentions
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.Field
 import me.shedaniel.linkie.Method
@@ -57,11 +59,9 @@ fun Message.subscribeReactions(vararg unicodes: String) {
     }
 }
 
-inline fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, crossinline createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
+fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, previous: Message? = null, createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
     return if (get() == null) {
-        channel.createEmbedMessage {
-            createSpec(this)
-        }.doOnSuccess { set(it) }
+        channel.sendEmbedMessage(previous, createSpec).doOnSuccess { set(it) }
     } else {
         get()!!.edit {
             it.setEmbed { createSpec(it) }
@@ -110,10 +110,38 @@ inline fun buildReactions(duration: Duration = Duration.ofMinutes(10), builder: 
     return reactionBuilder
 }
 
-fun MessageChannel.createEmbedMessage(spec: EmbedCreateSpec.() -> Unit): Mono<Message> = createEmbed(spec)
+private val noAllowedMentions = AllowedMentions.builder().build()
+
+fun MessageChannel.sendMessage(spec: (MessageCreateSpec) -> Unit): Mono<Message> = createMessage {
+    spec(it)
+    it.setAllowedMentions(noAllowedMentions)
+}
+
+fun MessageChannel.sendMessage(content: String): Mono<Message> = sendMessage { 
+    it.content = content
+}
+
+var MessageCreateSpec.content: String
+    set(value) {
+        setContent(value.substring(0, min(value.length, 2000)))
+    }
+    get() = throw UnsupportedOperationException()
+
+var EmbedCreateSpec.description: String
+    set(value) {
+        setDescription(value.substring(0, min(value.length, 2000)))
+    }
+    get() = throw UnsupportedOperationException()
+
+fun MessageChannel.sendEmbedMessage(message: Message? = null, spec: EmbedCreateSpec.() -> Unit): Mono<Message> = sendMessage {
+    it.setEmbed(spec)
+    message?.let { message ->
+        it.setMessageReference(message.id)
+    }
+}
 
 fun EmbedCreateSpec.setSafeDescription(description: String) {
-    setDescription(description.substring(0, min(description.length, 2000)))
+    this.description = description.substring(0, min(description.length, 2000))
 }
 
 inline fun EmbedCreateSpec.buildSafeDescription(builderAction: StringBuilder.() -> Unit) {

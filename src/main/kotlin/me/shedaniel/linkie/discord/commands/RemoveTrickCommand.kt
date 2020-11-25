@@ -8,8 +8,9 @@ import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.tricks.canManageTrick
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 
@@ -22,11 +23,11 @@ object RemoveTrickCommand : CommandBase {
         val trick = TricksManager[name to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$name`")
         require(event.member.get().canManageTrick(trick)) { "You don't have permission to manage this trick!" }
         TricksManager.removeTrick(trick)
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Removed Trick")
-            setDescription("Successfully removed trick: $name")
+            description = "Successfully removed trick: $name"
         }.subscribe()
     }
 

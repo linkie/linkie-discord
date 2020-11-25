@@ -30,13 +30,13 @@ object ListAllTricksCommand : CommandBase {
             list to ceil(list.size / 5.0).toInt()
         }
         val message = AtomicReference<Message?>()
-        message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe { msg ->
+        message.editOrCreate(channel, event.message) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(tricks.timeToKeep) {
                 if (tricks.get().second > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -46,7 +46,7 @@ object ListAllTricksCommand : CommandBase {
                 if (tricks.get().second > 1) register("➡") {
                     if (page < tricks.get().second - 1) {
                         page++
-                        message.editOrCreate(channel) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(tricks.get().first, page, user, tricks.get().second) }.subscribe()
                     }
                 }
             }.build(msg, user)

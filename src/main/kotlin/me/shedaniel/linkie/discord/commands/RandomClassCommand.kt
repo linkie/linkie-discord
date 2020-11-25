@@ -36,8 +36,8 @@ object RandomClassCommand : CommandBase {
         require(count in 1..20) { "Invalid Amount: ${args[2]}" }
         val message = AtomicReference<Message?>()
         val version = mappingsProvider.version!!
-        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message, channel) }
-        message.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
+        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, namespace.getProvider(version), user, message, channel) }
+        message.editOrCreate(channel, event.message) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(mappingsContainer.timeToKeep) {
                 registerB("❌") {
@@ -45,24 +45,25 @@ object RandomClassCommand : CommandBase {
                     false
                 }
                 register("🔁") {
-                    message.editOrCreate(channel) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
+                    message.editOrCreate(channel, event.message) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
                 }
             }.build(msg, user)
         }
     }
 
     private fun build(
+        previous: Message,
         provider: MappingsProvider,
         user: User,
         message: AtomicReference<Message?>,
         channel: MessageChannel,
     ): MappingsContainer {
-        if (!provider.cached!!) message.editOrCreate(channel) {
+        if (!provider.cached!!) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            setDescription(desc)
+            description = desc
         }.block().also { message.set(it) }
         return provider.mappingsContainer!!.invoke()
     }
@@ -80,7 +81,7 @@ object RandomClassCommand : CommandBase {
                 desc += "\n"
             desc += mappingsClass.mappedName ?: mappingsClass.intermediaryName
         }
-        setDescription(desc.substring(0, min(desc.length, 2000)))
+        description = desc
         setTimestampToNow()
     }
 

@@ -7,7 +7,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
@@ -25,12 +26,12 @@ object FTBDramaCommand : CommandBase {
         val jsonObject = json.parseToJsonElement(jsonText).jsonObject
         val text = jsonObject["drama"]!!.jsonPrimitive.content
         val permLink = "https://ftb-drama.herokuapp.com/${jsonObject["version"]!!.jsonPrimitive.content}/${jsonObject["seed"]!!.jsonPrimitive.content}"
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setTitle("${user.username} starts a drama!")
             setUrl(permLink)
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            setDescription(text)
+            description = text
         }.subscribe()
     }
 

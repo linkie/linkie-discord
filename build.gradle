@@ -20,11 +20,12 @@ repositories {
     maven { url "https://dl.bintray.com/kotlin/kotlinx/" }
     maven { url "https://dl.bintray.com/kotlin/kotlin-dev/" }
     maven { url "https://dl.bintray.com/shedaniel/linkie" }
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
 dependencies {
     depend "me.shedaniel:linkie-core:1.0.39"
-    depend "com.discord4j:discord4j-core:3.1.0", true
+    depend "com.discord4j:discord4j-core:3.1.3-SNAPSHOT", true
     depend "org.graalvm.js:js-scriptengine:20.2.0"
     depend "org.graalvm.js:js:20.2.0"
     depend "io.ktor:ktor-server-core:$ktor_version"

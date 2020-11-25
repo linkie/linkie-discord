@@ -17,7 +17,7 @@ object TrickInfoCommand : CommandBase {
         args.validateUsage(prefix, 1, "$cmd <trick>")
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        channel.createEmbedMessage {
+        channel.sendEmbedMessage(event.message) {
             setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
             setTimestampToNow()
             setTitle("Trick Info")
@@ -27,7 +27,7 @@ object TrickInfoCommand : CommandBase {
             addInlineField("Creation Time", Instant.ofEpochMilli(trick.creation).toString())
             addInlineField("Last Modification Time", Instant.ofEpochMilli(trick.modified).toString())
             addInlineField("Unique Identifier", trick.id.toString())
-            setDescription("```${trick.content}```")
+            description = "```${trick.content}```"
         }.subscribe()
     }
 

@@ -12,9 +12,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.AllowedMentions
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.gateway
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.getOrNull
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
+import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.discord.validatePermissions
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyArray
@@ -118,11 +116,11 @@ object ContextExtensions {
                 validateArgs(1, 2)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(evalContext, channel.createEmbed {
-                        if (size == 2) it.setTitle(first().getAsString())
-                        it.setDescription(last().getAsString().let { it.substring(0, min(1999, it.length)) })
-                        it.setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                        it.setTimestampToNow()
+                    messageObj(evalContext, channel.sendEmbedMessage {
+                        if (size == 2) setTitle(first().getAsString())
+                        description = last().getAsString()
+                        setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
+                        setTimestampToNow()
                     }.block()!!, user, false)
                 } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
@@ -130,10 +128,7 @@ object ContextExtensions {
                 validateArgs(1)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(evalContext, channel.createMessage {
-                        it.setAllowedMentions(AllowedMentions.builder().build())
-                        it.setContent(first().getAsString().let { it.substring(0, min(1999, it.length)) })
-                    }.block()!!, user, false)
+                    messageObj(evalContext, channel.sendMessage(first().getAsString().let { it.substring(0, min(1999, it.length)) }).block()!!, user, false)
                 } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
             this["id"] = channel.id.asString()
@@ -173,7 +168,7 @@ object ContextExtensions {
                     messageObj(evalContext, message.edit {
                         it.setEmbed {
                             if (size == 2) it.setTitle(first().getAsString())
-                            it.setDescription(last().getAsString().let { it.substring(0, min(1999, it.length)) })
+                            it.description = last().getAsString().let { it.substring(0, min(1999, it.length)) }
                             user?.apply {
                                 it.setFooter("Requested by $discriminatedName", avatarUrl)
                             }

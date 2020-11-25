@@ -50,14 +50,14 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         val version = mappingsProvider.version!!
         var page = 0
         val maxPage = AtomicInteger(-1)
-        val fields = ValueKeeper(Duration.ofMinutes(2)) { build(searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
-        message.editOrCreate(channel) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe { msg ->
+        val fields = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
+        message.editOrCreate(channel, event.message) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(fields.timeToKeep) {
                 if (maxPage.get() > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -67,7 +67,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
                 if (maxPage.get() > 1) register("➡") {
                     if (page < maxPage.get() - 1) {
                         page++
-                        message.editOrCreate(channel) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, fields.get().second, fields.get().first, page, user, maxPage.get()) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -86,6 +86,7 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
     private data class FieldWrapper(val field: Field, val parent: Class, val cm: FindFieldMethod)
 
     private fun build(
+        previous: Message,
         searchKey: String,
         provider: MappingsProvider,
         user: User,
@@ -95,13 +96,13 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): Pair<MappingsContainer, List<FieldWrapper>> {
-        if (!provider.cached!! || hasWildcard) message.editOrCreate(channel) {
+        if (!provider.cached!! || hasWildcard) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up fields for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            setDescription(desc)
+            description = desc
         }.block().also { message.set(it) }
         return getCatching(message, channel, user) {
             val mappingsContainer = provider.mappingsContainer!!.invoke()

@@ -12,7 +12,7 @@ import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.discord.utils.createEmbedMessage
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.editOrCreate
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -34,7 +34,7 @@ open class SubCommandHolder : CommandBase {
 
         when (val subcommand = args[0].toLowerCase(Locale.ROOT)) {
             "help" -> {
-                channel.createEmbedMessage {
+                channel.sendEmbedMessage(event.message) {
                     setTitle("Help for $cmd")
                     subcommands.forEach { (key, subcommand) ->
                         addInlineField(subcommand.name, "Command: $prefix$cmd $key [...]")
@@ -87,7 +87,7 @@ interface SubCommandReactor {
     fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
-inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> Unit) {
+inline fun runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> Unit) {
     try {
         run()
     } catch (t: Throwable) {
@@ -100,7 +100,7 @@ inline fun CommandBase.runCatching(message: AtomicReference<Message?>, channel: 
     }
 }
 
-inline fun <T> CommandBase.getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> T): T {
+inline fun <T> getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> T): T {
     try {
         return run()
     } catch (t: Throwable) {
