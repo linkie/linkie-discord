@@ -13,3 +13,10 @@ Do `!about` in any server Linkie is in.
 
 ### Hosting your own copy of linkie
 You will need a token to your own discord bot and edit `LinkieBot.kt` to your liking, you will want to remove the call to `registerWelcomeMessages`.
+
+### Mappings Support
+- MCP (1.8+)
+- Mojang (1.14.4+)
+- Plasma (Beta 1.7.3)
+- Spigot (1.8.9)
+- Yarn (Infdev, 1.8.9, 1.13.2, 1.14+)

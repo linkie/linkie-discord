@@ -75,23 +75,23 @@ fun main() {
 }
 
 fun registerCommands(commands: CommandHandler) {
-    commands.registerCommand(QueryClassMethod(null), "c", "class")
+    commands.registerCommand(QueryClassCommand(null), "c", "class")
     commands.registerCommand(QueryMethodCommand(null), "m", "method")
     commands.registerCommand(QueryFieldCommand(null), "f", "field")
 
-    commands.registerCommand(QueryClassMethod(Namespaces["yarn"]), "yc", "yarnc")
+    commands.registerCommand(QueryClassCommand(Namespaces["yarn"]), "yc", "yarnc")
     commands.registerCommand(QueryMethodCommand(Namespaces["yarn"]), "ym", "yarnm")
     commands.registerCommand(QueryFieldCommand(Namespaces["yarn"]), "yf", "yarnf")
 
-    commands.registerCommand(QueryClassMethod(Namespaces["mcp"]), "mcpc")
+    commands.registerCommand(QueryClassCommand(Namespaces["mcp"]), "mcpc")
     commands.registerCommand(QueryMethodCommand(Namespaces["mcp"]), "mcpm")
     commands.registerCommand(QueryFieldCommand(Namespaces["mcp"]), "mcpf")
 
-    commands.registerCommand(QueryClassMethod(Namespaces["mojang"]), "mmc", "mojmapc")
+    commands.registerCommand(QueryClassCommand(Namespaces["mojang"]), "mmc", "mojmapc")
     commands.registerCommand(QueryMethodCommand(Namespaces["mojang"]), "mmm", "mojmapm")
     commands.registerCommand(QueryFieldCommand(Namespaces["mojang"]), "mmf", "mojmapm")
 
-    commands.registerCommand(QueryClassMethod(Namespaces["plasma"]), "plasmac")
+    commands.registerCommand(QueryClassCommand(Namespaces["plasma"]), "plasmac")
     commands.registerCommand(QueryMethodCommand(Namespaces["plasma"]), "plasmam")
     commands.registerCommand(QueryFieldCommand(Namespaces["plasma"]), "plasmaf")
 

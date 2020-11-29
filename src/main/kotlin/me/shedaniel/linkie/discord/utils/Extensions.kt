@@ -9,6 +9,10 @@ import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.MessageCreateSpec
+import discord4j.discordjson.json.AllowedMentionsData
+import discord4j.discordjson.json.EmbedData
+import discord4j.discordjson.json.MessageEditRequest
+import discord4j.discordjson.possible.Possible
 import discord4j.rest.util.AllowedMentions
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.Field
@@ -59,12 +63,79 @@ fun Message.subscribeReactions(vararg unicodes: String) {
     }
 }
 
+fun Message.editExtended(spec: (MessageEditAllowedSpec) -> Unit): Mono<Message> {
+    return Mono.defer {
+        val mutatedSpec = MessageEditAllowedSpec()
+        spec(mutatedSpec)
+        gateway.restClient.channelService.editMessage(channelId.asLong(), id.asLong(), mutatedSpec.asRequest())
+    }.map { data -> Message(gateway, data) }
+}
+
+data class MessageEditAllowedSpec(
+    private var _content: Possible<Optional<String>> = Possible.absent(),
+    private var _embed: Possible<Optional<EmbedData>> = Possible.absent(),
+    private var _allowedMentions: Possible<Optional<AllowedMentions>> = Possible.absent(),
+    private var _flags: Possible<Int> = Possible.absent(),
+) {
+    fun asRequest(): MessageEditRequest = MessageEditRequest.builder()
+        .apply {
+            if (!_allowedMentions.isAbsent) {
+                _allowedMentions.get().getOrNull()?.toData()?.also(this::allowedMentions)
+            }
+        }
+        .flags(_flags)
+        .embed(_embed)
+        .content(_content)
+        .build()
+
+    var content: String?
+        get() = _content.getOrNull()?.getOrNull()
+        set(value) {
+            _content = Possible.of(Optional.ofNullable(value))
+        }
+
+    var embed: EmbedData?
+        get() = _embed.getOrNull()?.getOrNull()
+        set(value) {
+            _embed = Possible.of(Optional.ofNullable(value))
+        }
+    
+    fun setEmbed(spec: EmbedCreateSpec.() -> Unit) {
+        val embedCreateSpec = EmbedCreateSpec()
+        spec(embedCreateSpec)
+        embed = embedCreateSpec.asRequest()
+    }
+
+    var allowedMentions: AllowedMentions?
+        get() = _allowedMentions.getOrNull()?.getOrNull()
+        set(value) {
+            _allowedMentions = Possible.of(Optional.ofNullable(value))
+        }
+
+    var flags: Int?
+        get() = _flags.getOrNull()
+        set(value) {
+            _flags = value?.let { Possible.of(it) } ?: Possible.absent()
+        }
+}
+
+fun <T> Possible<T>.getOrNull(): T? = if (isAbsent) null else get()
+
+fun Message.sendEdit(spec: (MessageEditAllowedSpec) -> Unit): Mono<Message> = editExtended {
+    spec(it)
+    it.allowedMentions = noAllowedMentions
+}
+
+fun Message.sendEditEmbed(spec: EmbedCreateSpec.() -> Unit): Mono<Message> = sendEdit {
+    it.setEmbed(spec)
+}
+
 fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, previous: Message? = null, createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
     return if (get() == null) {
         channel.sendEmbedMessage(previous, createSpec).doOnSuccess { set(it) }
     } else {
-        get()!!.edit {
-            it.setEmbed { createSpec(it) }
+        get()!!.sendEdit {
+            it.setEmbed { createSpec(this) }
         }.doOnSuccess { set(it) }
     }
 }
@@ -110,14 +181,14 @@ inline fun buildReactions(duration: Duration = Duration.ofMinutes(10), builder: 
     return reactionBuilder
 }
 
-private val noAllowedMentions = AllowedMentions.builder().build()
+private val noAllowedMentions = AllowedMentions.suppressAll()
 
 fun MessageChannel.sendMessage(spec: (MessageCreateSpec) -> Unit): Mono<Message> = createMessage {
     spec(it)
     it.setAllowedMentions(noAllowedMentions)
 }
 
-fun MessageChannel.sendMessage(content: String): Mono<Message> = sendMessage { 
+fun MessageChannel.sendMessage(content: String): Mono<Message> = sendMessage {
     it.content = content
 }
 

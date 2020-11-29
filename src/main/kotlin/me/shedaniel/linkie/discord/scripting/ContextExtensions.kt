@@ -9,7 +9,6 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.rest.util.AllowedMentions
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.*
@@ -156,8 +155,8 @@ object ContextExtensions {
                 validateArgs(1)
                 if (!booleans[1]) {
                     booleans[1] = true
-                    messageObj(evalContext, message.edit {
-                        it.setContent(first().getAsString().let { it.substring(0, min(1999, it.length)) })
+                    messageObj(evalContext, message.sendEdit {
+                        it.content = first().getAsString().let { it.substring(0, min(1999, it.length)) }
                     }.block()!!, user, false)
                 } else null
             }
@@ -165,15 +164,13 @@ object ContextExtensions {
                 validateArgs(1, 2)
                 if (!booleans[1]) {
                     booleans[1] = true
-                    messageObj(evalContext, message.edit {
-                        it.setEmbed {
-                            if (size == 2) it.setTitle(first().getAsString())
-                            it.description = last().getAsString().let { it.substring(0, min(1999, it.length)) }
-                            user?.apply {
-                                it.setFooter("Requested by $discriminatedName", avatarUrl)
-                            }
-                            it.setTimestampToNow()
+                    messageObj(evalContext, message.sendEditEmbed {
+                        if (size == 2) setTitle(first().getAsString())
+                        description = last().getAsString().let { it.substring(0, min(1999, it.length)) }
+                        user?.apply {
+                            setFooter("Requested by $discriminatedName", avatarUrl)
                         }
+                        setTimestampToNow()
                     }.block()!!, user, false)
                 } else null
             }

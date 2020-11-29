@@ -24,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    depend "me.shedaniel:linkie-core:1.0.39"
+    depend "me.shedaniel:linkie-core:1.0.41"
     depend "com.discord4j:discord4j-core:3.1.3-SNAPSHOT", true
     depend "org.graalvm.js:js-scriptengine:20.2.0"
     depend "org.graalvm.js:js:20.2.0"
