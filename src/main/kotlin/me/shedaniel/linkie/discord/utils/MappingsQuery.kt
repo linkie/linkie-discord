@@ -287,7 +287,7 @@ object MappingsQuery {
         }
 
         if (methods.entries.isEmpty()) {
-            if (!searchKey.onlyClass().isValidIdentifier()) {
+            if (searchKey.onlyClass().firstOrNull()?.isDigit() == true && !searchKey.onlyClass().isValidIdentifier()) {
                 throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
             } else if (searchKey.startsWith("class_")) {
                 throw NullPointerException("No results found! `$searchKey` looks like a class!")

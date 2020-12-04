@@ -19,7 +19,6 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
-import kotlin.properties.Delegates
 
 class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
@@ -106,24 +105,44 @@ class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
                 searchKey = searchKey,
             )
             val result: MutableList<ResultHolder<*>> = mutableListOf()
-            var classes by Delegates.notNull<ClassResultSequence>()
-            var methods by Delegates.notNull<MethodResultSequence>()
-            var fields by Delegates.notNull<FieldResultSequence>()
+            var classes: ClassResultSequence? = null
+            var methods: MethodResultSequence? = null
+            var fields: FieldResultSequence? = null
             runBlocking {
                 launch {
-                    classes = MappingsQuery.queryClasses(context).value
+                    try {
+                        classes = MappingsQuery.queryClasses(context).value
+                    } catch (e: NullPointerException) {
+
+                    }
                 }
                 launch {
-                    methods = MappingsQuery.queryMethods(context).value
+                    try {
+                        methods = MappingsQuery.queryMethods(context).value
+                    } catch (e: NullPointerException) {
+
+                    }
                 }
                 launch {
-                    fields = MappingsQuery.queryFields(context).value
+                    try {
+                        fields = MappingsQuery.queryFields(context).value
+                    } catch (e: NullPointerException) {
+
+                    }
                 }
             }
-            result.addAll(classes)
-            result.addAll(methods)
-            result.addAll(fields)
+            classes?.also(result::addAll)
+            methods?.also(result::addAll)
+            fields?.also(result::addAll)
             result.sortByDescending { it.score }
+            
+            if (result.isEmpty()) {
+                if (searchKey.onlyClass().firstOrNull()?.isDigit() == true && !searchKey.onlyClass().isValidIdentifier()) {
+                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                }
+                throw NullPointerException("No results found!")
+            }
+            
             maxPage.set(ceil(result.size / 5.0).toInt())
             return@getCatching QueryResultCompound(mappingsContainer, result)
         }
