@@ -1,5 +1,6 @@
 package me.shedaniel.linkie.discord.utils
 
+import com.google.common.collect.Multimap
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
@@ -23,6 +24,7 @@ import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
@@ -239,6 +241,20 @@ fun String.isValidIdentifier(): Boolean {
         }
     }
     return isNotEmpty()
+}
+
+inline fun <T, K, M : Multimap<in K, in T>> Sequence<T>.groupByTo(destination: M, keySelector: (T) -> K): M {
+    for (element in this) {
+        destination.put(keySelector(element), element)
+    }
+    return destination
+}
+
+inline fun <T, K, V, M : Multimap<in K, in V>> Sequence<T>.groupByTo(destination: M, keySelector: (T) -> K, valueTransform: (T) -> V): M {
+    for (element in this) {
+        destination.put(keySelector(element), valueTransform(element))
+    }
+    return destination
 }
 
 class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {

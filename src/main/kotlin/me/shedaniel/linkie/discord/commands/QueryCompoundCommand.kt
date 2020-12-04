@@ -5,18 +5,23 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.utils.MappingsQuery.get
 import me.shedaniel.linkie.namespaces.YarnNamespace
-import me.shedaniel.linkie.utils.*
+import me.shedaniel.linkie.utils.dropAndTake
+import me.shedaniel.linkie.utils.onlyClass
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
+import kotlin.properties.Delegates
 
-class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
+class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
     override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
@@ -85,41 +90,64 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         maxPage: AtomicInteger,
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
-    ): QueryResultCompound<List<Pair<Class, Method>>> {
+    ): QueryResultCompound<List<ResultHolder<*>>> {
         if (!provider.cached!! || hasWildcard) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            var desc = "Searching up methods for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
+            var desc = "Searching up entries for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
         }.block()
         return getCatching(message, channel, user) {
-            val result = MappingsQuery.queryMethods(QueryContext(
-                provider = provider,
+            val mappingsContainer = provider.get()
+            val context = QueryContext(
+                provider = MappingsProvider.of(provider.namespace, mappingsContainer.version, mappingsContainer),
                 searchKey = searchKey,
-            )).map { it.map { it.value }.toList() }
-            maxPage.set(ceil(result.value.size / 5.0).toInt())
-            return@getCatching result
+            )
+            val result: MutableList<ResultHolder<*>> = mutableListOf()
+            var classes by Delegates.notNull<ClassResultSequence>()
+            var methods by Delegates.notNull<MethodResultSequence>()
+            var fields by Delegates.notNull<FieldResultSequence>()
+            runBlocking {
+                launch {
+                    classes = MappingsQuery.queryClasses(context).value
+                }
+                launch {
+                    methods = MappingsQuery.queryMethods(context).value
+                }
+                launch {
+                    fields = MappingsQuery.queryFields(context).value
+                }
+            }
+            result.addAll(classes)
+            result.addAll(methods)
+            result.addAll(fields)
+            result.sortByDescending { it.score }
+            maxPage.set(ceil(result.size / 5.0).toInt())
+            return@getCatching QueryResultCompound(mappingsContainer, result)
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedMethods: List<Pair<Class, Method>>, mappings: MappingsContainer, page: Int, author: User, maxPage: Int) {
+    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedResults: List<ResultHolder<*>>, mappings: MappingsContainer, page: Int, author: User, maxPage: Int) {
         MappingsQuery.buildHeader(this, mappings, page, author, maxPage)
+        val metadata = mappings.toMetadata()
         buildSafeDescription {
-            sortedMethods.dropAndTake(3 * page, 3).forEach { (parent, method) ->
+            sortedResults.dropAndTake(3 * page, 3).forEach { (value, score) ->
                 if (isNotEmpty())
                     appendLine().appendLine()
-                MappingsQuery.buildMethod(this, namespace, method, parent, mappings)
+                when {
+                    value is Class -> {
+                        MappingsQuery.buildClass(this, namespace, value, metadata)
+                    }
+                    value is Pair<*, *> && value.second is Field -> {
+                        MappingsQuery.buildField(this, namespace, value.second as Field, value.first as Class, mappings)
+                    }
+                    value is Pair<*, *> && value.second is Method -> {
+                        MappingsQuery.buildMethod(this, namespace, value.second as Method, value.first as Class, mappings)
+                    }
+                }
             }
         }
     }
-
-    override fun getName(): String =
-        if (namespace != null) namespace.id.capitalize() + " Method Query"
-        else "Method Query"
-
-    override fun getDescription(): String =
-        if (namespace != null) "Queries ${namespace.id} method entries."
-        else "Queries method entries."
 }

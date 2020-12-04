@@ -51,13 +51,13 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
         val maxPage = AtomicInteger(-1)
         val searchKey = args.first().replace('.', '/')
         val classes = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, searchKey, namespace.getProvider(version), user, message, channel, maxPage) }
-        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe { msg ->
+        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().value, classes.get().mappings, page, user, maxPage.get()) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(classes.timeToKeep) {
                 if (maxPage.get() > 1) register("⬅") {
                     if (page > 0) {
                         page--
-                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().value, classes.get().mappings, page, user, maxPage.get()) }.subscribe()
                     }
                 }
                 registerB("❌") {
@@ -67,7 +67,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
                 if (maxPage.get() > 1) register("➡") {
                     if (page < maxPage.get() - 1) {
                         page++
-                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().second, classes.get().first, page, user, maxPage.get()) }.subscribe()
+                        message.editOrCreate(channel, event.message) { buildMessage(namespace, classes.get().value, classes.get().mappings, page, user, maxPage.get()) }.subscribe()
                     }
                 }
             }.build(msg, user)
@@ -82,8 +82,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
         message: AtomicReference<Message?>,
         channel: MessageChannel,
         maxPage: AtomicInteger,
-    ): Pair<MappingsContainer, List<Class>> {
-        val hasWildcard = searchKey == "*"
+    ): QueryResult<List<Class>> {
         if (!provider.cached!!) message.editOrCreate(channel, previous) {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -93,66 +92,22 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
             }
         }.block()
         return getCatching(message, channel, user) {
-            val mappingsContainer = provider.mappingsContainer!!.invoke()
-            val classes = mutableMapOf<Class, MatchResult>()
-
-            mappingsContainer.classes.forEach { clazz ->
-                if (hasWildcard) {
-                    classes[clazz] = MatchResult(true, null, null)
-                } else if (!classes.contains(clazz)) {
-                    if (clazz.intermediaryName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                        if (clazz.mappedName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                            if (clazz.obfName.client.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                                if (clazz.obfName.server.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                                    clazz.obfName.merged.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            val sortedClasses = when {
-                hasWildcard -> classes.entries.sortedBy { it.key.intermediaryName }
-                else -> classes.entries.sortedByDescending { it.value.selfTerm?.similarityOnNull(it.value.matchStr) }
-            }.map { it.key }
-            if (sortedClasses.isEmpty()) {
-                if (!searchKey.onlyClass().isValidIdentifier()) {
-                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
-                } else if (searchKey.startsWith("func_") || searchKey.startsWith("method_")) {
-                    throw NullPointerException("No results found! `$searchKey` looks like a method!")
-                } else if (searchKey.startsWith("field_")) {
-                    throw NullPointerException("No results found! `$searchKey` looks like a field!")
-                } else if ((!searchKey.startsWith("class_") && searchKey.firstOrNull()?.isLowerCase() == true) || searchKey.firstOrNull()?.isDigit() == true) {
-                    throw NullPointerException("No results found! `$searchKey` doesn't look like a class!")
-                }
-                throw NullPointerException("No results found!")
-            }
-
-            maxPage.set(ceil(sortedClasses.size / 5.0).toInt())
-            return@getCatching mappingsContainer to sortedClasses
+            val result = MappingsQuery.queryClasses(QueryContext(
+                provider = provider,
+                searchKey = searchKey,
+            )).decompound().map { it.map { it.value }.toList() }
+            maxPage.set(ceil(result.value.size / 5.0).toInt())
+            return@getCatching result
         }
     }
 
-    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedClasses: List<Class>, mappingsContainer: MappingsContainer, page: Int, author: User, maxPage: Int) {
-        if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
-        setTimestampToNow()
-        if (maxPage > 1) setTitle("List of ${mappingsContainer.name} Mappings (Page ${page + 1}/$maxPage)")
-        else setTitle("List of ${mappingsContainer.name} Mappings")
+    private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedClasses: List<Class>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
+        MappingsQuery.buildHeader(this, mappings, page, author, maxPage)
         buildSafeDescription {
             sortedClasses.dropAndTake(5 * page, 5).forEach { classEntry ->
                 if (isNotEmpty())
                     appendLine().appendLine()
-                appendLine("**MC ${mappingsContainer.version}: __${classEntry.optimumName}__**")
-                append("__Name__: ")
-                append(classEntry.obfName.buildString(nonEmptySuffix = " => "))
-                append("`${classEntry.intermediaryName}`")
-                append(classEntry.mappedName.mapIfNotNullOrNotEquals(classEntry.intermediaryName) { " => `$it`" } ?: "")
-                if (namespace.supportsAW()) {
-                    appendLine().append("__AW__: `accessible class ${classEntry.optimumName}`")
-                } else if (namespace.supportsAT()) {
-                    appendLine().append("__AT__: `public ${classEntry.intermediaryName.replace('/', '.')}`")
-                }
+                MappingsQuery.buildClass(this, namespace, classEntry, mappings)
             }
         }
     }
