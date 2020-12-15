@@ -1,52 +1,43 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.discord.CommandBase
+import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.config.GuildConfig
 import me.shedaniel.linkie.discord.utils.*
-import me.shedaniel.linkie.discord.validateAdmin
-import me.shedaniel.linkie.discord.validateEmpty
-import me.shedaniel.linkie.discord.validateInGuild
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 object ValueListCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
         args.validateEmpty(prefix, cmd)
         val config = ConfigManager[event.guildId.get().asLong()]
         val properties = ConfigManager.getProperties().toMutableList()
-        var page = 0
         val maxPage = ceil(properties.size / 5.0).toInt()
-        val message = AtomicReference<Message?>()
-        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe { msg ->
-            msg.tryRemoveAllReactions().block()
-            buildReactions(Duration.ofMinutes(2)) {
-                if (maxPage > 1) register("⬅") {
-                    if (page > 0) {
-                        page--
-                        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
-                    }
-                }
-                registerB("❌") {
-                    msg.delete().subscribe()
-                    false
-                }
-                if (maxPage > 1) register("➡") {
-                    if (page < maxPage - 1) {
-                        page++
-                        message.editOrCreate(channel, event.message) { buildMessage(config, properties, user, page, maxPage) }.subscribe()
-                    }
-                }
-            }.build(msg, user)
+        message.sendPages(0, maxPage) { page ->
+            buildMessage(config, properties, user, page, maxPage)
         }
     }
 

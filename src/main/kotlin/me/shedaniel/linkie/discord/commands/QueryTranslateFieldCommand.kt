@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
@@ -19,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
-    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         source.validateNamespace()
         source.validateGuild(event)
         target.validateNamespace()
@@ -51,58 +67,36 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         val searchTerm = args.first().replace('.', '/').onlyClass()
         val sourceVersion = sourceMappingsProvider.version!!
         val targetVersion = targetMappingsProvider.version!!
-        val message = AtomicReference<Message?>()
-        var page = 0
         val maxPage = AtomicInteger(-1)
-        val remappedFields = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, channel, maxPage) }
-        message.editOrCreate(channel, event.message) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe { msg ->
-            msg.tryRemoveAllReactions().block()
-            buildReactions(remappedFields.timeToKeep) {
-                if (maxPage.get() > 1) register("⬅") {
-                    if (page > 0) {
-                        page--
-                        message.editOrCreate(channel, event.message) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
-                    }
-                }
-                registerB("❌") {
-                    msg.delete().subscribe()
-                    false
-                }
-                if (maxPage.get() > 1) register("➡") {
-                    if (page < maxPage.get() - 1) {
-                        page++
-                        message.editOrCreate(channel, event.message) { buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get()) }.subscribe()
-                    }
-                }
-            }.build(msg, user)
+        val remappedFields = ValueKeeper(Duration.ofMinutes(2)) { build(searchTerm, source.getProvider(sourceVersion), target.getProvider(targetVersion), user, message, maxPage) }
+        message.sendPages(0, maxPage.get()) { page ->
+            buildMessage(remappedFields.get(), sourceVersion, page, user, maxPage.get())
         }
     }
 
     private fun build(
-        previous: Message,
         searchTerm: String,
         sourceProvider: MappingsProvider,
         targetProvider: MappingsProvider,
         user: User,
-        message: AtomicReference<Message?>,
-        channel: MessageChannel,
+        message: MessageCreator,
         maxPage: AtomicInteger,
     ): MutableMap<FieldCompound, String> {
-        if (!sourceProvider.cached!!) message.editOrCreate(channel, previous) {
+        if (!sourceProvider.cached!!) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up fields for **${sourceProvider.namespace.id} ${sourceProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!sourceProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
         }.block()
-        else if (!targetProvider.cached!!) message.editOrCreate(channel, previous) {
+        else if (!targetProvider.cached!!) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up fields for **${targetProvider.namespace.id} ${targetProvider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!targetProvider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
         }.block()
-        return getCatching(message, channel, user) {
+        return message.getCatching(user) {
             val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
             val targetMappings = targetProvider.mappingsContainer!!.invoke()
             val remappedFields = mutableMapOf<FieldCompound, String>()

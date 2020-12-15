@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.User
@@ -6,6 +22,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.CommandCategory
+import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
@@ -19,7 +36,7 @@ import me.shedaniel.linkie.discord.validateUsage
 import java.util.*
 
 object AddTrickCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
         args.validateUsage(prefix, 2..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
         val name = args.first()
@@ -79,7 +96,7 @@ object AddTrickCommand : CommandBase {
                 flags = flags
             )
         )
-        channel.sendEmbedMessage(event.message) {
+        message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Added Trick")

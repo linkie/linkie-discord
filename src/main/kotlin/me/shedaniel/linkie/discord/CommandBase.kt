@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord
 
 import discord4j.common.util.Snowflake
@@ -6,19 +22,67 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
-import me.shedaniel.linkie.discord.utils.editOrCreate
+import me.shedaniel.linkie.discord.utils.*
+import reactor.core.publisher.Mono
+import java.time.Duration
 import java.util.*
-import java.util.concurrent.atomic.AtomicReference
+
+typealias EmbedCreator = EmbedCreateSpec.() -> Unit
+
+fun embedCreator(creator: EmbedCreator) = creator
+
+fun MessageCreator.sendPages(
+    initialPage: Int,
+    maxPages: Int,
+    creator: EmbedCreateSpec.(Int) -> Unit,
+) = sendPages(initialPage, maxPages, previous.author.get().id, creator)
+
+fun MessageCreator.sendPages(
+    initialPage: Int,
+    maxPages: Int,
+    user: User,
+    creator: EmbedCreateSpec.(Int) -> Unit,
+) = sendPages(initialPage, maxPages, user.id, creator)
+
+fun MessageCreator.sendPages(
+    initialPage: Int,
+    maxPages: Int,
+    userId: Snowflake,
+    creator: EmbedCreateSpec.(Int) -> Unit,
+) {
+    var page = initialPage
+    val builder = embedCreator { creator(this, page) }
+    sendEmbed(builder).subscribe { msg ->
+        msg.tryRemoveAllReactions().block()
+        buildReactions(Duration.ofMinutes(2)) {
+            if (maxPages > 1) register("⬅") {
+                if (page > 0) {
+                    page--
+                    sendEmbed(builder).subscribe()
+                }
+            }
+            registerB("❌") {
+                msg.delete().subscribe()
+                false
+            }
+            if (maxPages > 1) register("➡") {
+                if (page < maxPages - 1) {
+                    page++
+                    sendEmbed(builder).subscribe()
+                }
+            }
+        }.build(msg) { it == userId }
+    }
+}
 
 interface CommandBase {
-    fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 
     fun getName(): String? = null
     fun getDescription(): String? = null
@@ -27,9 +91,42 @@ interface CommandBase {
     fun postRegister() {}
 }
 
+fun MessageChannel.deferMessage(previous: Message) = MessageCreator(
+    this,
+    previous,
+    null
+)
+
+data class MessageCreator(
+    val channel: MessageChannel,
+    var previous: Message,
+    var message: Message?,
+) {
+    fun send(content: String): Mono<Message> {
+        return if (message == null) {
+            channel.sendMessage {
+                it.content = content
+                it.setMessageReference(previous.id)
+            }
+        } else {
+            message!!.sendEdit {
+                it.content = content
+            }
+        }.doOnSuccess { message = it }
+    }
+
+    fun sendEmbed(content: EmbedCreator): Mono<Message> {
+        return if (message == null) {
+            channel.sendEmbedMessage(previous, content)
+        } else {
+            message!!.sendEditEmbed(content)
+        }.doOnSuccess { message = it }
+    }
+}
+
 open class SubCommandHolder : CommandBase {
     private val subcommands = mutableMapOf<String, SubCommandBase>()
-    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd help")
 
         when (val subcommand = args[0].toLowerCase(Locale.ROOT)) {
@@ -42,7 +139,7 @@ open class SubCommandHolder : CommandBase {
                 }.subscribe()
             }
             in subcommands -> {
-                subcommands[subcommand]!!.execute(event, prefix, user, "$cmd $subcommand", args.drop(1).toMutableList(), channel)
+                subcommands[subcommand]!!.execute(event, message, prefix, user, "$cmd $subcommand", args.drop(1).toMutableList(), channel)
             }
             else -> {
                 throw InvalidUsageException("$prefix help")
@@ -58,23 +155,23 @@ open class SubCommandHolder : CommandBase {
                 val reactor = field.get(this) as SubCommandReactor
                 subcommands[name] = object : SubCommandBase {
                     override val name: String = name
-                    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) =
-                        reactor.execute(event, prefix, user, cmd, args, channel)
+                    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) =
+                        reactor.execute(event, message, prefix, user, cmd, args, channel)
 
                 }
             }
         }
     }
 
-    fun subCmd(reactor: (event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) -> Unit): SubCommandReactor = object : SubCommandReactor {
-        override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-            reactor(event, prefix, user, cmd, args, channel)
+    fun subCmd(reactor: (event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) -> Unit): SubCommandReactor = object : SubCommandReactor {
+        override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+            reactor(event, message, prefix, user, cmd, args, channel)
         }
     }
 
     fun subCmd(reactor: CommandBase): SubCommandReactor = object : SubCommandReactor {
-        override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-            reactor.execute(event, prefix, user, cmd, args, channel)
+        override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+            reactor.execute(event, message, prefix, user, cmd, args, channel)
         }
     }
 }
@@ -84,28 +181,15 @@ interface SubCommandBase : SubCommandReactor {
 }
 
 interface SubCommandReactor {
-    fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
-inline fun runCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> Unit) {
-    try {
-        run()
-    } catch (t: Throwable) {
-        try {
-            if (t !is SuppressedException) message.editOrCreate(channel) { generateThrowable(t, user) }.subscribe()
-        } catch (throwable2: Throwable) {
-            throwable2.addSuppressed(t)
-            throw throwable2
-        }
-    }
-}
-
-inline fun <T> getCatching(message: AtomicReference<Message?>, channel: MessageChannel, user: User, run: () -> T): T {
+inline fun <T> MessageCreator.getCatching(user: User, run: () -> T): T {
     try {
         return run()
     } catch (t: Throwable) {
         try {
-            if (t !is SuppressedException) message.editOrCreate(channel) { generateThrowable(t, user) }.subscribe()
+            if (t !is SuppressedException) sendEmbed { generateThrowable(t, user) }.subscribe()
             throw SuppressedException()
         } catch (throwable2: Throwable) {
             throwable2.addSuppressed(t)

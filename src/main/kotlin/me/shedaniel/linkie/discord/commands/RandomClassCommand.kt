@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.Message
@@ -13,10 +29,9 @@ import me.shedaniel.linkie.discord.utils.*
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.math.min
 
 object RandomClassCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateUsage(prefix, 3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
@@ -34,10 +49,9 @@ object RandomClassCommand : CommandBase {
         }
         val count = args[2].toIntOrNull()
         require(count in 1..20) { "Invalid Amount: ${args[2]}" }
-        val message = AtomicReference<Message?>()
         val version = mappingsProvider.version!!
-        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(event.message, namespace.getProvider(version), user, message, channel) }
-        message.editOrCreate(channel, event.message) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
+        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message) }
+        message.sendEmbed { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(mappingsContainer.timeToKeep) {
                 registerB("❌") {
@@ -45,26 +59,24 @@ object RandomClassCommand : CommandBase {
                     false
                 }
                 register("🔁") {
-                    message.editOrCreate(channel, event.message) { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
+                    message.sendEmbed { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
                 }
             }.build(msg, user)
         }
     }
 
     private fun build(
-        previous: Message,
         provider: MappingsProvider,
         user: User,
-        message: AtomicReference<Message?>,
-        channel: MessageChannel,
+        message: MessageCreator,
     ): MappingsContainer {
-        if (!provider.cached!!) message.editOrCreate(channel, previous) {
+        if (!provider.cached!!) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
-        }.block().also { message.set(it) }
+        }.block()
         return provider.mappingsContainer!!.invoke()
     }
 

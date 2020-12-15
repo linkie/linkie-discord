@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2019, 2020 shedaniel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.shedaniel.linkie.discord
 
 import discord4j.core.`object`.entity.User
@@ -25,7 +41,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                     if (split.isNotEmpty()) {
                         val cmd = split[0].toLowerCase()
                         val args = split.drop(1).toMutableList()
-                        commandAcceptor.execute(event, prefix, user, cmd, args, channel)
+                        commandAcceptor.execute(event, channel.deferMessage(event.message), prefix, user, cmd, args, channel)
                     }
                 }
             }.exceptionOrNull()?.also { throwable ->
@@ -60,7 +76,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
 }
 
 interface CommandAcceptor {
-    fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
     fun getPrefix(event: MessageCreateEvent): String?
 }
 
