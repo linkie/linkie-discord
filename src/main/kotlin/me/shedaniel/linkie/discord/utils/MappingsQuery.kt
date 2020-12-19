@@ -62,9 +62,9 @@ object MappingsQuery {
             } else if (!classes.contains(clazz)) {
                 if (clazz.intermediaryName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
                     if (clazz.mappedName.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                        if (clazz.obfName.client.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
+                        if (clazz.obfName.merged.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
                             if (clazz.obfName.server.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }?.matched != true) {
-                                clazz.obfName.merged.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }
+                                clazz.obfName.client.containsOrMatchWildcard(searchKey).takeIf { it.matched }?.also { classes[clazz] = it }
                             }
                         }
                     }
@@ -106,9 +106,9 @@ object MappingsQuery {
                     when {
                         clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes[clazz] = QueryDefinition.INTERMEDIARY
                         clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.MAPPED
+                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_MERGED
                         clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_CLIENT
                         clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_SERVER
-                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_MERGED
                     }
                 }
             }
@@ -130,9 +130,9 @@ object MappingsQuery {
                         when {
                             field.intermediaryName.contains(fieldKey, true) -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.INTERMEDIARY
                             field.mappedName?.contains(fieldKey, true) == true -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.MAPPED
+                            field.obfName.merged?.contains(fieldKey, true) == true -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.OBF_MERGED
                             field.obfName.client?.contains(fieldKey, true) == true -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.OBF_CLIENT
                             field.obfName.server?.contains(fieldKey, true) == true -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.OBF_SERVER
-                            field.obfName.merged?.contains(fieldKey, true) == true -> fields[FieldResult(clazz, field, cm)] = QueryDefinition.OBF_MERGED
                         }
                 }
             }
@@ -220,9 +220,9 @@ object MappingsQuery {
                     when {
                         clazz.intermediaryName.onlyClass().contains(clazzKey, true) -> classes[clazz] = QueryDefinition.INTERMEDIARY
                         clazz.mappedName?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.MAPPED
+                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_MERGED
                         clazz.obfName.client?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_CLIENT
                         clazz.obfName.server?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_SERVER
-                        clazz.obfName.merged?.onlyClass()?.contains(clazzKey, true) == true -> classes[clazz] = QueryDefinition.OBF_MERGED
                     }
                 }
             }
@@ -244,9 +244,9 @@ object MappingsQuery {
                         when {
                             method.intermediaryName.contains(methodKey, true) -> methods[MethodResult(parent, method, cm)] = QueryDefinition.INTERMEDIARY
                             method.mappedName?.contains(methodKey, true) == true -> methods[MethodResult(parent, method, cm)] = QueryDefinition.MAPPED
+                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodResult(parent, method, cm)] = QueryDefinition.OBF_MERGED
                             method.obfName.client?.contains(methodKey, true) == true -> methods[MethodResult(parent, method, cm)] = QueryDefinition.OBF_CLIENT
                             method.obfName.server?.contains(methodKey, true) == true -> methods[MethodResult(parent, method, cm)] = QueryDefinition.OBF_SERVER
-                            method.obfName.merged?.contains(methodKey, true) == true -> methods[MethodResult(parent, method, cm)] = QueryDefinition.OBF_MERGED
                         }
                 }
             }
