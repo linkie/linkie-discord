@@ -26,6 +26,7 @@ import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.discord.validateInGuild
 import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.EnvironmentAccess
 import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyObject
@@ -80,6 +81,11 @@ object LinkieScripting {
                     GlobalScope.launch(Dispatchers.IO) {
                         val engine = Context.newBuilder("js")
                             .allowExperimentalOptions(true)
+                            .allowNativeAccess(false)
+                            .allowIO(false)
+                            .allowCreateProcess(false)
+                            .allowEnvironmentAccess(EnvironmentAccess.NONE)
+                            .allowHostClassLoading(false)
                             .allowHostAccess(HostAccess.newBuilder()
                                 .allowArrayAccess(true)
                                 .allowListAccess(true)
@@ -87,10 +93,17 @@ object LinkieScripting {
                             .option("js.console", "false")
                             .option("js.nashorn-compat", "true")
                             .option("js.experimental-foreign-object-prototype", "true")
+                            .option("js.disable-eval", "true")
+                            .option("js.load", "false")
                             .build()
                         try {
                             engine.getBindings("js").also {
                                 context.applyTo(it)
+                                it.removeMember("load")
+                                it.removeMember("loadWithNewGlobal")
+                                it.removeMember("eval")
+                                it.removeMember("exit")
+                                it.removeMember("quit")
                             }
                             engine.eval("js", script)
                         } catch (throwable: Throwable) {
