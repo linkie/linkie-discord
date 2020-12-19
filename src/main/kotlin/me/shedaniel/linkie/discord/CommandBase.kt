@@ -84,10 +84,6 @@ fun MessageCreator.sendPages(
 interface CommandBase {
     fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 
-    fun getName(): String? = null
-    fun getDescription(): String? = null
-
-    fun getCategory(): CommandCategory = CommandCategory.NORMAL
     fun postRegister() {}
 }
 
@@ -247,16 +243,5 @@ fun Namespace.validateGuild(event: MessageCreateEvent) {
 fun MappingsProvider.validateDefaultVersionNotEmpty() {
     if (isEmpty()) {
         throw IllegalStateException("Invalid Default Version! Linkie may be reloading its cache right now.")
-    }
-}
-
-enum class CommandCategory(val description: String?) {
-    NORMAL(null),
-    TRICK("Scripting");
-
-    companion object {
-        fun getValues(guildId: Snowflake?): Array<CommandCategory> {
-            return values()
-        }
     }
 }

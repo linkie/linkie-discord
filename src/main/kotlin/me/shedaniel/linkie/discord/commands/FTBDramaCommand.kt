@@ -25,7 +25,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
@@ -51,7 +50,4 @@ object FTBDramaCommand : CommandBase {
             description = text
         }.subscribe()
     }
-
-    override fun getName(): String? = "FTB Drama Command"
-    override fun getDescription(): String? = "Generates ftb drama."
 }

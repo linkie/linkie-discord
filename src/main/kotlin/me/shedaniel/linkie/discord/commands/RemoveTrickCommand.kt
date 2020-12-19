@@ -20,14 +20,12 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.tricks.canManageTrick
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 
@@ -47,8 +45,4 @@ object RemoveTrickCommand : CommandBase {
             description = "Successfully removed trick: $name"
         }.subscribe()
     }
-
-    override fun getName(): String? = "Remove Trick"
-    override fun getDescription(): String? = "Remove a trick"
-    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

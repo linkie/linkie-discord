@@ -59,8 +59,4 @@ object ListTricksCommand : CommandBase {
             addInlineField(trick.name, "Created by <@${trick.author}> on " + Instant.ofEpochMilli(trick.creation).toString())
         }
     }
-
-    override fun getName(): String = "List Tricks"
-    override fun getDescription(): String = "List the tricks by a member"
-    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

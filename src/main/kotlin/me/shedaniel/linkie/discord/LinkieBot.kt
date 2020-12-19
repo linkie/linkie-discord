@@ -18,13 +18,8 @@
 
 package me.shedaniel.linkie.discord
 
-import discord4j.common.util.Snowflake
-import discord4j.core.`object`.entity.channel.Channel
-import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
-import discord4j.core.event.domain.guild.MemberJoinEvent
-import discord4j.core.event.domain.guild.MemberLeaveEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import io.ktor.application.*
 import io.ktor.http.*
@@ -37,12 +32,8 @@ import kotlinx.coroutines.launch
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.invites.InvitesTracker
 import me.shedaniel.linkie.discord.tricks.TricksManager
-import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
+import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
@@ -51,7 +42,7 @@ import java.io.File
 import java.util.*
 
 fun main() {
-    File(File(System.getProperty("user.dir")), ".properties").apply {
+    (File(System.getProperty("user.dir")) / ".properties").apply {
         if (exists()) {
             val properties = Properties()
             reader().use {
@@ -62,33 +53,35 @@ fun main() {
     }
     TricksManager.load()
     ConfigManager.load()
-    GlobalScope.launch {
-        // netty server to allow status pages to ping this bot
-        embeddedServer(Netty, port = System.getProperty("PORT").toInt()) {
-            routing {
-                get("/status") {
-                    call.respondText("""{}""", ContentType.Application.Json)
+    if (System.getProperty("PORT") != null) {
+        GlobalScope.launch {
+            // netty server to allow status pages to ping this bot
+            embeddedServer(Netty, port = System.getProperty("PORT").toInt()) {
+                routing {
+                    get("/status") {
+                        call.respondText("""{}""", ContentType.Application.Json)
+                    }
                 }
-            }
-        }.start(wait = true)
+            }.start(wait = true)
+        }
     }
     start(
+        // namespaces of mappings loaded
         YarnNamespace,
         PlasmaNamespace,
         MCPNamespace,
         MojangNamespace
     ) {
+        // register the commands
         registerCommands(CommandHandler)
 
-        // This is only used for shedaniel's server, if you are hosting this yourself please remove this.
-        registerWelcomeMessages()
-
-        gateway.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+        event<ReadyEvent> {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
-        InvitesTracker(432055962233470986L, 737858943421775966L).init()
     }
 }
+
+private operator fun File.div(s: String): File = File(this, s)
 
 fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryCompoundCommand(null), "mapping")
@@ -157,35 +150,4 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(TricksCommand, "trick")
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
-}
-
-private fun registerWelcomeMessages() {
-    gateway.eventDispatcher.on(MemberJoinEvent::class.java).subscribe { event ->
-        if (event.guildId.asLong() == 432055962233470986L) {
-            gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe { textChannel ->
-                val member = event.member
-                val guild = event.guild.block()
-                (textChannel as TextChannel).sendEmbedMessage {
-                    setTitle("Welcome **${member.discriminatedName}**!")
-                    setThumbnail(member.avatarUrl)
-                    setTimestampToNow()
-                    description = "Welcome ${member.discriminatedName} to `${guild?.name}`. Get mod related support at <#576851123345031177>, <#582248149729411072>, <#593809520682205184> and <#576851701911388163>, and chat casually at <#432055962233470988>!\n" +
-                            "\n" +
-                            "Anyways, enjoy your stay!"
-                }.subscribe()
-            }
-        }
-    }
-    gateway.eventDispatcher.on(MemberLeaveEvent::class.java).subscribe { event ->
-        if (event.guildId.asLong() == 432055962233470986L) {
-            gateway.getChannelById(Snowflake.of(432057546589601792L)).filter { c -> c.type == Channel.Type.GUILD_TEXT }.subscribe send@{ textChannel ->
-                val member = event.member.orElse(null) ?: return@send
-                (textChannel as TextChannel).sendEmbedMessage {
-                    setTitle("Goodbye **${member.discriminatedName}**! Farewell.")
-                    setThumbnail(member.avatarUrl)
-                    setTimestampToNow()
-                }.subscribe()
-            }
-        }
-    }
 }

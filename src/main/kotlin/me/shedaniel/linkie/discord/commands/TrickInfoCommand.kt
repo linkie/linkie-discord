@@ -20,7 +20,6 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
@@ -47,8 +46,4 @@ object TrickInfoCommand : CommandBase {
             description = "```${trick.content}```"
         }.subscribe()
     }
-
-    override fun getName(): String? = "Trick Info"
-    override fun getDescription(): String? = "Display a trick's info"
-    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

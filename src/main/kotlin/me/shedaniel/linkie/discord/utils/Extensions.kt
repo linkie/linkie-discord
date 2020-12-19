@@ -16,17 +16,16 @@
 
 package me.shedaniel.linkie.discord.utils
 
-import com.google.common.collect.Multimap
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.ReactionAddEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.MessageCreateSpec
-import discord4j.discordjson.json.AllowedMentionsData
 import discord4j.discordjson.json.EmbedData
 import discord4j.discordjson.json.MessageEditRequest
 import discord4j.discordjson.possible.Possible
@@ -36,12 +35,11 @@ import me.shedaniel.linkie.Field
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Obf
 import me.shedaniel.linkie.discord.gateway
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
 fun <T> Optional<T>.getOrNull(): T? = orElse(null)
@@ -117,7 +115,7 @@ data class MessageEditAllowedSpec(
         set(value) {
             _embed = Possible.of(Optional.ofNullable(value))
         }
-    
+
     fun setEmbed(spec: EmbedCreateSpec.() -> Unit) {
         val embedCreateSpec = EmbedCreateSpec()
         spec(embedCreateSpec)
@@ -146,16 +144,6 @@ fun Message.sendEdit(spec: (MessageEditAllowedSpec) -> Unit): Mono<Message> = ed
 
 fun Message.sendEditEmbed(spec: EmbedCreateSpec.() -> Unit): Mono<Message> = sendEdit {
     it.setEmbed(spec)
-}
-
-fun AtomicReference<Message?>.editOrCreate(channel: MessageChannel, previous: Message? = null, createSpec: EmbedCreateSpec.() -> Unit): Mono<Message> {
-    return if (get() == null) {
-        channel.sendEmbedMessage(previous, createSpec).doOnSuccess { set(it) }
-    } else {
-        get()!!.sendEdit {
-            it.setEmbed { createSpec(this) }
-        }.doOnSuccess { set(it) }
-    }
 }
 
 fun Message.tryRemoveReaction(emoji: ReactionEmoji, userId: Snowflake) {
@@ -259,20 +247,6 @@ fun String.isValidIdentifier(): Boolean {
     return isNotEmpty()
 }
 
-inline fun <T, K, M : Multimap<in K, in T>> Sequence<T>.groupByTo(destination: M, keySelector: (T) -> K): M {
-    for (element in this) {
-        destination.put(keySelector(element), element)
-    }
-    return destination
-}
-
-inline fun <T, K, V, M : Multimap<in K, in V>> Sequence<T>.groupByTo(destination: M, keySelector: (T) -> K, valueTransform: (T) -> V): M {
-    for (element in this) {
-        destination.put(keySelector(element), valueTransform(element))
-    }
-    return destination
-}
-
 class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
     private val actions = mutableMapOf<String, () -> Boolean>()
 
@@ -290,7 +264,7 @@ class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
 
     fun build(message: Message, userPredicate: (Snowflake) -> Boolean) {
         message.subscribeReactions(*actions.keys.toTypedArray())
-        gateway.eventDispatcher.on(ReactionAddEvent::class.java).filter { e -> e.messageId == message.id }.take(duration).subscribe {
+        event<ReactionAddEvent>().filter { e -> e.messageId == message.id }.take(duration).subscribe {
             if (userPredicate(it.userId)) {
                 val emote = it.emoji.asUnicodeEmoji().map(ReactionEmoji.Unicode::getRaw).orElse(null)
                 val action = actions[emote]
@@ -302,4 +276,10 @@ class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
             }
         }
     }
+}
+
+inline fun <reified T : Event> event(): Flux<T> = gateway.eventDispatcher.on(T::class.java)
+
+inline fun <reified T : Event> event(noinline listener: (T) -> Unit) {
+    event<T>().subscribe(listener)
 }

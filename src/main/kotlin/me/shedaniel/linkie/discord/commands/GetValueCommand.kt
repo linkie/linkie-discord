@@ -22,7 +22,6 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
@@ -41,7 +40,4 @@ object GetValueCommand : CommandBase {
             description = "The value of property `$property` is set as `$value`."
         }.subscribe()
     }
-
-    override fun getName(): String? = "Get Value Command"
-    override fun getDescription(): String? = "Get a value of the config for a server."
 }

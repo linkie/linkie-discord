@@ -40,7 +40,4 @@ object AboutCommand : CommandBase {
             setTimestampToNow()
         }.subscribe()
     }
-
-    override fun getDescription(): String? = "Everything about Linkie."
-    override fun getName(): String? = "About Command"
 }

@@ -24,10 +24,12 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
+import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.utils.info
 import java.time.Duration
 import java.util.*
 import kotlin.concurrent.schedule
+import kotlin.concurrent.timerTask
 import kotlin.properties.Delegates
 
 val api: DiscordClient by lazy {
@@ -41,20 +43,17 @@ var gateway by Delegates.notNull<GatewayDiscordClient>()
 inline fun start(
     vararg namespaces: Namespace,
     cycleMs: Long = 1800000,
-    setup: () -> Unit
+    setup: () -> Unit,
 ) {
     if (isDebug)
         info("Linkie Bot (Debug Mode)")
     else info("Linkie Bot")
-    Timer().schedule(0, Duration.ofMinutes(1).toMillis()) { System.gc() }
-//    Timer().schedule(0, Duration.ofSeconds(1).toMillis()) {
-//        trace(String.format("Total: %s, Free: %s",
-//                Runtime.getRuntime().totalMemory(),
-//                Runtime.getRuntime().freeMemory()))
-//    }
+    Timer().schedule(0, Duration.ofMinutes(1).toMillis()) {
+        System.gc()
+    }
     gateway = api.login().block()!!
     Namespaces.init(*namespaces, cycleMs = cycleMs)
     setup()
-    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(commandMap::onMessageCreate)
-    gateway.eventDispatcher.on(MessageCreateEvent::class.java).subscribe(trickMap::onMessageCreate)
+    event(commandMap::onMessageCreate)
+    event(trickMap::onMessageCreate)
 }

@@ -106,12 +106,4 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
             }
         }
     }
-
-    override fun getName(): String =
-        if (namespace != null) namespace.id.capitalize() + " Method Query"
-        else "Method Query"
-
-    override fun getDescription(): String =
-        if (namespace != null) "Queries ${namespace.id} method entries."
-        else "Queries method entries."
 }

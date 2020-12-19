@@ -23,7 +23,6 @@ import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
@@ -37,7 +36,4 @@ object AWCommand : CommandBase {
             description = "https://github.com/shedaniel/linkie-everythingaccesswidener/releases/tag/accesswideners"
         }.subscribe()
     }
-
-    override fun getName(): String? = "Everything Access Widener"
-    override fun getDescription(): String? = "Destroys your fabric environment by making everything public!"
 }

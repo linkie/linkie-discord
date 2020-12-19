@@ -25,7 +25,6 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.config.GuildConfig
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
-import java.time.Duration
 import kotlin.math.ceil
 
 object ValueListCommand : CommandBase {
@@ -55,6 +54,4 @@ object ValueListCommand : CommandBase {
         description = "More information about Server Rule at https://github.com/shedaniel/linkie-discord/wiki/Server-Rules"
     }
 
-    override fun getName(): String? = "List Values Command"
-    override fun getDescription(): String? = "List the values of the config for a server."
 }

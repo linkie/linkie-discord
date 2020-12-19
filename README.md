@@ -12,7 +12,10 @@ The discord side of linkie.
 Do `!about` in any server Linkie is in.
 
 ### Hosting your own copy of linkie
-You will need a token to your own discord bot and edit `LinkieBot.kt` to your liking, you will want to remove the call to `registerWelcomeMessages`.
+Create a file named `.properties`, put the following in it.
+```properties
+TOKEN=<YOUR TOKEN>
+```
 
 ### Mappings Support
 - MCP (1.8+)

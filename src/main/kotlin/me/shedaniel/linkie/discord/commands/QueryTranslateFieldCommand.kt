@@ -16,7 +16,6 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -25,13 +24,10 @@ import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.mapFieldIntermediaryDescToNamed
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.remapFieldDescriptor
-import org.boon.Str
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
@@ -151,7 +147,4 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         }
         setSafeDescription(desc)
     }
-
-    override fun getName(): String = "${source.id.capitalize()}->${target.id.capitalize()} Field Command"
-    override fun getDescription(): String = "Query ${source.id}->${target.id} fields."
 }

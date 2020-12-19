@@ -20,7 +20,6 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
@@ -49,8 +48,4 @@ object RunTrickCommand : CommandBase {
             }
         }
     }
-
-    override fun getName(): String? = "Run Trick"
-    override fun getDescription(): String? = "Run a trick"
-    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

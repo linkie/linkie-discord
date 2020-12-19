@@ -42,7 +42,4 @@ object SetValueCommand : CommandBase {
             description = "The value of property `$property` is now set to `$value`."
         }.subscribe()
     }
-
-    override fun getName(): String? = "Set Value Command"
-    override fun getDescription(): String? = "Set a value of the config for a server."
 }

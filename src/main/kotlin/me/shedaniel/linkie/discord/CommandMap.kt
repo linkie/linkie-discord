@@ -56,7 +56,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
         }
     }
 
-    fun String.splitArgs(): List<String> {
+    private fun String.splitArgs(): List<String> {
         val args = mutableListOf<String>()
         val stringBuilder = StringBuilder()
         forEach {

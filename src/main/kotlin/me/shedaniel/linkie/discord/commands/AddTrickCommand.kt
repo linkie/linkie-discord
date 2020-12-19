@@ -21,7 +21,6 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.CommandCategory
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.ContentType
@@ -30,7 +29,6 @@ import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 import java.util.*
@@ -103,8 +101,4 @@ object AddTrickCommand : CommandBase {
             description = "Successfully added trick: $name"
         }.subscribe()
     }
-
-    override fun getName(): String? = "Add Trick"
-    override fun getDescription(): String? = "Add a trick"
-    override fun getCategory(): CommandCategory = CommandCategory.TRICK
 }

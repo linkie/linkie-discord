@@ -106,12 +106,4 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             }
         }
     }
-
-    override fun getName(): String =
-        if (namespace != null) namespace.id.capitalize() + " Field Query"
-        else "Field Query"
-
-    override fun getDescription(): String =
-        if (namespace != null) "Queries ${namespace.id} field entries."
-        else "Queries field entries."
 }

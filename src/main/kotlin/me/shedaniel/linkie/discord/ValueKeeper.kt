@@ -19,10 +19,7 @@ package me.shedaniel.linkie.discord
 import java.time.Duration
 import java.util.*
 import kotlin.concurrent.timerTask
-import kotlin.properties.Delegates
 import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T>, val getter: () -> T) {

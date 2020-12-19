@@ -18,7 +18,6 @@ package me.shedaniel.linkie.discord.scripting
 
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
-import discord4j.rest.util.AllowedMentions
 import kotlinx.coroutines.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType

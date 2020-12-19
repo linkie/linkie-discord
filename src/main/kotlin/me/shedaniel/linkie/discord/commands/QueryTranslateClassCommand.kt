@@ -16,7 +16,6 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -30,7 +29,6 @@ import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.ceil
 
 class QueryTranslateClassCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
@@ -137,7 +135,4 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         }
         setSafeDescription(desc)
     }
-
-    override fun getName(): String = "${source.id.capitalize()}->${target.id.capitalize()} Class Command"
-    override fun getDescription(): String = "Query ${source.id}->${target.id} classes."
 }

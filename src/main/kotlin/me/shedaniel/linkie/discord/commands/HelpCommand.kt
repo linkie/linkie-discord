@@ -22,7 +22,6 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
@@ -37,7 +36,4 @@ object HelpCommand : CommandBase {
             description = "View the list of commands at https://github.com/shedaniel/linkie-discord/wiki/Commands"
         }.subscribe()
     }
-
-    override fun getDescription(): String? = "Displays this message."
-    override fun getName(): String? = "Help Command"
 }
