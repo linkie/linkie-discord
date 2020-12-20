@@ -25,10 +25,9 @@ import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
-import me.shedaniel.linkie.discord.utils.MappingsQuery.get
+import me.shedaniel.linkie.discord.utils.isValidIdentifier
 import me.shedaniel.linkie.namespaces.YarnNamespace
-import me.shedaniel.linkie.utils.dropAndTake
-import me.shedaniel.linkie.utils.onlyClass
+import me.shedaniel.linkie.utils.*
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -83,7 +82,7 @@ class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
         maxPage: AtomicInteger,
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
-    ): QueryResultCompound<List<ResultHolder<*>>> {
+    ): QueryResult<MappingsContainer, List<ResultHolder<*>>> {
         if (!provider.cached!! || hasWildcard) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -138,26 +137,25 @@ class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
             }
 
             maxPage.set(ceil(result.size / 5.0).toInt())
-            return@getCatching QueryResultCompound(mappingsContainer, result)
+            return@getCatching QueryResult(mappingsContainer, result)
         }
     }
 
     private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedResults: List<ResultHolder<*>>, mappings: MappingsContainer, page: Int, author: User, maxPage: Int) {
-        MappingsQuery.buildHeader(this, mappings, page, author, maxPage)
-        val metadata = mappings.toMetadata()
+        QueryMessageBuilder.buildHeader(this, mappings, page, author, maxPage)
         buildSafeDescription {
             sortedResults.dropAndTake(3 * page, 3).forEach { (value, _) ->
                 if (isNotEmpty())
                     appendLine().appendLine()
                 when {
                     value is Class -> {
-                        MappingsQuery.buildClass(this, namespace, value, metadata)
+                        QueryMessageBuilder.buildClass(this, namespace, value, mappings)
                     }
                     value is Pair<*, *> && value.second is Field -> {
-                        MappingsQuery.buildField(this, namespace, value.second as Field, value.first as Class, mappings)
+                        QueryMessageBuilder.buildField(this, namespace, value.second as Field, value.first as Class, mappings)
                     }
                     value is Pair<*, *> && value.second is Method -> {
-                        MappingsQuery.buildMethod(this, namespace, value.second as Method, value.first as Class, mappings)
+                        QueryMessageBuilder.buildMethod(this, namespace, value.second as Method, value.first as Class, mappings)
                     }
                 }
             }

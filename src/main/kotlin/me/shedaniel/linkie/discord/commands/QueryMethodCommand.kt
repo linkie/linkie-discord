@@ -77,7 +77,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         maxPage: AtomicInteger,
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
-    ): QueryResultCompound<List<Pair<Class, Method>>> {
+    ): QueryResult<MappingsContainer, List<Pair<Class, Method>>> {
         if (!provider.cached!! || hasWildcard) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -91,18 +91,21 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
                 provider = provider,
                 searchKey = searchKey,
             )).map { it.map { it.value }.toList() }
+            if (result.value.isEmpty()) {
+                MappingsQuery.errorNoResultsFound(MappingsEntryType.METHOD, searchKey)
+            }
             maxPage.set(ceil(result.value.size / 5.0).toInt())
             return@getCatching result
         }
     }
 
     private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedMethods: List<Pair<Class, Method>>, mappings: MappingsContainer, page: Int, author: User, maxPage: Int) {
-        MappingsQuery.buildHeader(this, mappings, page, author, maxPage)
+        QueryMessageBuilder.buildHeader(this, mappings, page, author, maxPage)
         buildSafeDescription {
             sortedMethods.dropAndTake(3 * page, 3).forEach { (parent, method) ->
                 if (isNotEmpty())
                     appendLine().appendLine()
-                MappingsQuery.buildMethod(this, namespace, method, parent, mappings)
+                QueryMessageBuilder.buildMethod(this, namespace, method, parent, mappings)
             }
         }
     }

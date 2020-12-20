@@ -76,7 +76,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
         user: User,
         message: MessageCreator,
         maxPage: AtomicInteger,
-    ): QueryResult<List<Class>> {
+    ): QueryResult<MappingsMetadata, List<Class>> {
         if (!provider.cached!!) message.sendEmbed {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
@@ -90,18 +90,21 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
                 provider = provider,
                 searchKey = searchKey,
             )).decompound().map { it.map { it.value }.toList() }
+            if (result.value.isEmpty()) {
+                MappingsQuery.errorNoResultsFound(MappingsEntryType.CLASS, searchKey)
+            }
             maxPage.set(ceil(result.value.size / 5.0).toInt())
             return@getCatching result
         }
     }
 
     private fun EmbedCreateSpec.buildMessage(namespace: Namespace, sortedClasses: List<Class>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
-        MappingsQuery.buildHeader(this, mappings, page, author, maxPage)
+        QueryMessageBuilder.buildHeader(this, mappings, page, author, maxPage)
         buildSafeDescription {
             sortedClasses.dropAndTake(5 * page, 5).forEach { classEntry ->
                 if (isNotEmpty())
                     appendLine().appendLine()
-                MappingsQuery.buildClass(this, namespace, classEntry, mappings)
+                QueryMessageBuilder.buildClass(this, namespace, classEntry, mappings)
             }
         }
     }
