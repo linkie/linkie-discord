@@ -29,6 +29,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
@@ -66,11 +67,14 @@ fun main() {
         }
     }
     start(
-        // namespaces of mappings loaded
-        YarnNamespace,
-        PlasmaNamespace,
-        MCPNamespace,
-        MojangNamespace
+        LinkieConfig.DEFAULT.copy(
+            namespaces = listOf(
+                YarnNamespace,
+                PlasmaNamespace,
+                MCPNamespace,
+                MojangNamespace
+            )
+        )
     ) {
         // register the commands
         registerCommands(CommandHandler)

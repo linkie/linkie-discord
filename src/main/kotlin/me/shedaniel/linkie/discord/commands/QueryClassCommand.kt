@@ -89,7 +89,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
             val result = MappingsQuery.queryClasses(QueryContext(
                 provider = provider,
                 searchKey = searchKey,
-            )).decompound().map { it.map { it.value }.toList() }
+            )).deCompound().map { it.map { it.value }.toList() }
             if (result.value.isEmpty()) {
                 MappingsQuery.errorNoResultsFound(MappingsEntryType.CLASS, searchKey)
             }
