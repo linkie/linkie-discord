@@ -25,7 +25,7 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.remapFieldDescriptor
+import me.shedaniel.linkie.utils.remapDescriptor
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
@@ -106,11 +106,10 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
                         val targetMethod = targetClass.methods.firstOrNull { it.obfName.merged == obfName && it.obfDesc.merged == obfDesc } ?: return@inner
                         remappedMethods[MethodCompound(
                             sourceClassParent.optimumName.onlyClass() + "#" + sourceMethod.optimumName,
-                            sourceMethod.obfDesc.merged ?: sourceMethod.intermediaryDesc.remapFieldDescriptor {
+                            sourceMethod.obfDesc.merged ?: sourceMethod.intermediaryDesc.remapDescriptor {
                                 sourceMappings.getClass(it)?.obfName?.merged ?: it
                             }
-                        )] =
-                            targetClass.optimumName.onlyClass() + "#" + targetMethod.optimumName
+                        )] = targetClass.optimumName.onlyClass() + "#" + targetMethod.optimumName
                     }
                 }
             }

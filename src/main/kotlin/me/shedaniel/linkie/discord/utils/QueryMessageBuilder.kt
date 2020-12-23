@@ -18,10 +18,15 @@ package me.shedaniel.linkie.discord.utils
 
 import discord4j.core.`object`.entity.User
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.*
-import me.shedaniel.linkie.utils.MappingsQuery.localiseFieldDesc
-import me.shedaniel.linkie.utils.MappingsQuery.mapObfDescToNamed
-import me.shedaniel.linkie.utils.mapFieldIntermediaryDescToNamed
+import me.shedaniel.linkie.Class
+import me.shedaniel.linkie.Field
+import me.shedaniel.linkie.MappingsContainer
+import me.shedaniel.linkie.MappingsMetadata
+import me.shedaniel.linkie.Method
+import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.utils.localiseFieldDesc
+import me.shedaniel.linkie.utils.mapIntermediaryDescToNamed
+import me.shedaniel.linkie.utils.mapObfDescToNamed
 
 object QueryMessageBuilder {
     fun buildHeader(spec: EmbedCreateSpec, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
@@ -53,14 +58,14 @@ object QueryMessageBuilder {
         append(field.mappedName.mapIfNotNullOrNotEquals(field.intermediaryName) { " => `$it`" } ?: "")
         if (namespace.supportsFieldDescription()) {
             appendLine().append("__Type__: ")
-            append((field.mappedDesc ?: field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappings)).localiseFieldDesc())
+            append((field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings)).localiseFieldDesc())
         }
         if (namespace.supportsMixin()) {
             appendLine().append("__Mixin Target__: `")
             append("L${parent.optimumName};")
             append(field.optimumName)
             append(':')
-            append(field.mappedDesc ?: field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappings))
+            append(field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
             append('`')
         }
         if (namespace.supportsAT()) {
@@ -75,7 +80,7 @@ object QueryMessageBuilder {
             append(' ')
             append(field.optimumName)
             append(' ')
-            append(field.mappedDesc ?: field.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappings))
+            append(field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
             append('`')
         }
     }
@@ -90,7 +95,7 @@ object QueryMessageBuilder {
             appendLine().append("__Mixin Target__: `")
             append("L${parent.optimumName};")
             append(method.optimumName)
-            append(method.mappedDesc ?: method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappings))
+            append(method.mappedDesc ?: method.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
             append('`')
         }
         if (namespace.supportsAT()) {
@@ -106,7 +111,7 @@ object QueryMessageBuilder {
             append(' ')
             append(method.optimumName)
             append(' ')
-            append(method.mappedDesc ?: method.intermediaryDesc.mapFieldIntermediaryDescToNamed(mappings))
+            append(method.mappedDesc ?: method.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
             append('`')
         }
     }

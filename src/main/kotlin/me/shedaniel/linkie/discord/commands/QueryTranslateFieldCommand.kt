@@ -25,7 +25,7 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.remapFieldDescriptor
+import me.shedaniel.linkie.utils.remapDescriptor
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
@@ -105,7 +105,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                         val targetField = targetClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@inner
                         remappedFields[FieldCompound(
                             sourceClassParent.optimumName.onlyClass() + "#" + sourceField.optimumName,
-                            sourceField.obfDesc.merged ?: sourceField.intermediaryDesc.remapFieldDescriptor {
+                            sourceField.obfDesc.merged ?: sourceField.intermediaryDesc.remapDescriptor {
                                 sourceMappings.getClass(it)?.obfName?.merged ?: it
                             }
                         )] =
