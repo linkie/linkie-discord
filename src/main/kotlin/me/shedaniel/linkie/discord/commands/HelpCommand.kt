@@ -33,7 +33,7 @@ object HelpCommand : CommandBase {
             setTitle("Linkie Help Command")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
-            description = "View the list of commands at https://github.com/shedaniel/linkie-discord/wiki/Commands"
+            description = "View the list of commands at https://github.com/linkie/linkie-discord/wiki/Commands"
         }.subscribe()
     }
 }
