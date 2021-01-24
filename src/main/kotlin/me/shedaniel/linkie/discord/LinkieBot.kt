@@ -35,10 +35,12 @@ import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.event
+import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
+import me.shedaniel.linkie.namespaces.YarrnNamespace
 import java.io.File
 import java.util.*
 
@@ -69,6 +71,8 @@ fun main() {
     start(
         LinkieConfig.DEFAULT.copy(
             namespaces = listOf(
+                LegacyYarnNamespace,
+                YarrnNamespace,
                 YarnNamespace,
                 PlasmaNamespace,
                 MCPNamespace,
@@ -97,6 +101,16 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryClassCommand(Namespaces["yarn"]), "yc", "yarnc")
     commands.registerCommand(QueryMethodCommand(Namespaces["yarn"]), "ym", "yarnm")
     commands.registerCommand(QueryFieldCommand(Namespaces["yarn"]), "yf", "yarnf")
+
+    commands.registerCommand(QueryCompoundCommand(Namespaces["legacy-yarn"]), "ly", "legacy-yarn")
+    commands.registerCommand(QueryClassCommand(Namespaces["legacy-yarn"]), "lyc", "legacy-yarnc")
+    commands.registerCommand(QueryMethodCommand(Namespaces["legacy-yarn"]), "lym", "legacy-yarnm")
+    commands.registerCommand(QueryFieldCommand(Namespaces["legacy-yarn"]), "lyf", "legacy-yarnf")
+
+    commands.registerCommand(QueryCompoundCommand(Namespaces["yarrn"]), "yarrn")
+    commands.registerCommand(QueryClassCommand(Namespaces["yarrn"]), "yrc", "yarrnc")
+    commands.registerCommand(QueryMethodCommand(Namespaces["yarrn"]), "yrm", "yarrnm")
+    commands.registerCommand(QueryFieldCommand(Namespaces["yarrn"]), "yrf", "yarnrf")
 
     commands.registerCommand(QueryCompoundCommand(Namespaces["mcp"]), "mcp")
     commands.registerCommand(QueryClassCommand(Namespaces["mcp"]), "mcpc")
