@@ -41,7 +41,7 @@ object FabricCommand : CommandBase {
             version != null && version.snapshot == null
         }.maxWithOrNull(compareBy { it.tryToVersion() })!!
 
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateUsage(prefix, 0..1, "$cmd [version]")
         val latestVersion = this.latestVersion
         val gameVersion = if (args.isEmpty()) latestVersion else args[0]

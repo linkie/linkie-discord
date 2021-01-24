@@ -16,6 +16,7 @@
 
 package me.shedaniel.linkie.discord
 
+import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
@@ -28,33 +29,40 @@ import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.discord.utils.buildReactions
+import me.shedaniel.linkie.discord.utils.content
+import me.shedaniel.linkie.discord.utils.sendEdit
+import me.shedaniel.linkie.discord.utils.sendEditEmbed
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
+import me.shedaniel.linkie.discord.utils.sendMessage
+import me.shedaniel.linkie.discord.utils.tryRemoveAllReactions
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.*
 
-typealias EmbedCreator = EmbedCreateSpec.() -> Unit
+typealias EmbedCreator = suspend EmbedCreateSpec.() -> Unit
 
 fun embedCreator(creator: EmbedCreator) = creator
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
-    creator: EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(Int) -> Unit,
 ) = sendPages(initialPage, maxPages, previous.author.get().id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     user: User,
-    creator: EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(Int) -> Unit,
 ) = sendPages(initialPage, maxPages, user.id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     userId: Snowflake,
-    creator: EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(Int) -> Unit,
 ) {
     var page = initialPage
     val builder = embedCreator { creator(this, page) }
@@ -82,7 +90,7 @@ fun MessageCreator.sendPages(
 }
 
 interface CommandBase {
-    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 
     fun postRegister() {}
 }
@@ -113,16 +121,16 @@ data class MessageCreator(
 
     fun sendEmbed(content: EmbedCreator): Mono<Message> {
         return if (message == null) {
-            channel.sendEmbedMessage(previous, content)
+            channel.sendEmbedMessage(previous) { runBlockingNoJs { content() } }
         } else {
-            message!!.sendEditEmbed(content)
+            message!!.sendEditEmbed { runBlockingNoJs { content() } }
         }.doOnSuccess { message = it }
     }
 }
 
 open class SubCommandHolder : CommandBase {
     private val subcommands = mutableMapOf<String, SubCommandBase>()
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd help")
 
         when (val subcommand = args[0].toLowerCase(Locale.ROOT)) {
@@ -151,7 +159,7 @@ open class SubCommandHolder : CommandBase {
                 val reactor = field.get(this) as SubCommandReactor
                 subcommands[name] = object : SubCommandBase {
                     override val name: String = name
-                    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) =
+                    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) =
                         reactor.execute(event, message, prefix, user, cmd, args, channel)
 
                 }
@@ -160,13 +168,13 @@ open class SubCommandHolder : CommandBase {
     }
 
     fun subCmd(reactor: (event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) -> Unit): SubCommandReactor = object : SubCommandReactor {
-        override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
             reactor(event, message, prefix, user, cmd, args, channel)
         }
     }
 
     fun subCmd(reactor: CommandBase): SubCommandReactor = object : SubCommandReactor {
-        override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
             reactor.execute(event, message, prefix, user, cmd, args, channel)
         }
     }
@@ -177,10 +185,10 @@ interface SubCommandBase : SubCommandReactor {
 }
 
 interface SubCommandReactor {
-    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
 }
 
-inline fun <T> MessageCreator.getCatching(user: User, run: () -> T): T {
+inline suspend fun <T> MessageCreator.getCatching(user: User, run: suspend () -> T): T {
     try {
         return run()
     } catch (t: Throwable) {

@@ -24,6 +24,7 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.utils.localiseFieldDesc
 import me.shedaniel.linkie.utils.mapIntermediaryDescToNamed
 import me.shedaniel.linkie.utils.mapObfDescToNamed
@@ -51,6 +52,7 @@ object QueryMessageBuilder {
     }
 
     fun buildField(builder: StringBuilder, namespace: Namespace, field: Field, parent: Class, mappings: MappingsContainer) = builder.apply {
+        val mappedDesc = field.getMappedDesc(mappings)
         appendLine("**Field: ${parent.optimumName}#__${field.optimumName}__**")
         append("__Name__: ")
         append(field.obfName.buildString(nonEmptySuffix = " => "))
@@ -58,14 +60,14 @@ object QueryMessageBuilder {
         append(field.mappedName.mapIfNotNullOrNotEquals(field.intermediaryName) { " => `$it`" } ?: "")
         if (namespace.supportsFieldDescription()) {
             appendLine().append("__Type__: ")
-            append((field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings)).localiseFieldDesc())
+            append(mappedDesc.localiseFieldDesc())
         }
         if (namespace.supportsMixin()) {
             appendLine().append("__Mixin Target__: `")
             append("L${parent.optimumName};")
             append(field.optimumName)
             append(':')
-            append(field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
+            append(mappedDesc)
             append('`')
         }
         if (namespace.supportsAT()) {
@@ -80,12 +82,13 @@ object QueryMessageBuilder {
             append(' ')
             append(field.optimumName)
             append(' ')
-            append(field.mappedDesc ?: field.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
+            append(mappedDesc)
             append('`')
         }
     }
 
     fun buildMethod(builder: StringBuilder, namespace: Namespace, method: Method, parent: Class, mappings: MappingsContainer) = builder.apply {
+        val mappedDesc = method.getMappedDesc(mappings)
         appendLine("**Method: ${parent.optimumName}#__${method.optimumName}__**")
         append("__Name__: ")
         append(method.obfName.buildString(nonEmptySuffix = " => "))
@@ -95,13 +98,13 @@ object QueryMessageBuilder {
             appendLine().append("__Mixin Target__: `")
             append("L${parent.optimumName};")
             append(method.optimumName)
-            append(method.mappedDesc ?: method.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
+            append(mappedDesc)
             append('`')
         }
         if (namespace.supportsAT()) {
             appendLine().append("__AT__: `public ${parent.optimumName.replace('/', '.')} ")
             append(method.intermediaryName)
-            append(method.obfDesc.merged!!.mapObfDescToNamed(mappings))
+            append(mappedDesc)
             append(" # ")
             append(method.optimumName)
             append('`')
@@ -111,7 +114,7 @@ object QueryMessageBuilder {
             append(' ')
             append(method.optimumName)
             append(' ')
-            append(method.mappedDesc ?: method.intermediaryDesc.mapIntermediaryDescToNamed(mappings))
+            append(mappedDesc)
             append('`')
         }
     }

@@ -28,7 +28,7 @@ import me.shedaniel.linkie.discord.validateUsage
 import java.time.Instant
 
 object TrickInfoCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
         args.validateUsage(prefix, 1, "$cmd <trick>")
         val trickName = args.first()

@@ -76,7 +76,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
 }
 
 interface CommandAcceptor {
-    fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
     fun getPrefix(event: MessageCreateEvent): String?
 }
 

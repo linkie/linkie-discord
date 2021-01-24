@@ -36,7 +36,7 @@ object CommandHandler : CommandAcceptor {
     override fun getPrefix(event: MessageCreateEvent): String? =
         event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
 
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (cmd in commandMap)
             commandMap[cmd]!!.execute(event, message, prefix, user, cmd, args, channel)
     }

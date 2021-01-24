@@ -21,6 +21,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
+import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespaces
@@ -31,7 +32,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 object RandomClassCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateUsage(prefix, 3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
         val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
@@ -65,7 +66,7 @@ object RandomClassCommand : CommandBase {
         }
     }
 
-    private fun build(
+    private suspend fun build(
         provider: MappingsProvider,
         user: User,
         message: MessageCreator,
@@ -77,18 +78,17 @@ object RandomClassCommand : CommandBase {
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
         }.block()
-        return provider.mappingsContainer!!.invoke()
+        return provider.get()
     }
 
     private fun EmbedCreateSpec.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {
-        val range = mappingsContainer.classes.indices
-        val set = mutableSetOf<Int>()
-        for (i in 0 until count) randomIndex(range, set)
+        val set = mutableSetOf<String>()
+        for (i in 0 until count) randomIndex(mappingsContainer.classes, set)
         if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
         else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
         setTitle("List of Random ${mappingsContainer.name} Classes")
         var desc = ""
-        set.sorted().map { mappingsContainer.classes[it] }.forEach { mappingsClass ->
+        set.sorted().map { mappingsContainer.classes[it]!! }.forEach { mappingsClass ->
             if (desc.isNotEmpty())
                 desc += "\n"
             desc += mappingsClass.mappedName ?: mappingsClass.intermediaryName
@@ -97,9 +97,9 @@ object RandomClassCommand : CommandBase {
         setTimestampToNow()
     }
 
-    private fun randomIndex(range: IntRange, set: MutableSet<Int>): Int {
-        val random = range.random()
-        if (random in set) return randomIndex(range, set)
-        return random.also { set.add(it) }
+    private fun randomIndex(range: MutableMap<String, Class>, set: MutableSet<String>) {
+        var random = range.keys.random()
+        while (random in set) random = range.keys.random()
+        set.add(random)
     }
 }

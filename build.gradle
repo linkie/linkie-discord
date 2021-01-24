@@ -36,8 +36,8 @@ repositories {
 }
 
 dependencies {
-    compile("me.shedaniel:linkie-core:1.0.45")
-    compile("com.discord4j:discord4j-core:3.1.3-SNAPSHOT") {
+    compile("me.shedaniel:linkie-core:1.0.55")
+    compile("com.discord4j:discord4j-core:3.1.3") {
         force = true
     }
     compile "org.graalvm.js:js-scriptengine:20.2.0"
@@ -68,6 +68,7 @@ compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
     kotlinOptions {
         freeCompilerArgs = ["-Xopt-in=kotlin.RequiresOptIn", "-Xinline-classes"]
+        languageVersion = "1.4"
     }
 }
 

@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 class QueryTranslateFieldCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         source.validateNamespace()
         source.validateGuild(event)
         target.validateNamespace()
@@ -70,7 +70,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
         }
     }
 
-    private fun build(
+    private suspend fun build(
         searchTerm: String,
         sourceProvider: MappingsProvider,
         targetProvider: MappingsProvider,
@@ -93,10 +93,10 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
             description = desc
         }.block()
         return message.getCatching(user) {
-            val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
-            val targetMappings = targetProvider.mappingsContainer!!.invoke()
+            val sourceMappings = sourceProvider.get()
+            val targetMappings = targetProvider.get()
             val remappedFields = mutableMapOf<FieldCompound, String>()
-            sourceMappings.classes.forEach { sourceClassParent ->
+            sourceMappings.classes.values.forEach { sourceClassParent ->
                 sourceClassParent.fields.forEach inner@{ sourceField ->
                     if (sourceField.intermediaryName.onlyClass().equals(searchTerm, true) || sourceField.mappedName?.onlyClass()?.equals(searchTerm, true) == true) {
                         val obfName = sourceField.obfName.merged!!
@@ -105,9 +105,7 @@ class QueryTranslateFieldCommand(private val source: Namespace, private val targ
                         val targetField = targetClass.fields.firstOrNull { it.obfName.merged == obfName } ?: return@inner
                         remappedFields[FieldCompound(
                             sourceClassParent.optimumName.onlyClass() + "#" + sourceField.optimumName,
-                            sourceField.obfDesc.merged ?: sourceField.intermediaryDesc.remapDescriptor {
-                                sourceMappings.getClass(it)?.obfName?.merged ?: it
-                            }
+                            sourceField.getObfMergedDesc(sourceMappings)
                         )] =
                             targetClass.optimumName.onlyClass() + "#" + targetField.optimumName
                     }

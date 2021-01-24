@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
     <timestamp key="byDay" datePattern="yyyyMMdd" />
     
     <!-- custom coloring conversion -->
@@ -19,15 +20,10 @@
         </layout>
     </appender>
 
-    <logger name="me.shedaniel.linkie" level="DEBUG" />
-    <logger name="discord4j" level="INFO" />
-    <logger name="reactor" level="INFO" />
-    <logger name="io.netty" level="INFO" />
-
-    <root level="TRACE">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="FILE" />
     </root>
 </configuration>

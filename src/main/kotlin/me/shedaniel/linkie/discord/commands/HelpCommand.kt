@@ -27,7 +27,7 @@ import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
 object HelpCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateEmpty(prefix, cmd)
         message.sendEmbed {
             setTitle("Linkie Help Command")

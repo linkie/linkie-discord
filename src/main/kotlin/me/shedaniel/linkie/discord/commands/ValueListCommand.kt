@@ -28,7 +28,7 @@ import me.shedaniel.linkie.utils.dropAndTake
 import kotlin.math.ceil
 
 object ValueListCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
         args.validateEmpty(prefix, cmd)

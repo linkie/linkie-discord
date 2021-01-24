@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 class QueryTranslateClassCommand(private val source: Namespace, private val target: Namespace) : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         source.validateNamespace()
         source.validateGuild(event)
         target.validateNamespace()
@@ -70,7 +70,7 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
         }
     }
 
-    private fun build(
+    private suspend fun build(
         searchTerm: String,
         sourceProvider: MappingsProvider,
         targetProvider: MappingsProvider,
@@ -93,10 +93,10 @@ class QueryTranslateClassCommand(private val source: Namespace, private val targ
             description = desc
         }.block()
         return message.getCatching(user) {
-            val sourceMappings = sourceProvider.mappingsContainer!!.invoke()
-            val targetMappings = targetProvider.mappingsContainer!!.invoke()
+            val sourceMappings = sourceProvider.get()
+            val targetMappings = targetProvider.get()
             val remappedClasses = mutableMapOf<String, String>()
-            sourceMappings.classes.asSequence().filter {
+            sourceMappings.classes.values.asSequence().filter {
                 it.intermediaryName.onlyClass().equals(searchTerm, false) ||
                         it.mappedName?.onlyClass()?.equals(searchTerm, false) == true
             }.forEach { yarnClass ->

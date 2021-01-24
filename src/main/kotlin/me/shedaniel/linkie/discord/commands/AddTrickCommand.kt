@@ -34,7 +34,7 @@ import me.shedaniel.linkie.discord.validateUsage
 import java.util.*
 
 object AddTrickCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         LinkieScripting.validateGuild(event)
         args.validateUsage(prefix, 2..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
         val name = args.first()

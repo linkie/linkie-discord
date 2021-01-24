@@ -28,7 +28,7 @@ import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.validateNotEmpty
 
 object EvaluateCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd <script>")
         var string = args.joinToString(" ")
         if (string.startsWith("```")) string = string.substring(3)

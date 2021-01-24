@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
         } else args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
@@ -70,7 +70,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
         }
     }
 
-    private fun build(
+    private suspend fun build(
         searchKey: String,
         provider: MappingsProvider,
         user: User,
@@ -89,7 +89,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
             val result = MappingsQuery.queryClasses(QueryContext(
                 provider = provider,
                 searchKey = searchKey,
-            )).deCompound().map { it.map { it.value }.toList() }
+            )).toSimpleMappingsMetadata().map { it.map { it.value }.toList() }
             if (result.value.isEmpty()) {
                 MappingsQuery.errorNoResultsFound(MappingsEntryType.CLASS, searchKey)
             }

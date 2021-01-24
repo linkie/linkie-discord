@@ -26,7 +26,7 @@ import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 
 object GetValueCommand : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         event.validateInGuild()
         event.member.get().validateAdmin()
         args.validateUsage(prefix, 1, "$cmd <property>")

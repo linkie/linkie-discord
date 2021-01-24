@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (this.namespace == null) {
             args.validateUsage(prefix, 2..3, "$cmd <namespace> <search> [version]\nDo !namespaces for list of namespaces.")
         } else args.validateUsage(prefix, 1..2, "$cmd <search> [version]")
@@ -69,7 +69,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         }
     }
 
-    private fun build(
+    private suspend fun build(
         searchKey: String,
         provider: MappingsProvider,
         user: User,

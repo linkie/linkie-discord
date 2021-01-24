@@ -16,41 +16,45 @@
 
 package me.shedaniel.linkie.discord
 
+import com.soywiz.korio.async.runBlockingNoJs
+import me.shedaniel.linkie.discord.utils.getOrNull
 import java.time.Duration
 import java.util.*
 import kotlin.concurrent.timerTask
 import kotlin.properties.ReadOnlyProperty
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
-class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T>, val getter: () -> T) {
+class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T>, val getter: suspend () -> T) {
     companion object {
         private val timer = Timer()
     }
 
     private var task: TimerTask? = null
 
-    constructor(timeToKeep: Duration, value: T, getter: () -> T) : this(timeToKeep, Optional.of(value), getter)
-    constructor(timeToKeep: Duration, getter: () -> T) : this(timeToKeep, getter(), getter)
+    constructor(timeToKeep: Duration, value: T, getter: suspend () -> T) : this(timeToKeep, Optional.of(value), getter)
+    constructor(timeToKeep: Duration, getter: suspend () -> T) : this(timeToKeep, runBlockingNoJs { getter() }, getter)
 
     init {
-        schedule()
+        runBlockingNoJs {
+            schedule()
+        }
     }
 
-    fun get(): T = value.orElseGet { getter().also { value = Optional.of(it); schedule() } }
+    suspend fun get(): T = value.getOrNull() ?: getter().also { value = Optional.of(it); schedule() }
 
-    fun clear() {
+    suspend fun clear() {
         value = Optional.empty()
         System.gc()
     }
 
-    fun schedule() {
+    suspend fun schedule() {
         task?.cancel()
-        task = timerTask { clear() }
+        task = timerTask { runBlockingNoJs { clear() } }
         timer.schedule(task, timeToKeep.toMillis())
     }
 }
 
-fun <T> valueKeeper(timeToKeep: Duration = Duration.ofMinutes(2), getter: () -> T): ReadOnlyProperty<Any?, T> {
+fun <T> valueKeeper(timeToKeep: Duration = Duration.ofMinutes(2), getter: suspend () -> T): ReadOnlyProperty<Any?, T> {
     val keeper = ValueKeeper(timeToKeep, getter)
-    return ReadOnlyProperty { _, _ -> keeper.get() }
+    return ReadOnlyProperty { _, _ -> runBlockingNoJs { keeper.get() } }
 }

@@ -30,7 +30,7 @@ object TrickHandler : CommandAcceptor {
     override fun getPrefix(event: MessageCreateEvent): String? =
         event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].tricksPrefix }
 
-    override fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (event.guildId.isPresent) {
             val guildId = event.guildId.get().asLong()
             if (!ConfigManager[guildId].tricksEnabled) return
