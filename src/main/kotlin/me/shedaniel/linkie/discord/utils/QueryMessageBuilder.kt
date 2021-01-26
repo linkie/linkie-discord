@@ -26,8 +26,6 @@ import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.utils.localiseFieldDesc
-import me.shedaniel.linkie.utils.mapIntermediaryDescToNamed
-import me.shedaniel.linkie.utils.mapObfDescToNamed
 
 object QueryMessageBuilder {
     fun buildHeader(spec: EmbedCreateSpec, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
