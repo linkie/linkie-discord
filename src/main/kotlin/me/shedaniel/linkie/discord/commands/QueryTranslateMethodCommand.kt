@@ -103,7 +103,7 @@ class QueryTranslateMethodCommand(private val source: Namespace, private val tar
                         val obfDesc = sourceMethod.getObfMergedDesc(sourceMappings)
                         val parentObfName = sourceClassParent.obfName.merged!!
                         val targetClass = targetMappings.getClassByObfName(parentObfName) ?: return@inner
-                        val targetMethod = targetClass.methods.firstOrNull { it.obfName.merged == obfName && it.getObfServerDesc(targetMappings) == obfDesc } ?: return@inner
+                        val targetMethod = targetClass.methods.firstOrNull { it.obfName.merged == obfName && it.getObfMergedDesc(targetMappings) == obfDesc } ?: return@inner
                         remappedMethods[MethodCompound(
                             sourceClassParent.optimumName.onlyClass() + "#" + sourceMethod.optimumName,
                             obfDesc
