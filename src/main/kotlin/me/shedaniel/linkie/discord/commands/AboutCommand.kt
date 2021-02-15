@@ -33,10 +33,10 @@ object AboutCommand : CommandBase {
             gateway.self.map(User::getAvatarUrl).block()?.also { url -> setThumbnail(url) }
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             description = "A mappings bot created by <@430615025066049538>."
-            addField("Library Src", "https://github.com/shedaniel/linkie-core/")
-            addField("Bot Src", "https://github.com/shedaniel/linkie-discord/")
+            addField("Library Src", "https://github.com/linkie/linkie-core/")
+            addField("Bot Src", "https://github.com/linkie/linkie-discord/")
             addField("License", "Apache 2.0")
-            addField("Invite", "https://discordapp.com/oauth2/authorize?client_id=472081983925780490&permissions=10304&scope=bot")
+            addField("Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
             setTimestampToNow()
         }.subscribe()
     }
