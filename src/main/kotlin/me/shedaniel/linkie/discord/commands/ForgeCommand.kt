@@ -98,7 +98,7 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
             if (mcpSnapshot != null) {
                 addInlineField("MCP Version", mcpSnapshot!!)
                 if (tmp) {
-                    it.insert(0, "The MCP version displayed here is manually managed, as 1.16+ MCP versions are not handled by MCP bot.\n" +
+                    it.insert(0, "1.16+ MCP versions are manually managed, as 1.16+ MCP versions are not handled by MCP bot.\n" +
                             "If the following data is outdated, please report it on our issue tracker!\n\n")
                 }
             } else {
@@ -107,7 +107,7 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
                 versions.asSequence().drop(ourIndex + 1).map { data[it] }.firstOrNull { it.mcpSnapshot != null }?.also { usableVersion ->
                     addInlineField("MCP Version", usableVersion.mcpSnapshot!!)
                     if (usableVersion.tmp) {
-                        it.insert(0, "The MCP version displayed here is manually managed, as 1.16+ MCP versions are not handled by MCP bot.\n" +
+                        it.insert(0, "1.16+ MCP versions are manually managed, as 1.16+ MCP versions are not handled by MCP bot.\n" +
                                 "If the following data is outdated, please report it on our issue tracker!\n\n")
                     }
                 }

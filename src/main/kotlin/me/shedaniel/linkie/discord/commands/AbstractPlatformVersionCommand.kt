@@ -77,9 +77,9 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
             setTitle(getTitle(version.version))
             buildString {
                 if (data.versions.first() != latestVersion) {
-                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions, or use `$prefix$cmd first` to view the first version, even if it is unstable.")
+                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions, use `$prefix$cmd first` to view the first version, even if it is unstable, and use `$prefix$cmd [version]` to view the version info for that specific version.")
                 } else {
-                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions.")
+                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions, and use `$prefix$cmd [version]` to view the version info for that specific version.")
                 }
                 when {
                     version.unstable -> addInlineField("Type", "Unstable")
