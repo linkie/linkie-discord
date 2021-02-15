@@ -21,6 +21,7 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
@@ -30,6 +31,9 @@ import me.shedaniel.linkie.discord.validateNotEmpty
 object EvaluateCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd <script>")
+        if (event.guildId.isPresent) {
+            require(ConfigManager[event.guildId.get().asLong()].evalEnabled) { "Eval is not enabled on this server." }
+        }
         var string = args.joinToString(" ")
         if (string.startsWith("```")) string = string.substring(3)
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)

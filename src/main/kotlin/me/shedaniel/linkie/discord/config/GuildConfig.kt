@@ -23,6 +23,7 @@ data class GuildConfig(
     var prefix: String? = null,
     var tricksPrefix: String? = null,
     var tricksEnabled: Boolean = true,
+    var evalEnabled: Boolean = true,
     var whitelistedMappings: List<String> = listOf(),
     var blacklistedMappings: List<String> = listOf()
 ) {

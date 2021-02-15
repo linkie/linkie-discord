@@ -31,6 +31,7 @@ object ConfigManager {
         simpleValue("prefix", value({ prefix ?: "null" }) { require(it.length in 1..5) { "Prefix can only be between 1 and 5 characters long!" }; require(it == "null" || tricksPrefix != it) { "Tricks prefix can not be same as command prefix!" }; prefix = it.takeUnless { it == "null" } }),
         simpleValue("tricks.prefix", value({ tricksPrefix ?: "null" }) { require(it.length in 1..5) { "Prefix can only be between 1 and 5 characters long!" }; require(it == "null" || it != prefix) { "Tricks prefix can not be same as command prefix!" }; tricksPrefix = it.takeUnless { it == "null" } }),
         simpleValue("tricks.enabled", value({ tricksEnabled.toString() }) { tricksEnabled = it.toBoolean() }),
+        simpleValue("eval.enabled", value({ evalEnabled.toString() }) { evalEnabled = it.toBoolean() }),
         simpleValue("mappings.whitelist", value({ whitelistedMappings.joinToString(",") }) { whitelistedMappings = it.split(",").toList().filter { it.isNotBlank() } }),
         simpleValue("mappings.blacklist", value({ blacklistedMappings.joinToString(",") }) { blacklistedMappings = it.split(",").toList().filter { it.isNotBlank() } }),
     )
