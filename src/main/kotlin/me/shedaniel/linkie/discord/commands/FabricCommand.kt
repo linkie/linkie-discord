@@ -16,67 +16,37 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.spec.EmbedCreateSpec
 import kotlinx.serialization.json.*
 import me.shedaniel.cursemetaapi.CurseMetaAPI
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.discord.validateUsage
-import me.shedaniel.linkie.discord.valueKeeper
 import me.shedaniel.linkie.utils.tryToVersion
 import java.net.URL
-import java.time.Duration
 
-object FabricCommand : CommandBase {
-    private val json = Json {
-
-    }
-    private val fabricData by valueKeeper(Duration.ofMinutes(10)) { updateData() }
-    private val latestVersion: String
-        get() = fabricData.versions.keys.asSequence().filter {
+object FabricCommand : AbstractPlatformVersionCommand<FabricCommand.FabricVersion, FabricCommand.FabricData>() {
+    private val json = Json {}
+    override val latestVersion: String
+        get() = data.versions.asSequence().filter {
             val version = it.tryToVersion()
             version != null && version.snapshot == null
         }.maxWithOrNull(compareBy { it.tryToVersion() })!!
 
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateUsage(prefix, 0..1, "$cmd [version]")
-        val latestVersion = this.latestVersion
-        val gameVersion = if (args.isEmpty()) latestVersion else args[0]
-        require(fabricData.versions.containsKey(gameVersion)) { "Invalid Version Specified: $gameVersion" }
-        val version = fabricData.versions[gameVersion]!!
-        message.sendEmbed {
-            setTitle("Fabric Version for Minecraft $gameVersion")
-            addInlineField("Type", when (version.release) {
-                true -> when (version.version) {
-                    latestVersion -> "Release (Latest)"
-                    else -> "Release"
-                }
-                false -> "Unstable"
-            })
-            addInlineField("Loader Version", version.loaderVersion)
-            addInlineField("Yarn Version", version.yarnVersion)
-            if (version.apiVersion != null) {
-                addInlineField("Api Version", version.apiVersion!!.version)
-            }
-        }.subscribe()
-    }
+    override fun getTitle(version: String): String = "Fabric Version for Minecraft $version"
 
-    private fun updateData(): FabricData {
+    override fun updateData(): FabricData {
         val data = FabricData()
         val meta = json.parseToJsonElement(URL("https://meta.fabricmc.net/v2/versions").readText()).jsonObject
         val loaderVersion = meta["loader"]!!.jsonArray[0].jsonObject["version"]!!.jsonPrimitive.content
+        val installerVersion = meta["installer"]!!.jsonArray[0].jsonObject["version"]!!.jsonPrimitive.content
         val mappings = meta["mappings"]!!.jsonArray
         meta["game"]!!.jsonArray.asSequence().map(JsonElement::jsonObject).forEach { obj ->
             val version = obj["version"]!!.jsonPrimitive.content
             val release = version.tryToVersion().let { it != null && it.snapshot == null }
             val mappingsObj = mappings.firstOrNull { it.jsonObject["gameVersion"]!!.jsonPrimitive.content == version }?.jsonObject ?: return@forEach
             val yarnVersion = mappingsObj["version"]!!.jsonPrimitive.content
-            data.versions[version] = FabricVersion(version, release, loaderVersion, yarnVersion)
+            data.versionsMap[version] = FabricVersion(version, release, loaderVersion, installerVersion, yarnVersion)
         }
-        fillFabricApi(data.versions)
+        fillFabricApi(data.versionsMap)
         return data
     }
 
@@ -112,16 +82,33 @@ object FabricCommand : CommandBase {
     }
 
     data class FabricData(
-        val versions: MutableMap<String, FabricVersion> = mutableMapOf(),
-    )
+        val versionsMap: MutableMap<String, FabricVersion> = mutableMapOf(),
+    ) : PlatformData<FabricVersion> {
+        override fun get(version: String): FabricVersion = versionsMap[version]!!
+        override val versions: Set<String>
+            get() = versionsMap.keys
+    }
 
     data class FabricVersion(
-        val version: String,
+        override val version: String,
         val release: Boolean,
         val loaderVersion: String,
+        val installerVersion: String,
         val yarnVersion: String,
         var apiVersion: FabricApiVersion? = null,
-    )
+    ) : PlatformVersion {
+        override val unstable: Boolean
+            get() = !release
+
+        override fun appendData(): EmbedCreateSpec.(StringBuilder) -> Unit = {
+            addInlineField("Loader Version", loaderVersion)
+            addInlineField("Installer Version", installerVersion)
+            addInlineField("Yarn Version", yarnVersion)
+            if (apiVersion != null) {
+                addInlineField("Api Version", apiVersion!!.version)
+            }
+        }
+    }
 
     data class FabricApiVersion(
         val version: String,

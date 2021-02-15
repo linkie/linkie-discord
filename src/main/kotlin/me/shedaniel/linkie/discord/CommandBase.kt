@@ -48,21 +48,21 @@ fun embedCreator(creator: EmbedCreator) = creator
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
-    creator: suspend EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
 ) = sendPages(initialPage, maxPages, previous.author.get().id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     user: User,
-    creator: suspend EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
 ) = sendPages(initialPage, maxPages, user.id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     userId: Snowflake,
-    creator: suspend EmbedCreateSpec.(Int) -> Unit,
+    creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
 ) {
     var page = initialPage
     val builder = embedCreator { creator(this, page) }

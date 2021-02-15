@@ -22,9 +22,10 @@ import java.time.Duration
 import java.util.*
 import kotlin.concurrent.timerTask
 import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
-class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T>, val getter: suspend () -> T) {
+class ValueKeeper<T> constructor(val timeToKeep: Duration, var valueBackend: Optional<T>, val getter: suspend () -> T) : Lazy<T> {
     companion object {
         private val timer = Timer()
     }
@@ -40,10 +41,10 @@ class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T
         }
     }
 
-    suspend fun get(): T = value.getOrNull() ?: getter().also { value = Optional.of(it); schedule() }
+    suspend fun get(): T = valueBackend.getOrNull() ?: getter().also { valueBackend = Optional.of(it); schedule() }
 
     suspend fun clear() {
-        value = Optional.empty()
+        valueBackend = Optional.empty()
         System.gc()
     }
 
@@ -52,9 +53,29 @@ class ValueKeeper<T> constructor(val timeToKeep: Duration, var value: Optional<T
         task = timerTask { runBlockingNoJs { clear() } }
         timer.schedule(task, timeToKeep.toMillis())
     }
+
+    override val value: T
+        get() = runBlockingNoJs { get() }
+
+    override fun isInitialized(): Boolean = valueBackend.isPresent
 }
 
-fun <T> valueKeeper(timeToKeep: Duration = Duration.ofMinutes(2), getter: suspend () -> T): ReadOnlyProperty<Any?, T> {
-    val keeper = ValueKeeper(timeToKeep, getter)
-    return ReadOnlyProperty { _, _ -> runBlockingNoJs { keeper.get() } }
+fun <T> valueKeeper(timeToKeep: Duration = Duration.ofMinutes(2), getter: suspend () -> T): ValueKeeperProperty<T> =
+    ValueKeeperProperty(timeToKeep, getter)
+
+class ValueKeeperProperty<T>(
+    timeToKeep: Duration,
+    getter: suspend () -> T,
+) : ReadOnlyProperty<Any?, T>, Lazy<T> {
+    val keeperLazy = lazy { ValueKeeper(timeToKeep, getter) }
+    val keeper by keeperLazy
+    val property = ReadOnlyProperty<Any?, T> { _, _ -> runBlockingNoJs { keeper.get() } }
+
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        return this.property.getValue(thisRef, property)
+    }
+
+    override fun isInitialized(): Boolean = keeperLazy.isInitialized() && keeper.isInitialized()
+    override val value: T
+        get() = runBlockingNoJs { keeper.get() }
 }

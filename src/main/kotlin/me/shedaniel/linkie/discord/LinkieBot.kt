@@ -168,5 +168,6 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(TricksCommand, "trick")
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
+    commands.registerCommand(ForgeCommand, "forge")
     commands.registerCommand(GoogleCommand, "google")
 }
