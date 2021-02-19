@@ -38,6 +38,7 @@ import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
+import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
@@ -76,7 +77,8 @@ fun main() {
                 YarnNamespace,
                 PlasmaNamespace,
                 MCPNamespace,
-                MojangNamespace
+                MojangNamespace,
+                MojangSrgNamespace,
             )
         )
     ) {
@@ -126,6 +128,11 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryClassCommand(Namespaces["plasma"]), "plasmac")
     commands.registerCommand(QueryMethodCommand(Namespaces["plasma"]), "plasmam")
     commands.registerCommand(QueryFieldCommand(Namespaces["plasma"]), "plasmaf")
+
+    commands.registerCommand(QueryCompoundCommand(Namespaces["mojang_srg"]), "mms", "mojmaps")
+    commands.registerCommand(QueryClassCommand(Namespaces["mojang_srg"]), "mmsc", "mojmapsc")
+    commands.registerCommand(QueryMethodCommand(Namespaces["mojang_srg"]), "mmsm", "mojmapsm")
+    commands.registerCommand(QueryFieldCommand(Namespaces["mojang_srg"]), "mmsf", "mojmapsm")
 
     commands.registerCommand(QueryTranslateClassCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefyc", "voldec", "vc")
     commands.registerCommand(QueryTranslateMethodCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefym", "voldem", "vm")
