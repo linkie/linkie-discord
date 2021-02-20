@@ -87,12 +87,16 @@ class QueryFieldCommand(private val namespace: Namespace?) : CommandBase {
             description = desc
         }.block()
         return message.getCatching(user) {
-            val result = MappingsQuery.queryFields(QueryContext(
+            val context = QueryContext(
                 provider = provider,
                 searchKey = searchKey,
-            )).map { it.map { it.value }.toList() }
+            )
+            var result = MappingsQuery.queryFields(context).map { it.map { it.value }.toList() }
             if (result.value.isEmpty()) {
-                MappingsQuery.errorNoResultsFound(MappingsEntryType.FIELD, searchKey)
+                result = MappingsQuery.queryFields(context.copy(accuracy = MatchAccuracy.Fuzzy)).map { it.map { it.value }.toList() }
+                if (result.value.isEmpty()) {
+                    MappingsQuery.errorNoResultsFound(MappingsEntryType.FIELD, searchKey)
+                }
             }
             maxPage.set(ceil(result.value.size / 5.0).toInt())
             return@getCatching result

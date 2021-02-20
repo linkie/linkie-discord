@@ -86,12 +86,16 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
             }
         }.block()
         return message.getCatching(user) {
-            val result = MappingsQuery.queryClasses(QueryContext(
+            val context = QueryContext(
                 provider = provider,
                 searchKey = searchKey,
-            )).toSimpleMappingsMetadata().map { it.map { it.value }.toList() }
+            )
+            var result = MappingsQuery.queryClasses(context).toSimpleMappingsMetadata().map { it.map { it.value }.toList() }
             if (result.value.isEmpty()) {
-                MappingsQuery.errorNoResultsFound(MappingsEntryType.CLASS, searchKey)
+                result = MappingsQuery.queryClasses(context.copy(accuracy = MatchAccuracy.Fuzzy)).toSimpleMappingsMetadata().map { it.map { it.value }.toList() }
+                if (result.value.isEmpty()) {
+                    MappingsQuery.errorNoResultsFound(MappingsEntryType.CLASS, searchKey)
+                }
             }
             maxPage.set(ceil(result.value.size / 5.0).toInt())
             return@getCatching result

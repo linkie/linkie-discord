@@ -130,10 +130,40 @@ class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
             result.sortByDescending { it.score }
 
             if (result.isEmpty()) {
-                if (searchKey.onlyClass().firstOrNull()?.isDigit() == true && !searchKey.onlyClass().isValidIdentifier()) {
-                    throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                runBlocking {
+                    launch {
+                        try {
+                            classes = MappingsQuery.queryClasses(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                        } catch (e: NullPointerException) {
+
+                        }
+                    }
+                    launch {
+                        try {
+                            methods = MappingsQuery.queryMethods(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                        } catch (e: NullPointerException) {
+
+                        }
+                    }
+                    launch {
+                        try {
+                            fields = MappingsQuery.queryFields(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                        } catch (e: NullPointerException) {
+
+                        }
+                    }
                 }
-                throw NullPointerException("No results found!")
+                classes?.also(result::addAll)
+                methods?.also(result::addAll)
+                fields?.also(result::addAll)
+                result.sortByDescending { it.score }
+
+                if (result.isEmpty()) {
+                    if (searchKey.onlyClass().firstOrNull()?.isDigit() == true && !searchKey.onlyClass().isValidIdentifier()) {
+                        throw NullPointerException("No results found! `${searchKey.onlyClass()}` is not a valid java identifier!")
+                    }
+                    throw NullPointerException("No results found!")
+                }
             }
 
             maxPage.set(ceil(result.size / 5.0).toInt())

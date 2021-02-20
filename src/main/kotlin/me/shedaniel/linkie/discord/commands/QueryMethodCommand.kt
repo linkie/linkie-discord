@@ -87,12 +87,16 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
             description = desc
         }.block()
         return message.getCatching(user) {
-            val result = MappingsQuery.queryMethods(QueryContext(
+            val context = QueryContext(
                 provider = provider,
                 searchKey = searchKey,
-            )).map { it.map { it.value }.toList() }
+            )
+            var result = MappingsQuery.queryMethods(context).map { it.map { it.value }.toList() }
             if (result.value.isEmpty()) {
-                MappingsQuery.errorNoResultsFound(MappingsEntryType.METHOD, searchKey)
+                result = MappingsQuery.queryMethods(context.copy(accuracy = MatchAccuracy.Fuzzy)).map { it.map { it.value }.toList() }
+                if (result.value.isEmpty()) {
+                    MappingsQuery.errorNoResultsFound(MappingsEntryType.METHOD, searchKey)
+                }
             }
             maxPage.set(ceil(result.value.size / 5.0).toInt())
             return@getCatching result

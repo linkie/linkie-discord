@@ -42,10 +42,12 @@ import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
+import me.shedaniel.linkie.utils.similarity
 import java.io.File
 import java.util.*
 
 fun main() {
+    println("MinecraftClient".similarity("MinecraftClieny"))
     (File(System.getProperty("user.dir")) / ".properties").apply {
         if (exists()) {
             val properties = Properties()
