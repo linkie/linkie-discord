@@ -70,7 +70,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                     stringBuilder.append(it)
                     characterEscaped = false
                 }
-            } else if(!characterEscaped) {
+            } else if (!characterEscaped) {
                 if(it == '"') {
                     whitespaceEscaped = !whitespaceEscaped
                 } else if(it == '\\') {
