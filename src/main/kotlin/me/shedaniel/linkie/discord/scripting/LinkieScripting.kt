@@ -42,6 +42,12 @@ object LinkieScripting {
         this["parseNumber"] = ContextExtensions.parseNumber
         this["range"] = ContextExtensions.range
         this["equals"] = ContextExtensions.equals
+        this["exit"] = funObj { 
+            throw YouTriedException("Achievement Get!\nYou tried to stop Linkie!")
+        }
+        this["quit"] = funObj { 
+            throw YouTriedException("Achievement Get!\nYou tried to stop Linkie!")
+        }
     }
 
     inline fun evalTrick(evalContext: EvalContext, channel: MessageChannel, trick: Trick, context: () -> ScriptingContext) {
@@ -98,12 +104,12 @@ object LinkieScripting {
                             .build()
                         try {
                             engine.getBindings("js").also {
-                                context.applyTo(it)
                                 it.removeMember("load")
                                 it.removeMember("loadWithNewGlobal")
                                 it.removeMember("eval")
                                 it.removeMember("exit")
                                 it.removeMember("quit")
+                                context.applyTo(it)
                             }
                             engine.eval("js", script)
                         } catch (throwable: Throwable) {

@@ -242,6 +242,8 @@ object ContextExtensions {
     }
 }
 
+class YouTriedException(message: String) : Exception(message)
+
 fun funObj(arguments: List<Value>.() -> Any?): ProxyExecutable {
     return object : ContextExtensions.NameableProxyExecutable {
         override fun execute(vararg values: Value): Any? {
