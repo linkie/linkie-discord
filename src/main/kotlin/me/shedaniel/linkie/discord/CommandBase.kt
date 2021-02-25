@@ -32,6 +32,7 @@ import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.content
+import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.sendEdit
 import me.shedaniel.linkie.discord.utils.sendEditEmbed
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
@@ -49,19 +50,19 @@ fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
-) = sendPages(initialPage, maxPages, previous.author.get().id, creator)
+) = sendPages(initialPage, maxPages, executor?.id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
-    user: User,
+    user: User?,
     creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
-) = sendPages(initialPage, maxPages, user.id, creator)
+) = sendPages(initialPage, maxPages, user?.id, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
-    userId: Snowflake,
+    userId: Snowflake?,
     creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
 ) {
     var page = initialPage
@@ -95,18 +96,28 @@ interface CommandBase {
     fun postRegister() {}
 }
 
-fun MessageChannel.deferMessage(previous: Message) = MessageCreator(
+fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
     this,
     previous,
     null
 )
 
-data class MessageCreator(
+interface MessageCreator {
+    val executor: User?
+    
+    fun send(content: String): Mono<Message>
+    fun sendEmbed(content: EmbedCreator): Mono<Message>
+}
+
+data class MessageCreatorImpl(
     val channel: MessageChannel,
     var previous: Message,
     var message: Message?,
-) {
-    fun send(content: String): Mono<Message> {
+) : MessageCreator {
+    override val executor: User?
+        get() = previous.author.getOrNull()
+
+    override fun send(content: String): Mono<Message> {
         return if (message == null) {
             channel.sendMessage {
                 it.content = content
@@ -119,7 +130,7 @@ data class MessageCreator(
         }.doOnSuccess { message = it }
     }
 
-    fun sendEmbed(content: EmbedCreator): Mono<Message> {
+    override fun sendEmbed(content: EmbedCreator): Mono<Message> {
         return if (message == null) {
             channel.sendEmbedMessage(previous) { runBlockingNoJs { content() } }
         } else {

@@ -23,9 +23,11 @@ import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
+import java.time.Duration
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
     fun onMessageCreate(event: MessageCreateEvent) {
@@ -47,7 +49,14 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
             }.exceptionOrNull()?.also { throwable ->
                 if (throwable is SuppressedException) return@also
                 try {
-                    channel.sendEmbedMessage { generateThrowable(throwable, user) }.subscribe()
+                    channel.sendEmbedMessage { generateThrowable(throwable, user) }.subscribe { message ->
+                        buildReactions(Duration.ofMinutes(2)) {
+                            registerB("❌") {
+                                message.delete().subscribe()
+                                false
+                            }
+                        }.build(message) { it == user.id }
+                    }
                 } catch (throwable2: Exception) {
                     throwable2.addSuppressed(throwable)
                     throwable2.printStackTrace()

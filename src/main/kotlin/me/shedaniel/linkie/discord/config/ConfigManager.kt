@@ -20,7 +20,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 object ConfigManager {
-    private val configs = mutableMapOf<Long, GuildConfig>()
+    val configs = mutableMapOf<Long, GuildConfig>()
     private val configsFolder get() = File(File(System.getProperty("user.dir")), "config").also { it.mkdirs() }
     private val json = Json {
         ignoreUnknownKeys = true

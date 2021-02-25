@@ -25,7 +25,8 @@ data class GuildConfig(
     var tricksEnabled: Boolean = true,
     var evalEnabled: Boolean = true,
     var whitelistedMappings: List<String> = listOf(),
-    var blacklistedMappings: List<String> = listOf()
+    var blacklistedMappings: List<String> = listOf(),
+    var listenerChannels: MutableMap<String, MutableList<Long>> = mutableMapOf(),
 ) {
     fun isMappingsEnabled(namespace: String): Boolean {
         if (whitelistedMappings.isNotEmpty())

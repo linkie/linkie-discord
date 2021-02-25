@@ -33,6 +33,8 @@ import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.*
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.listener.ChannelListeners
+import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
@@ -47,7 +49,6 @@ import java.io.File
 import java.util.*
 
 fun main() {
-    println("MinecraftClient".similarity("MinecraftClieny"))
     (File(System.getProperty("user.dir")) / ".properties").apply {
         if (exists()) {
             val properties = Properties()
@@ -86,11 +87,13 @@ fun main() {
     ) {
         // register the commands
         registerCommands(CommandHandler)
+        registerListeners(ChannelListeners)
 
         event<ReadyEvent> {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
     }
+    ChannelListeners.init()
 }
 
 private operator fun File.div(s: String): File = File(this, s)
@@ -179,4 +182,8 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
     commands.registerCommand(GoogleCommand, "google")
+}
+
+fun registerListeners(listeners: ChannelListeners) {
+    listeners["minecraft"] = MinecraftVersionListener
 }
