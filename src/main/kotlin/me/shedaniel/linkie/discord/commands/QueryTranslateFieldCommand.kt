@@ -25,7 +25,6 @@ import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.onlyClass
-import me.shedaniel.linkie.utils.remapDescriptor
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil

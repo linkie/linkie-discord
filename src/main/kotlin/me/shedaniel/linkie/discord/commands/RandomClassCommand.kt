@@ -16,7 +16,6 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -25,11 +24,19 @@ import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.*
-import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.CommandBase
+import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.ValueKeeper
+import me.shedaniel.linkie.discord.utils.buildReactions
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
+import me.shedaniel.linkie.discord.utils.tryRemoveAllReactions
+import me.shedaniel.linkie.discord.validateGuild
+import me.shedaniel.linkie.discord.validateNamespace
+import me.shedaniel.linkie.discord.validateUsage
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.atomic.AtomicReference
 
 object RandomClassCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {

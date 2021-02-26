@@ -17,26 +17,21 @@
 package me.shedaniel.linkie.discord.listener
 
 import com.soywiz.klock.minutes
-import com.soywiz.klock.seconds
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.GuildChannel
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.`object`.entity.channel.TextChannel
+import discord4j.core.`object`.entity.channel.GuildMessageChannel
+import discord4j.rest.util.Permission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import me.shedaniel.linkie.discord.EmbedCreator
 import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.api
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.config.GuildConfig
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.content
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
@@ -46,8 +41,6 @@ import me.shedaniel.linkie.utils.info
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.io.File
-import java.lang.NullPointerException
-import java.util.stream.Collectors
 
 object ChannelListeners {
     private val listeners = mutableMapOf<String, ChannelListener<*>>()
@@ -61,7 +54,7 @@ object ChannelListeners {
     operator fun get(id: String): ChannelListener<*> = listeners[id] ?: throw NullPointerException("Unknown listener: $id\nKnown Listeners: " + listeners.keys.joinToString(", "))
     
     fun init() {
-        val cycleMs = 30.seconds.millisecondsLong
+        val cycleMs = 1.minutes.millisecondsLong
         var nextDelay = getMillis() - cycleMs
         CoroutineScope(Dispatchers.Default).launch {
             while (true) {
@@ -78,7 +71,11 @@ object ChannelListeners {
         coroutineScope {
             listeners.map { (id, listener) ->
                 launch {
-                    reloadListener(id, listener)
+                    try {
+                        reloadListener(id, listener)
+                    } catch (t: Throwable) {
+                        t.printStackTrace()
+                    }
                 }
             }.forEach { it.join() }
         }
@@ -87,17 +84,17 @@ object ChannelListeners {
     private suspend fun <T> reloadListener(id: String, listener: ChannelListener<T>) {
         coroutineScope {
             val dataFile = File(dir, "$id.json")
-            val channels = mutableListOf<TextChannel>()
-            ConfigManager.configs.forEach { (guildId, config) ->
-                config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.also { channelIds ->
+            val flux: Flux<MutableList<GuildMessageChannel>> = ConfigManager.configs.mapNotNull { (guildId, config) ->
+                config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.let { channelIds ->
                     val guild = gateway.getGuildById(Snowflake.of(guildId)).blockOptional().get()
-                    guild.members
                     Flux.fromIterable(channelIds)
                         .flatMap { guild.getChannelById(Snowflake.of(it)) }
-                        .filter { it is TextChannel }
-                        .collect(Collectors.toCollection { channels })
+                        .filter { it is GuildMessageChannel }
+                        .map { it as GuildMessageChannel }
+                        .collectList()
                 }
-            }
+            }.let { Flux.fromIterable(it) }.flatMap { it }
+            val channels: List<GuildMessageChannel> = flux.collectList().block()?.flatten() ?: emptyList()
             val message = object : MessageCreator {
                 override val executor: User? = null
 
@@ -106,7 +103,11 @@ object ChannelListeners {
                     channels.forEach { channel ->
                         val message = channel.sendMessage {
                             it.content = content
-                        }.flatMap { it.publish() }
+                        }.flatMap { 
+                            if (channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                                it.publish()
+                            else Mono.just(it)
+                        }
                         mono = if (mono == null) message
                         else mono!!.then(message)
                     }
@@ -116,7 +117,11 @@ object ChannelListeners {
                 override fun sendEmbed(content: EmbedCreator): Mono<Message> {
                     var mono: Mono<Message>? = null
                     channels.forEach { channel ->
-                        val message = channel.sendEmbedMessage { runBlockingNoJs { content() } }.flatMap { it.publish() }
+                        val message = channel.sendEmbedMessage { runBlockingNoJs { content() } }.flatMap {
+                            if (channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                                it.publish()
+                            else Mono.just(it)
+                        }
                         mono = if (mono == null) message
                         else mono!!.then(message)
                     }

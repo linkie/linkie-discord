@@ -22,7 +22,10 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.gateway
-import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.utils.addField
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
 object AboutCommand : CommandBase {

@@ -31,9 +31,40 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.commands.*
+import me.shedaniel.linkie.discord.commands.AWCommand
+import me.shedaniel.linkie.discord.commands.AboutCommand
+import me.shedaniel.linkie.discord.commands.AddTrickCommand
+import me.shedaniel.linkie.discord.commands.EvaluateCommand
+import me.shedaniel.linkie.discord.commands.FTBDramaCommand
+import me.shedaniel.linkie.discord.commands.FabricCommand
+import me.shedaniel.linkie.discord.commands.FabricDramaCommand
+import me.shedaniel.linkie.discord.commands.ForgeCommand
+import me.shedaniel.linkie.discord.commands.GetValueCommand
+import me.shedaniel.linkie.discord.commands.GoogleCommand
+import me.shedaniel.linkie.discord.commands.HelpCommand
+import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
+import me.shedaniel.linkie.discord.commands.ListTricksCommand
+import me.shedaniel.linkie.discord.commands.ListenerCommand
+import me.shedaniel.linkie.discord.commands.NamespacesCommand
+import me.shedaniel.linkie.discord.commands.QueryClassCommand
+import me.shedaniel.linkie.discord.commands.QueryCompoundCommand
+import me.shedaniel.linkie.discord.commands.QueryFieldCommand
+import me.shedaniel.linkie.discord.commands.QueryMethodCommand
+import me.shedaniel.linkie.discord.commands.QueryTranslateClassCommand
+import me.shedaniel.linkie.discord.commands.QueryTranslateFieldCommand
+import me.shedaniel.linkie.discord.commands.QueryTranslateMethodCommand
+import me.shedaniel.linkie.discord.commands.RandomClassCommand
+import me.shedaniel.linkie.discord.commands.RemoveTrickCommand
+import me.shedaniel.linkie.discord.commands.RunTrickCommand
+import me.shedaniel.linkie.discord.commands.SetValueCommand
+import me.shedaniel.linkie.discord.commands.TrickInfoCommand
+import me.shedaniel.linkie.discord.commands.TricksCommand
+import me.shedaniel.linkie.discord.commands.ValueCommand
+import me.shedaniel.linkie.discord.commands.ValueListCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.listener.ChannelListeners
+import me.shedaniel.linkie.discord.listener.listeners.ArchitecturyVersionListener
+import me.shedaniel.linkie.discord.listener.listeners.FabricMCVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.event
@@ -44,7 +75,6 @@ import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
-import me.shedaniel.linkie.utils.similarity
 import java.io.File
 import java.util.*
 
@@ -182,8 +212,11 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
     commands.registerCommand(GoogleCommand, "google")
+    commands.registerCommand(ListenerCommand, "listener")
 }
 
 fun registerListeners(listeners: ChannelListeners) {
     listeners["minecraft"] = MinecraftVersionListener
+    listeners["fabricmc"] = FabricMCVersionListener
+    listeners["architectury"] = ArchitecturyVersionListener
 }

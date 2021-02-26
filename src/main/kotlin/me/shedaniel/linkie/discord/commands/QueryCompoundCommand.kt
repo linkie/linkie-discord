@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.*
 import me.shedaniel.linkie.discord.*
 import me.shedaniel.linkie.discord.utils.*
-import me.shedaniel.linkie.discord.utils.isValidIdentifier
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.*
 import java.time.Duration

@@ -27,7 +27,14 @@ import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.discord.gateway
-import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.getOrNull
+import me.shedaniel.linkie.discord.utils.sendEdit
+import me.shedaniel.linkie.discord.utils.sendEditEmbed
+import me.shedaniel.linkie.discord.utils.sendEmbedMessage
+import me.shedaniel.linkie.discord.utils.sendMessage
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validatePermissions
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyArray
@@ -35,7 +42,15 @@ import org.graalvm.polyglot.proxy.ProxyExecutable
 import org.graalvm.polyglot.proxy.ProxyInstant
 import java.time.Instant
 import java.util.*
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.tan
 import kotlin.random.Random
 
 object ContextExtensions {
