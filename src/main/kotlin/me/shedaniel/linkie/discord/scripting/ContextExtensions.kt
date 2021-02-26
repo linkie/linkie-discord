@@ -170,7 +170,7 @@ object ContextExtensions {
         val booleans = booleanArrayOf(false, message.author.get().id != gateway.selfId)
         return context("Message") {
             this["id"] = message.id.asString()
-            this["deleteMessage"] = funObj {
+            val delete = funObj {
                 validateArgs(0)
                 if (needPermsToDelete)
                     (user as? Member)?.apply { validatePermissions(Permission.MANAGE_MESSAGES) }
@@ -180,12 +180,15 @@ object ContextExtensions {
                 }
                 null
             }
+            this["deleteMessage"] = delete
+            this["delete"] = delete
             this["author"] = message.authorAsMember.blockOptional().map { userObj(evalContext, it) }.getOrNull() ?: message.author.map { userObj(evalContext, it) }.getOrNull()
             this["content"] = message.content
             this["edit"] = funObj {
                 validateArgs(1)
                 if (!booleans[1]) {
                     booleans[1] = true
+                    Thread.sleep(500)
                     messageObj(evalContext, message.sendEdit {
                         it.content = first().getAsString().let { it.substring(0, min(1999, it.length)) }
                     }.block()!!, user, false)
@@ -195,6 +198,7 @@ object ContextExtensions {
                 validateArgs(1, 2)
                 if (!booleans[1]) {
                     booleans[1] = true
+                    Thread.sleep(500)
                     messageObj(evalContext, message.sendEditEmbed {
                         if (size == 2) setTitle(first().getAsString())
                         description = last().getAsString().let { it.substring(0, min(1999, it.length)) }

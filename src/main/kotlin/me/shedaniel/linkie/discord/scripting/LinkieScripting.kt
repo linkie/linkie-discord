@@ -84,28 +84,28 @@ object LinkieScripting {
     }
 
     fun eval(context: ScriptingContext, script: String) {
+        val engine = Context.newBuilder("js")
+            .allowExperimentalOptions(true)
+            .allowNativeAccess(false)
+            .allowIO(false)
+            .allowCreateProcess(false)
+            .allowEnvironmentAccess(EnvironmentAccess.NONE)
+            .allowHostClassLoading(false)
+            .allowHostAccess(HostAccess.newBuilder()
+                .allowArrayAccess(true)
+                .allowListAccess(true)
+                .build())
+            .option("js.console", "false")
+            .option("js.nashorn-compat", "true")
+            .option("js.experimental-foreign-object-prototype", "true")
+            .option("js.disable-eval", "true")
+            .option("js.load", "false")
+            .build()
         try {
             var t: Throwable? = null
             runBlocking {
                 withTimeout(3000) {
                     GlobalScope.launch(Dispatchers.IO) {
-                        val engine = Context.newBuilder("js")
-                            .allowExperimentalOptions(true)
-                            .allowNativeAccess(false)
-                            .allowIO(false)
-                            .allowCreateProcess(false)
-                            .allowEnvironmentAccess(EnvironmentAccess.NONE)
-                            .allowHostClassLoading(false)
-                            .allowHostAccess(HostAccess.newBuilder()
-                                .allowArrayAccess(true)
-                                .allowListAccess(true)
-                                .build())
-                            .option("js.console", "false")
-                            .option("js.nashorn-compat", "true")
-                            .option("js.experimental-foreign-object-prototype", "true")
-                            .option("js.disable-eval", "true")
-                            .option("js.load", "false")
-                            .build()
                         try {
                             engine.getBindings("js").also {
                                 it.removeMember("load")
@@ -125,6 +125,8 @@ object LinkieScripting {
             t?.let { throw it }
         } catch (throwable: Throwable) {
             throw throwable
+        } finally {
+            engine.close(true)
         }
     }
 }
