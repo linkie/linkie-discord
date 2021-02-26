@@ -22,6 +22,7 @@ import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.GuildMessageChannel
+import discord4j.core.`object`.entity.channel.NewsChannel
 import discord4j.rest.util.Permission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,7 +105,7 @@ object ChannelListeners {
                         val message = channel.sendMessage {
                             it.content = content
                         }.flatMap { 
-                            if (channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                            if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
                                 it.publish()
                             else Mono.just(it)
                         }
@@ -118,7 +119,7 @@ object ChannelListeners {
                     var mono: Mono<Message>? = null
                     channels.forEach { channel ->
                         val message = channel.sendEmbedMessage { runBlockingNoJs { content() } }.flatMap {
-                            if (channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                            if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
                                 it.publish()
                             else Mono.just(it)
                         }
