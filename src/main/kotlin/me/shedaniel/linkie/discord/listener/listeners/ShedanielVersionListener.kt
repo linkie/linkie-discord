@@ -7,7 +7,7 @@ object ShedanielVersionListener : MavenPomVersionListener() {
         listen("rei", "https://maven.shedaniel.me/me/shedaniel/RoughlyEnoughItems/maven-metadata.xml") { version, message ->
             message.sendEmbed {
                 setTitle("REI Update")
-                setDescription("New REI has been added: $version")
+                setDescription("New REI version has been added: $version")
                 setColor(Color.YELLOW)
             }.subscribe()
         }
