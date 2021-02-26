@@ -35,14 +35,6 @@ object ArchitecturyVersionListener : MavenPomVersionListener() {
                 setColor(Color.ORANGE)
             }.subscribe()
         }
-        
-        listen("plugin", "https://maven.shedaniel.me/architectury-plugin/architectury-plugin.gradle.plugin/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
-                setTitle("Architectury Plugin Update")
-                setDescription("New Architectury Plugin version has been added: $version")
-                setColor(Color.ORANGE)
-            }.subscribe()
-        }
 
         listen("loom", "https://maven.shedaniel.me/forgified-fabric-loom/forgified-fabric-loom.gradle.plugin/maven-metadata.xml") { version, message ->
             message.sendEmbed {

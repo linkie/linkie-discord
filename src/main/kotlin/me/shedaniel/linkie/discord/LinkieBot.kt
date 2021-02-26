@@ -66,6 +66,8 @@ import me.shedaniel.linkie.discord.listener.ChannelListeners
 import me.shedaniel.linkie.discord.listener.listeners.ArchitecturyVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.FabricMCVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
+import me.shedaniel.linkie.discord.listener.listeners.ModMenuVersionListener
+import me.shedaniel.linkie.discord.listener.listeners.ShedanielVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
@@ -219,4 +221,6 @@ fun registerListeners(listeners: ChannelListeners) {
     listeners["minecraft"] = MinecraftVersionListener
     listeners["fabricmc"] = FabricMCVersionListener
     listeners["architectury"] = ArchitecturyVersionListener
+    listeners["shedaniel"] = ShedanielVersionListener
+    listeners["modmenu"] = ModMenuVersionListener
 }
