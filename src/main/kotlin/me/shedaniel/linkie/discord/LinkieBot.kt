@@ -54,6 +54,7 @@ import me.shedaniel.linkie.discord.commands.QueryTranslateClassCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateFieldCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMethodCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
+import me.shedaniel.linkie.discord.commands.RemapAWATCommand
 import me.shedaniel.linkie.discord.commands.RemoveTrickCommand
 import me.shedaniel.linkie.discord.commands.RunTrickCommand
 import me.shedaniel.linkie.discord.commands.SetValueCommand
@@ -191,6 +192,8 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryTranslateClassCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpc")
     commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpm")
     commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpf")
+    
+    commands.registerCommand(RemapAWATCommand, "remapaccess")
 
     commands.registerCommand(HelpCommand, "help", "commands")
     commands.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
