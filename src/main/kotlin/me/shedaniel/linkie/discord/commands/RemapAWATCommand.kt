@@ -28,6 +28,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.CommandBase
@@ -41,6 +42,7 @@ import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.getObfMergedDesc
 import me.shedaniel.linkie.obfMergedName
 import me.shedaniel.linkie.optimumName
+import me.shedaniel.linkie.utils.remapDescriptor
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -111,16 +113,24 @@ object RemapAWATCommand : CommandBase {
             val sourceOwner = source.getClass(it.owner)!!
             val targetOwner = target.getClassByObfName(sourceOwner.obfMergedName!!)!!
             val copy = it.copy(owner = targetOwner.intermediaryName)
-            if (it.memberType == MemberType.CLASS) {
-                copy
-            } else {
-                val sourceMember = sourceOwner.members.first { member -> member.intermediaryName == it.member && member.intermediaryDesc == it.descriptor }
-                val targetMember = targetOwner.members.firstOrNull { member -> member.obfMergedName == sourceMember.obfMergedName && (member.intermediaryDesc.isBlank() || member.getObfMergedDesc(target) == sourceMember.getObfMergedDesc(source)) }
-                    ?: throw IllegalStateException("Failed to map $sourceMember to ${target.namespace}")
-                copy.copy(
-                    member = targetMember.intermediaryName,
-                    descriptor = targetMember.intermediaryDesc
+            when {
+                it.memberType == MemberType.CLASS -> copy
+                it.remapDescriptor -> copy.copy(
+                    descriptor = it.descriptor?.remapDescriptor {
+                        val sourceClass = source.getClass(it)!!
+                        val targetClass = target.getClassByObfName(sourceClass.obfMergedName!!)
+                        targetClass?.intermediaryName ?: it
+                    }
                 )
+                else -> {
+                    val sourceMember = sourceOwner.members.first { member -> member.intermediaryName == it.member && member.intermediaryDesc == it.descriptor }
+                    val targetMember = targetOwner.members.firstOrNull { member -> member.obfMergedName == sourceMember.obfMergedName && (member.intermediaryDesc.isBlank() || member.getObfMergedDesc(target) == sourceMember.getObfMergedDesc(source)) }
+                        ?: throw IllegalStateException("Failed to map $sourceMember to ${target.namespace}")
+                    copy.copy(
+                        member = targetMember.intermediaryName,
+                        descriptor = targetMember.intermediaryDesc
+                    )
+                }
             }
         }.toMutableSet())
     }
@@ -148,6 +158,15 @@ object RemapAWATCommand : CommandBase {
                             type = formatType,
                             owner = owner.intermediaryName,
                         )
+                    } else if (memberType == MemberType.METHOD && split[3] == "<init>") {
+                        format.members += FormatMember(
+                            memberType = memberType,
+                            type = formatType,
+                            owner = owner.intermediaryName,
+                            member = split[3],
+                            descriptor = split[4].remapDescriptor { mappings.getClassByMappedName(it)?.intermediaryName ?: it },
+                            remapDescriptor = true,
+                        )
                     } else {
                         val member = (if (memberType == MemberType.FIELD) owner.fields else owner.methods)
                             .firstOrNull { it.optimumName == split[3] && it.getMappedDesc(mappings) == split[4] }
@@ -166,6 +185,10 @@ object RemapAWATCommand : CommandBase {
             }
         }
         return format
+    }
+
+    fun MappingsContainer.getClassByMappedName(obf: String, ignoreCase: Boolean = false): Class? {
+        return classes.values.firstOrNull { it.mappedName?.equals(obf, ignoreCase = ignoreCase) == true }
     }
 
     private fun readAT(mappings: MappingsContainer, content: String): Format {
@@ -237,6 +260,7 @@ object RemapAWATCommand : CommandBase {
         val owner: String, // intermediary
         val member: String? = null, // intermediary
         val descriptor: String? = null, // intermediary
+        val remapDescriptor: Boolean = false,
     )
 
     private enum class MemberType {
