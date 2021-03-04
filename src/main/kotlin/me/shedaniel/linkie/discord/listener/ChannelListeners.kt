@@ -21,6 +21,7 @@ import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.GuildChannel
 import discord4j.core.`object`.entity.channel.GuildMessageChannel
 import discord4j.core.`object`.entity.channel.NewsChannel
 import discord4j.rest.util.Permission
@@ -79,6 +80,7 @@ object ChannelListeners {
                     }
                 }
             }.forEach { it.join() }
+            ConfigManager.save()
         }
     }
     
@@ -89,13 +91,20 @@ object ChannelListeners {
                 config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.let { channelIds ->
                     val guild = gateway.getGuildById(Snowflake.of(guildId)).blockOptional().get()
                     Flux.fromIterable(channelIds)
-                        .flatMap { guild.getChannelById(Snowflake.of(it)) }
+                        .flatMap { guild.getChannelById(Snowflake.of(it)).onErrorReturn(null) }
                         .filter { it is GuildMessageChannel }
                         .map { it as GuildMessageChannel }
                         .collectList()
                 }
             }.let { Flux.fromIterable(it) }.flatMap { it }
             val channels: List<GuildMessageChannel> = flux.collectList().block()?.flatten() ?: emptyList()
+            channels.groupBy { it.guildId }.forEach { (guildId, guildChannels) -> 
+                synchronized(ConfigManager) {
+                    ConfigManager[guildId.asLong()].listenerChannels[id] = guildChannels.asSequence()
+                        .map { it.id.asLong() }
+                        .toMutableSet()
+                }
+            }
             val message = object : MessageCreator {
                 override val executor: User? = null
                 override val executorMessage: Message? = null
