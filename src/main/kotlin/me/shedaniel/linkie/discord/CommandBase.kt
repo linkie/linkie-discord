@@ -78,6 +78,7 @@ fun MessageCreator.sendPages(
             }
             registerB("❌") {
                 msg.delete().subscribe()
+                executorMessage?.delete()?.subscribe()
                 false
             }
             if (maxPages > 1) register("➡") {
@@ -103,6 +104,7 @@ fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
 )
 
 interface MessageCreator {
+    val executorMessage: Message?
     val executor: User?
     
     fun send(content: String): Mono<Message>
@@ -111,17 +113,17 @@ interface MessageCreator {
 
 data class MessageCreatorImpl(
     val channel: MessageChannel,
-    var previous: Message,
+    override var executorMessage: Message,
     var message: Message?,
 ) : MessageCreator {
     override val executor: User?
-        get() = previous.author.getOrNull()
+        get() = executorMessage.author.getOrNull()
 
     override fun send(content: String): Mono<Message> {
         return if (message == null) {
             channel.sendMessage {
                 it.content = content
-                it.setMessageReference(previous.id)
+                it.setMessageReference(executorMessage.id)
             }
         } else {
             message!!.sendEdit {
@@ -132,7 +134,7 @@ data class MessageCreatorImpl(
 
     override fun sendEmbed(content: EmbedCreator): Mono<Message> {
         return if (message == null) {
-            channel.sendEmbedMessage(previous) { runBlockingNoJs { content() } }
+            channel.sendEmbedMessage(executorMessage) { runBlockingNoJs { content() } }
         } else {
             message!!.sendEditEmbed { runBlockingNoJs { content() } }
         }.doOnSuccess { message = it }

@@ -29,8 +29,8 @@ import me.shedaniel.linkie.utils.localiseFieldDesc
 
 object QueryMessageBuilder {
     fun buildHeader(spec: EmbedCreateSpec, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
-        if (metadata.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-        else setFooter("Requested by ${author.discriminatedName} • ${metadata.mappingSource}", author.avatarUrl)
+        if (metadata.mappingsSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • ${metadata.mappingsSource}", author.avatarUrl)
         setTimestampToNow()
         if (maxPage > 1) setTitle("List of ${metadata.name} Mappings for ${metadata.version} (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${metadata.name} Mappings for ${metadata.version}")

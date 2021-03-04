@@ -227,3 +227,7 @@ fun registerListeners(listeners: ChannelListeners) {
     listeners["shedaniel"] = ShedanielVersionListener
     listeners["modmenu"] = ModMenuVersionListener
 }
+
+fun registerSlashCommands() {
+    
+}

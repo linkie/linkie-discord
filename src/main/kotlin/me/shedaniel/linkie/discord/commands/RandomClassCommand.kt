@@ -64,6 +64,7 @@ object RandomClassCommand : CommandBase {
             buildReactions(mappingsContainer.timeToKeep) {
                 registerB("❌") {
                     msg.delete().subscribe()
+                    event.message.delete().subscribe()
                     false
                 }
                 register("🔁") {
@@ -91,8 +92,8 @@ object RandomClassCommand : CommandBase {
     private fun EmbedCreateSpec.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {
         val set = mutableSetOf<String>()
         for (i in 0 until count) randomIndex(mappingsContainer.classes, set)
-        if (mappingsContainer.mappingSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingSource}", author.avatarUrl)
+        if (mappingsContainer.mappingsSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingsSource}", author.avatarUrl)
         setTitle("List of Random ${mappingsContainer.name} Classes")
         var desc = ""
         set.sorted().map { mappingsContainer.classes[it]!! }.forEach { mappingsClass ->

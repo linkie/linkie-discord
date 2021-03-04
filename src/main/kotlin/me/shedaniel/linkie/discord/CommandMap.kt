@@ -53,6 +53,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                         buildReactions(Duration.ofMinutes(2)) {
                             registerB("❌") {
                                 message.delete().subscribe()
+                                event.message.delete().subscribe()
                                 false
                             }
                         }.build(message) { it == user.id }

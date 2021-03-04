@@ -98,6 +98,7 @@ object ChannelListeners {
             val channels: List<GuildMessageChannel> = flux.collectList().block()?.flatten() ?: emptyList()
             val message = object : MessageCreator {
                 override val executor: User? = null
+                override val executorMessage: Message? = null
 
                 override fun send(content: String): Mono<Message> {
                     var mono: Mono<Message>? = null

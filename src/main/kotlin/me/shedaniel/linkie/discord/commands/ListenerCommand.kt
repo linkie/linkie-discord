@@ -96,13 +96,16 @@ object ListenerCommand : SubCommandHolder() {
                         registerB("❌") {
                             deleted = true
                             it.delete().subscribe()
+                            event.message.delete().subscribe()
                             false
                         }
                     }.build(it) { it == user.id }
                     GlobalScope.launch {
                         delay(20000)
-                        if (!deleted)
+                        if (!deleted) {
                             it.delete().subscribe()
+                            event.message.delete().subscribe()
+                        }
                     }
                 }
             }
@@ -133,13 +136,16 @@ object ListenerCommand : SubCommandHolder() {
                         registerB("❌") {
                             deleted = true
                             it.delete().subscribe()
+                            event.message.delete().subscribe()
                             false
                         }
                     }.build(it) { it == user.id }
                     GlobalScope.launch {
                         delay(20000)
-                        if (!deleted)
+                        if (!deleted) {
                             it.delete().subscribe()
+                            event.message.delete().subscribe()
+                        }
                     }
                 }
             }
