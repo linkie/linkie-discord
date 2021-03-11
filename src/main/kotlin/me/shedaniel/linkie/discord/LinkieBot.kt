@@ -70,7 +70,10 @@ import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.ModMenuVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.ShedanielVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.event
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
@@ -118,9 +121,12 @@ fun main() {
             )
         )
     ) {
+        val slashCommands = SlashCommands()
         // register the commands
         registerCommands(CommandHandler)
         registerListeners(ChannelListeners)
+        registerSlashCommands(slashCommands)
+        slashCommands.register()
 
         event<ReadyEvent> {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
@@ -192,7 +198,7 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryTranslateClassCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpc")
     commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpm")
     commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpf")
-    
+
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 
     commands.registerCommand(HelpCommand, "help", "commands")
@@ -228,6 +234,37 @@ fun registerListeners(listeners: ChannelListeners) {
     listeners["modmenu"] = ModMenuVersionListener
 }
 
-fun registerSlashCommands() {
-    
+fun registerSlashCommands(commands: SlashCommands) {
+    commands.guildCommand(432055962233470986L, "linkie", "Base command for Linkie.") {
+        sub("help", "Display the link to Linkie help.").execute { command, cmd, interaction -> 
+            interaction.reply {
+                setTitle("Linkie Help Command")
+                setFooter("Requested by " + interaction.userDiscriminatedName, interaction.userAvatarUrl)
+                setTimestampToNow()
+                description = "View the list of commands at https://github.com/linkie/linkie-discord/wiki/Commands"
+            }
+        }
+    }
+
+    commands.guildCommand(432055962233470986L, "mappings", "Query mappings") {
+        Namespaces.namespaces.forEach { (namespaceId, namespace) ->
+            subGroup(namespaceId, "Query mappings from $namespaceId.") {
+                sub("class", "Query classes from $namespaceId.")
+                    .string("query", "The query filter")
+                    .string("version", "The version the mappings should target") { required(false) }
+                    .execute { command, cmd, interaction -> interaction.reply("LOL") }
+                sub("field", "Query fields from $namespaceId.")
+                    .string("query", "The query filter")
+                    .string("version", "The version the mappings should target") { required(false) }
+                    .execute { command, cmd, interaction -> interaction.acknowledge() }
+                sub("method", "Query methods from $namespaceId.")
+                    .string("query", "The query filter")
+                    .string("version", "The version the mappings should target") { required(false) }
+                    .execute { command, cmd, interaction -> interaction.acknowledge() }
+//                this.string("query", "The query filter")
+//                    .string("version", "The version the mappings should target") { required(false) }
+//                    .execute { command, cmd, interaction -> interaction.acknowledge() }
+            }
+        }
+    }
 }

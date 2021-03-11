@@ -94,7 +94,7 @@ object AddTrickCommand : CommandBase {
                 flags = flags
             )
         )
-        message.sendEmbed {
+        message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Added Trick")

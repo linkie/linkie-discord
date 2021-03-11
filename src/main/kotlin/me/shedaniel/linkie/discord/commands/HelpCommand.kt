@@ -29,7 +29,7 @@ import me.shedaniel.linkie.discord.validateEmpty
 object HelpCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateEmpty(prefix, cmd)
-        message.sendEmbed {
+        message.reply {
             setTitle("Linkie Help Command")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()

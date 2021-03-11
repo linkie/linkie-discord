@@ -21,7 +21,7 @@ import discord4j.rest.util.Color
 object ModMenuVersionListener : MavenPomVersionListener() {
     init {
         listen("modmenu", "https://maven.terraformersmc.com/releases/com/terraformersmc/modmenu/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Mod Menu Update")
                 setDescription("New Mod Menu version has been added: $version")
                 setColor(Color.BLUE)

@@ -37,7 +37,7 @@ object GetValueCommand : CommandBase {
         val config = ConfigManager[event.guildId.get().asLong()]
         val property = args[0].toLowerCase()
         val value = ConfigManager.getValueOf(config, property)
-        message.sendEmbed {
+        message.reply {
             setTitle("Value Get!")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()

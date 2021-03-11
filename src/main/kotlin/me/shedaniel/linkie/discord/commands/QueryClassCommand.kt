@@ -77,7 +77,7 @@ class QueryClassCommand(private val namespace: Namespace?) : CommandBase {
         message: MessageCreator,
         maxPage: AtomicInteger,
     ): QueryResult<MappingsMetadata, List<Class>> {
-        if (!provider.cached!!) message.sendEmbed {
+        if (!provider.cached!!) message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             buildSafeDescription {

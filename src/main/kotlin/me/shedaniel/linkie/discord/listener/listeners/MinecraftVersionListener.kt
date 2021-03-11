@@ -49,7 +49,7 @@ object MinecraftVersionListener : ChannelListener<MinecraftVersionListener.Minec
                     val isUnstable = type != "release" || id.tryToVersion() == null || id.toVersion().snapshot != null
 
                     if (newData.versions.put(id, url) != url && data != null) {
-                        message.sendEmbed {
+                        message.reply {
                             setTitle("Minecraft Update")
                             setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been released: $id")
 
@@ -69,7 +69,7 @@ object MinecraftVersionListener : ChannelListener<MinecraftVersionListener.Minec
                     val isUnstable = name.tryToVersion() == null || name.toVersion().snapshot != null
 
                     if (newData.issueTrackerVersions.put(name, id) != id && data != null) {
-                        message.sendEmbed {
+                        message.reply {
                             setTitle("Minecraft Update")
                             setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been added to the issue tracker: $id")
 

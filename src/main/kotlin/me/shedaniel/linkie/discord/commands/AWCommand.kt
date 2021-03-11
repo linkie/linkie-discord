@@ -29,7 +29,7 @@ import me.shedaniel.linkie.discord.validateEmpty
 object AWCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateEmpty(prefix, cmd)
-        message.sendEmbed {
+        message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Everything Access Widener")

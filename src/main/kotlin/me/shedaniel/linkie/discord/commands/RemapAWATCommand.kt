@@ -97,7 +97,7 @@ object RemapAWATCommand : CommandBase {
         }
         json.parseToJsonElement(con.inputStream.bufferedReader().readText()).apply {
             require(jsonObject["status"]?.jsonPrimitive?.content == "success") { "Failed to upload paste!" }
-            message.sendEmbed {
+            message.reply {
                 setTitle("Remapped Access")
                 setUrl("https://paste.gg/${jsonObject["result"]!!.jsonObject["id"]!!.jsonPrimitive.content}")
                 setDescription("""Remapped ${members.members.count { it.memberType == MemberType.CLASS }} classes,
@@ -239,7 +239,7 @@ object RemapAWATCommand : CommandBase {
                         list.take(20).joinToString(", ") + ", etc"
                     else list.joinToString(", ")
         }
-        if (!provider.cached!!) message.sendEmbed {
+        if (!provider.cached!!) message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             buildSafeDescription {

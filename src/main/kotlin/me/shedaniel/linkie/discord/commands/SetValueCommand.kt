@@ -39,7 +39,7 @@ object SetValueCommand : CommandBase {
         val value = args.asSequence().drop(1).joinToString(" ")
         ConfigManager.setValueOf(config, property, value)
         ConfigManager.save()
-        message.sendEmbed {
+        message.reply {
             setTitle("Successfully Set!")
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()

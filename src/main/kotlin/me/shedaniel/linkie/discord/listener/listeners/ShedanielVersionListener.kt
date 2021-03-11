@@ -21,7 +21,7 @@ import discord4j.rest.util.Color
 object ShedanielVersionListener : MavenPomVersionListener() {
     init {
         listen("rei", "https://maven.shedaniel.me/me/shedaniel/RoughlyEnoughItems/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("REI Update")
                 setDescription("New REI version has been added: $version")
                 setColor(Color.YELLOW)
@@ -29,7 +29,7 @@ object ShedanielVersionListener : MavenPomVersionListener() {
         }
 
         listen("cloth-config", "https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Cloth Config Update")
                 setDescription("New Cloth Config version has been added: $version")
                 setColor(Color.YELLOW)
@@ -37,7 +37,7 @@ object ShedanielVersionListener : MavenPomVersionListener() {
         }
 
         listen("cloth-api", "https://maven.shedaniel.me/me/shedaniel/cloth/api/cloth-api/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Cloth API Update")
                 setDescription("New Cloth API version has been added: $version")
                 setColor(Color.YELLOW)

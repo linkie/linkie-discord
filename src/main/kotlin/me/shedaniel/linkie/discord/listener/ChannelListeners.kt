@@ -20,10 +20,9 @@ import com.soywiz.klock.minutes
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.GuildChannel
 import discord4j.core.`object`.entity.channel.GuildMessageChannel
 import discord4j.core.`object`.entity.channel.NewsChannel
+import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,10 +35,10 @@ import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.content
+import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.utils.getMillis
-import me.shedaniel.linkie.utils.info
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.io.File
@@ -47,14 +46,14 @@ import java.io.File
 object ChannelListeners {
     private val listeners = mutableMapOf<String, ChannelListener<*>>()
     private val dir = File(File(System.getProperty("user.dir")), "listeners")
-    private val json = Json {  }
-    
+    private val json = Json { }
+
     operator fun <T> set(id: String, listener: ChannelListener<T>) {
         listeners[id] = listener
     }
 
     operator fun get(id: String): ChannelListener<*> = listeners[id] ?: throw NullPointerException("Unknown listener: $id\nKnown Listeners: " + listeners.keys.joinToString(", "))
-    
+
     fun init() {
         val cycleMs = 1.minutes.millisecondsLong
         var nextDelay = getMillis() - cycleMs
@@ -83,67 +82,58 @@ object ChannelListeners {
             ConfigManager.save()
         }
     }
-    
+
     private suspend fun <T> reloadListener(id: String, listener: ChannelListener<T>) {
         coroutineScope {
             val dataFile = File(dir, "$id.json")
-            val flux: Flux<MutableList<GuildMessageChannel>> = ConfigManager.configs.mapNotNull { (guildId, config) ->
-                config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.let { channelIds ->
-                    val guild = gateway.getGuildById(Snowflake.of(guildId)).blockOptional().get()
-                    Flux.fromIterable(channelIds)
-                        .flatMap { guild.getChannelById(Snowflake.of(it)).onErrorReturn(null) }
-                        .filter { it is GuildMessageChannel }
-                        .map { it as GuildMessageChannel }
-                        .collectList()
-                }
-            }.let { Flux.fromIterable(it) }.flatMap { it }
-            val channels: List<GuildMessageChannel> = flux.collectList().block()?.flatten() ?: emptyList()
-            channels.groupBy { it.guildId }.forEach { (guildId, guildChannels) -> 
-                synchronized(ConfigManager) {
-                    ConfigManager[guildId.asLong()].listenerChannels[id] = guildChannels.asSequence()
-                        .map { it.id.asLong() }
-                        .toMutableSet()
-                }
-            }
+            val simpleMessages = mutableListOf<String>()
+            val embedMessages = mutableListOf<EmbedCreator>()
             val message = object : MessageCreator {
-                override val executor: User? = null
+                override val executorId: Snowflake? = null
                 override val executorMessage: Message? = null
 
-                override fun send(content: String): Mono<Message> {
-                    var mono: Mono<Message>? = null
-                    channels.forEach { channel ->
-                        val message = channel.sendMessage {
-                            it.content = content
-                        }.flatMap { 
-                            if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
-                                it.publish()
-                            else Mono.just(it)
-                        }
-                        mono = if (mono == null) message
-                        else mono!!.then(message)
-                    }
-                    return mono ?: Mono.empty()
+                override fun reply(content: String): Mono<Message> {
+                    simpleMessages.add(content)
+                    return Mono.empty()
                 }
 
-                override fun sendEmbed(content: EmbedCreator): Mono<Message> {
-                    var mono: Mono<Message>? = null
-                    channels.forEach { channel ->
-                        val message = channel.sendEmbedMessage { runBlockingNoJs { content() } }.flatMap {
-                            if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
-                                it.publish()
-                            else Mono.just(it)
-                        }
-                        mono = if (mono == null) message
-                        else mono!!.then(message)
-                    }
-                    return mono ?: Mono.empty()
+                override fun reply(content: EmbedCreator): Mono<Message> {
+                    embedMessages.add(content)
+                    return Mono.empty()
                 }
             }
-            info("Updating data for $id")
+
             val data = listener.updateData(dataFile.takeIf(File::exists)?.let { json.decodeFromString(listener.serializer, it.readText()) }, message)
-            info("Updated data for $id")
             dataFile.parentFile.mkdirs()
             dataFile.writeText(json.encodeToString(listener.serializer, data))
+
+            if (simpleMessages.isNotEmpty() || embedMessages.isNotEmpty()) {
+                ConfigManager.configs.forEach { (guildId, config) ->
+                    val guild = gateway.getGuildById(Snowflake.of(guildId)).blockOptional().getOrNull()
+                    if (guild != null) {
+                        config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
+                            guild.getChannelById(Snowflake.of(channelId)).subscribe { channel ->
+                                simpleMessages.forEach { messageContent ->
+                                    (channel as TextChannel).sendMessage {
+                                        it.content = messageContent
+                                    }.flatMap {
+                                        if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                                            it.publish()
+                                        else Mono.just(it)
+                                    }.subscribe()
+                                }
+                                embedMessages.forEach { messageContent ->
+                                    (channel as TextChannel).sendEmbedMessage { runBlockingNoJs { messageContent() } }.flatMap {
+                                        if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
+                                            it.publish()
+                                        else Mono.just(it)
+                                    }.subscribe()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

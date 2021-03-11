@@ -59,7 +59,7 @@ object RandomClassCommand : CommandBase {
         require(count in 1..20) { "Invalid Amount: ${args[2]}" }
         val version = mappingsProvider.version!!
         val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message) }
-        message.sendEmbed { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
+        message.reply { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
             msg.tryRemoveAllReactions().block()
             buildReactions(mappingsContainer.timeToKeep) {
                 registerB("❌") {
@@ -68,7 +68,7 @@ object RandomClassCommand : CommandBase {
                     false
                 }
                 register("🔁") {
-                    message.sendEmbed { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
+                    message.reply { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
                 }
             }.build(msg, user)
         }
@@ -79,7 +79,7 @@ object RandomClassCommand : CommandBase {
         user: User,
         message: MessageCreator,
     ): MappingsContainer {
-        if (!provider.cached!!) message.sendEmbed {
+        if (!provider.cached!!) message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."

@@ -50,7 +50,7 @@ fun MessageCreator.sendPages(
     initialPage: Int,
     maxPages: Int,
     creator: suspend EmbedCreateSpec.(page: Int) -> Unit,
-) = sendPages(initialPage, maxPages, executor?.id, creator)
+) = sendPages(initialPage, maxPages, executorId, creator)
 
 fun MessageCreator.sendPages(
     initialPage: Int,
@@ -67,13 +67,13 @@ fun MessageCreator.sendPages(
 ) {
     var page = initialPage
     val builder = embedCreator { creator(this, page) }
-    sendEmbed(builder).subscribe { msg ->
+    reply(builder).subscribe { msg ->
         msg.tryRemoveAllReactions().block()
         buildReactions(Duration.ofMinutes(2)) {
             if (maxPages > 1) register("⬅") {
                 if (page > 0) {
                     page--
-                    sendEmbed(builder).subscribe()
+                    reply(builder).subscribe()
                 }
             }
             registerB("❌") {
@@ -84,7 +84,7 @@ fun MessageCreator.sendPages(
             if (maxPages > 1) register("➡") {
                 if (page < maxPages - 1) {
                     page++
-                    sendEmbed(builder).subscribe()
+                    reply(builder).subscribe()
                 }
             }
         }.build(msg) { it == userId }
@@ -105,10 +105,10 @@ fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
 
 interface MessageCreator {
     val executorMessage: Message?
-    val executor: User?
+    val executorId: Snowflake?
     
-    fun send(content: String): Mono<Message>
-    fun sendEmbed(content: EmbedCreator): Mono<Message>
+    fun reply(content: String): Mono<Message>
+    fun reply(content: EmbedCreator): Mono<Message>
 }
 
 data class MessageCreatorImpl(
@@ -116,10 +116,10 @@ data class MessageCreatorImpl(
     override var executorMessage: Message,
     var message: Message?,
 ) : MessageCreator {
-    override val executor: User?
-        get() = executorMessage.author.getOrNull()
+    override val executorId: Snowflake?
+        get() = executorMessage.author.getOrNull()?.id
 
-    override fun send(content: String): Mono<Message> {
+    override fun reply(content: String): Mono<Message> {
         return if (message == null) {
             channel.sendMessage {
                 it.content = content
@@ -132,7 +132,7 @@ data class MessageCreatorImpl(
         }.doOnSuccess { message = it }
     }
 
-    override fun sendEmbed(content: EmbedCreator): Mono<Message> {
+    override fun reply(content: EmbedCreator): Mono<Message> {
         return if (message == null) {
             channel.sendEmbedMessage(executorMessage) { runBlockingNoJs { content() } }
         } else {
@@ -206,7 +206,7 @@ inline suspend fun <T> MessageCreator.getCatching(user: User, run: suspend () ->
         return run()
     } catch (t: Throwable) {
         try {
-            if (t !is SuppressedException) sendEmbed { generateThrowable(t, user) }.subscribe()
+            if (t !is SuppressedException) reply { generateThrowable(t, user) }.subscribe()
             throw SuppressedException()
         } catch (throwable2: Throwable) {
             throwable2.addSuppressed(t)

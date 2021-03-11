@@ -42,7 +42,7 @@ object FabricDramaCommand : CommandBase {
         val jsonObject = json.parseToJsonElement(jsonText).jsonObject
         val text = jsonObject["drama"]!!.jsonPrimitive.content
         val permLink = "https://fabric-drama.herokuapp.com/${jsonObject["version"]!!.jsonPrimitive.content}/${jsonObject["seed"]!!.jsonPrimitive.content}"
-        message.sendEmbed {
+        message.reply {
             setTitle("${user.username} starts a drama!")
             setUrl(permLink)
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)

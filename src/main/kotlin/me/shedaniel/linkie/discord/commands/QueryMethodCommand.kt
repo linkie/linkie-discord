@@ -78,7 +78,7 @@ class QueryMethodCommand(private val namespace: Namespace?) : CommandBase {
         hasClass: Boolean = searchKey.contains('/'),
         hasWildcard: Boolean = (hasClass && searchKey.substring(0, searchKey.lastIndexOf('/')).onlyClass() == "*") || searchKey.onlyClass('/') == "*",
     ): QueryResult<MappingsContainer, List<Pair<Class, Method>>> {
-        if (!provider.cached!! || hasWildcard) message.sendEmbed {
+        if (!provider.cached!! || hasWildcard) message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             var desc = "Searching up methods for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."

@@ -23,7 +23,7 @@ import me.shedaniel.linkie.utils.tryToVersion
 object FabricMCVersionListener : MavenPomVersionListener() {
     init {
         listen("intermediary", "https://maven.fabricmc.net/net/fabricmc/intermediary/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 val isUnstable = version.tryToVersion() == null || version.toVersion().snapshot == null
                 setTitle("Fabric Intermediary Update")
                 setDescription("New Intermediary ${if (isUnstable) "snapshot" else "release"} has been added: $version")
@@ -32,7 +32,7 @@ object FabricMCVersionListener : MavenPomVersionListener() {
         }
 
         listen("installer", "https://maven.fabricmc.net/net/fabricmc/fabric-installer/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Fabric Installer Update")
                 setDescription("New Fabric Installer version has been added: $version")
                 setColor(Color.GRAY)
@@ -41,7 +41,7 @@ object FabricMCVersionListener : MavenPomVersionListener() {
 
         listen("loom", "https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml") { version, message ->
             if (version.endsWith("SNAPSHOT")) return@listen
-            message.sendEmbed {
+            message.reply {
                 setTitle("Fabric Loom Update")
                 setDescription("New Fabric Loom version has been added: $version")
                 setColor(Color.GRAY)
@@ -49,7 +49,7 @@ object FabricMCVersionListener : MavenPomVersionListener() {
         }
 
         listen("loader", "https://maven.fabricmc.net/net/fabricmc/fabric-loader/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Fabric Loader Update")
                 setDescription("New Fabric Loader version has been added: $version")
                 setColor(Color.GRAY)
@@ -57,7 +57,7 @@ object FabricMCVersionListener : MavenPomVersionListener() {
         }
 
         listen("yarn", "https://maven.fabricmc.net/net/fabricmc/yarn/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Yarn Update")
                 setDescription("New Yarn version has been added: $version")
                 setColor(Color.GRAY)
@@ -65,7 +65,7 @@ object FabricMCVersionListener : MavenPomVersionListener() {
         }
 
         listen("api", "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Fabric API Update")
                 setDescription("New Fabric API version has been added: $version")
                 setColor(Color.GRAY)

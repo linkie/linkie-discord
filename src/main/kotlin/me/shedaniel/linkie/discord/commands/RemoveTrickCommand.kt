@@ -38,7 +38,7 @@ object RemoveTrickCommand : CommandBase {
         val trick = TricksManager[name to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$name`")
         require(event.member.get().canManageTrick(trick)) { "You don't have permission to manage this trick!" }
         TricksManager.removeTrick(trick)
-        message.sendEmbed {
+        message.reply {
             setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
             setTimestampToNow()
             setTitle("Removed Trick")

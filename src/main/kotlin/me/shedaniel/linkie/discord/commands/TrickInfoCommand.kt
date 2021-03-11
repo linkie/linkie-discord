@@ -37,7 +37,7 @@ object TrickInfoCommand : CommandBase {
         args.validateUsage(prefix, 1, "$cmd <trick>")
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        message.sendEmbed {
+        message.reply {
             setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
             setTimestampToNow()
             setTitle("Trick Info")

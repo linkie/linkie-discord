@@ -27,7 +27,7 @@ import java.net.URLEncoder
 object GoogleCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateNotEmpty(prefix, "$cmd <query>")
-        message.send("https://letmegooglethat.com/?q=" + args.joinToString(" ").escapeHTML()).subscribe()
+        message.reply("https://letmegooglethat.com/?q=" + args.joinToString(" ").escapeHTML()).subscribe()
     }
 
     private fun String.escapeHTML(): String {

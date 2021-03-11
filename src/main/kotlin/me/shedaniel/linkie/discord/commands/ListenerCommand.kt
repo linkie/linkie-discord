@@ -86,7 +86,7 @@ object ListenerCommand : SubCommandHolder() {
             } else {
                 channels.add(channelId)
                 ConfigManager.save()
-                message.sendEmbed {
+                message.reply {
                     setTitle("Listener added")
                     setDescription("You have successfully added listener id `${args[0].toLowerCase()}`.\nThis message will self-destruct in 20 seconds to keep this channel clean.\n" +
                             "Or alternatively you can just click that ❌ emote.")
@@ -126,7 +126,7 @@ object ListenerCommand : SubCommandHolder() {
             } else {
                 channels.remove(channelId)
                 ConfigManager.save()
-                message.sendEmbed {
+                message.reply {
                     setTitle("Listener removed")
                     setDescription("You have successfully removed listener id `${args[0].toLowerCase()}`.\nThis message will self-destruct in 20 seconds to keep this channel clean.\n" +
                             "Or alternatively you can just click that ❌ emote.")

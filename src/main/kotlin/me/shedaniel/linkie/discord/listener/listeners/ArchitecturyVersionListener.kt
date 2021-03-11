@@ -21,7 +21,7 @@ import discord4j.rest.util.Color
 object ArchitecturyVersionListener : MavenPomVersionListener() {
     init {
         listen("plugin", "https://maven.shedaniel.me/me/shedaniel/architectury-plugin/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Architectury Plugin Update")
                 setDescription("New Architectury Plugin version has been added: $version")
                 setColor(Color.ORANGE)
@@ -29,7 +29,7 @@ object ArchitecturyVersionListener : MavenPomVersionListener() {
         }
 
         listen("transformer", "https://maven.shedaniel.me/me/shedaniel/architectury-transformer/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Architectury Transformer Update")
                 setDescription("New Architectury Transformer version has been added: $version")
                 setColor(Color.ORANGE)
@@ -37,7 +37,7 @@ object ArchitecturyVersionListener : MavenPomVersionListener() {
         }
 
         listen("api", "https://maven.shedaniel.me/me/shedaniel/architectury/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Architectury API Update")
                 setDescription("New Architectury API version has been added: $version")
                 setColor(Color.ORANGE)
@@ -45,7 +45,7 @@ object ArchitecturyVersionListener : MavenPomVersionListener() {
         }
 
         listen("api-snapshot", "https://maven.shedaniel.me/me/shedaniel/architectury-snapshot/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Architectury API Update")
                 setDescription("New Architectury API snapshot has been added: $version")
                 setColor(Color.ORANGE)
@@ -53,7 +53,7 @@ object ArchitecturyVersionListener : MavenPomVersionListener() {
         }
 
         listen("loom", "https://maven.shedaniel.me/forgified-fabric-loom/forgified-fabric-loom.gradle.plugin/maven-metadata.xml") { version, message ->
-            message.sendEmbed {
+            message.reply {
                 setTitle("Architectury Loom Update")
                 setDescription("New Architectury Loom version has been added: $version")
                 setColor(Color.ORANGE)

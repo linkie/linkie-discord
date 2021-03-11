@@ -40,7 +40,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateUsage(prefix, 0..1, "$cmd [version|list|first]")
         if (!dataKeeper.isInitialized()) {
-            message.sendEmbed {
+            message.reply {
                 setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
                 setTimestampToNow()
                 buildSafeDescription {
@@ -73,7 +73,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
         }
         require(data.versions.contains(gameVersion)) { "Invalid Version Specified: $gameVersion\nYou may list the versions available by using `$prefix$cmd list`" }
         val version = data[gameVersion]
-        message.sendEmbed {
+        message.reply {
             setTitle(getTitle(version.version))
             buildString {
                 if (data.versions.first() != latestVersion) {
@@ -86,7 +86,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
                     version.version == latestVersion -> addInlineField("Type", "Release (Latest)")
                     else -> addInlineField("Type", "Release")
                 }
-                version.appendData()(this@sendEmbed, this)
+                version.appendData()(this@reply, this)
             }.takeIf { it.isNotBlank() }?.also {
                 setSafeDescription(it)
             }
