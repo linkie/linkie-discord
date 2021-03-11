@@ -109,8 +109,7 @@ object ChannelListeners {
 
             if (simpleMessages.isNotEmpty() || embedMessages.isNotEmpty()) {
                 ConfigManager.configs.forEach { (guildId, config) ->
-                    val guild = gateway.getGuildById(Snowflake.of(guildId)).blockOptional().getOrNull()
-                    if (guild != null) {
+                    gateway.getGuildById(Snowflake.of(guildId)).subscribe { guild ->
                         config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
                             guild.getChannelById(Snowflake.of(channelId)).subscribe { channel ->
                                 simpleMessages.forEach { messageContent ->
