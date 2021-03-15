@@ -49,7 +49,12 @@ object ConfigManager {
     fun save() {
         configs.forEach { (guildId, config) ->
             val configFile = File(configsFolder, "$guildId.json")
-            configFile.writeText(json.encodeToString(GuildConfig.serializer(), config))
+            val text = json.encodeToString(GuildConfig.serializer(), config)
+            if (text.length > 2) {
+                configFile.writeText(text)
+            } else {
+                configFile.delete()
+            }
         }
     }
 

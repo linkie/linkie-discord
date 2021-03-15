@@ -20,7 +20,6 @@ import com.soywiz.klock.minutes
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.GuildMessageChannel
 import discord4j.core.`object`.entity.channel.NewsChannel
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
@@ -35,11 +34,10 @@ import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.content
-import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.utils.getMillis
-import reactor.core.publisher.Flux
+import me.shedaniel.linkie.utils.info
 import reactor.core.publisher.Mono
 import java.io.File
 
@@ -108,6 +106,7 @@ object ChannelListeners {
             dataFile.writeText(json.encodeToString(listener.serializer, data))
 
             if (simpleMessages.isNotEmpty() || embedMessages.isNotEmpty()) {
+                info("Logging channel listener for ID $id")
                 ConfigManager.configs.forEach { (guildId, config) ->
                     gateway.getGuildById(Snowflake.of(guildId)).subscribe { guild ->
                         config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
