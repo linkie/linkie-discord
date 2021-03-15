@@ -20,6 +20,8 @@ import com.soywiz.klock.minutes
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.channel.GuildMessageChannel
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.channel.NewsChannel
 import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
@@ -112,7 +114,7 @@ object ChannelListeners {
                         config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
                             guild.getChannelById(Snowflake.of(channelId)).subscribe { channel ->
                                 simpleMessages.forEach { messageContent ->
-                                    (channel as TextChannel).sendMessage {
+                                    (channel as MessageChannel).sendMessage {
                                         it.content = messageContent
                                     }.flatMap {
                                         if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
@@ -121,7 +123,7 @@ object ChannelListeners {
                                     }.subscribe()
                                 }
                                 embedMessages.forEach { messageContent ->
-                                    (channel as TextChannel).sendEmbedMessage { runBlockingNoJs { messageContent() } }.flatMap {
+                                    (channel as MessageChannel).sendEmbedMessage { runBlockingNoJs { messageContent() } }.flatMap {
                                         if (channel is NewsChannel && channel.getEffectivePermissions(gateway.selfId).block()?.contains(Permission.MANAGE_MESSAGES) == true)
                                             it.publish()
                                         else Mono.just(it)
