@@ -41,19 +41,23 @@ object ConfigManager {
         configsFolder.listFiles { _, name -> name.endsWith(".json") }?.forEach { configFile ->
             tempConfigs[configFile.nameWithoutExtension.toLong()] = json.decodeFromString(GuildConfig.serializer(), configFile.readText())
         }
-        configs.clear()
-        configs.putAll(tempConfigs)
+        synchronized(configs) {
+            configs.clear()
+            configs.putAll(tempConfigs)
+        }
         save()
     }
 
     fun save() {
-        configs.forEach { (guildId, config) ->
-            val configFile = File(configsFolder, "$guildId.json")
-            val text = json.encodeToString(GuildConfig.serializer(), config)
-            if (text.length > 2) {
-                configFile.writeText(text)
-            } else {
-                configFile.delete()
+        synchronized(configs) {
+            configs.forEach { (guildId, config) ->
+                val configFile = File(configsFolder, "$guildId.json")
+                val text = json.encodeToString(GuildConfig.serializer(), config)
+                if (text.length > 2) {
+                    configFile.writeText(text)
+                } else {
+                    configFile.delete()
+                }
             }
         }
     }
@@ -72,7 +76,9 @@ object ConfigManager {
     fun setValueOf(guildConfig: GuildConfig, property: String, value: String) =
         (getConfigValueHandler(property) ?: throw NullPointerException("Invalid Property: `$property`")).set(guildConfig, value)
 
-    operator fun get(guildId: Long): GuildConfig = configs.getOrPut(guildId) { GuildConfig() }
+    operator fun get(guildId: Long): GuildConfig = synchronized(configs) {
+        configs.getOrPut(guildId) { GuildConfig() }
+    }
 
     private fun simpleValue(property: String, configValue: ConfigValue): ConfigValueProvider =
         object : ConfigValueProvider {

@@ -20,10 +20,8 @@ import com.soywiz.klock.minutes
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.channel.GuildMessageChannel
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.entity.channel.NewsChannel
-import discord4j.core.`object`.entity.channel.TextChannel
 import discord4j.rest.util.Permission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,10 +107,22 @@ object ChannelListeners {
 
             if (simpleMessages.isNotEmpty() || embedMessages.isNotEmpty()) {
                 info("Logging channel listener for ID $id")
-                ConfigManager.configs.forEach { (guildId, config) ->
-                    gateway.getGuildById(Snowflake.of(guildId)).subscribe { guild ->
-                        config.listenerChannels[id]?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
-                            guild.getChannelById(Snowflake.of(channelId)).subscribe { channel ->
+                synchronized(ConfigManager.configs) {
+                    ConfigManager.configs.toMap()
+                }.forEach { (guildId, config) ->
+                    gateway.getGuildById(Snowflake.of(guildId)).doOnError {
+                        synchronized(ConfigManager.configs) {
+                            ConfigManager.configs.remove(guildId)
+                        }
+                        ConfigManager.save()
+                    }.subscribe { guild ->
+                        config.listenerChannels[id]?.toSet()?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
+                            guild.getChannelById(Snowflake.of(channelId)).doOnError {
+                                synchronized(ConfigManager.configs) {
+                                    config.listenerChannels.remove(id)
+                                }
+                                ConfigManager.save()
+                            }.subscribe { channel ->
                                 simpleMessages.forEach { messageContent ->
                                     (channel as MessageChannel).sendMessage {
                                         it.content = messageContent

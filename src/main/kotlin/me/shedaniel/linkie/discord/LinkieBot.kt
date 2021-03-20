@@ -71,7 +71,6 @@ import me.shedaniel.linkie.discord.listener.listeners.ModMenuVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.ShedanielVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
@@ -236,7 +235,7 @@ fun registerListeners(listeners: ChannelListeners) {
 
 fun registerSlashCommands(commands: SlashCommands) {
     commands.guildCommand(432055962233470986L, "linkie", "Base command for Linkie.") {
-        sub("help", "Display the link to Linkie help.").execute { command, cmd, interaction -> 
+        sub("help", "Display the link to Linkie help.").execute { command, cmd, interaction ->
             interaction.reply {
                 setTitle("Linkie Help Command")
                 setFooter("Requested by " + interaction.userDiscriminatedName, interaction.userAvatarUrl)
