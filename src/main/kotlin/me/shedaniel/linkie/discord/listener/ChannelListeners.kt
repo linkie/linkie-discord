@@ -115,14 +115,14 @@ object ChannelListeners {
                             ConfigManager.configs.remove(guildId)
                         }
                         ConfigManager.save()
-                    }.subscribe { guild ->
+                    }.doOnSuccess { guild ->
                         config.listenerChannels[id]?.toSet()?.takeIf { it.isNotEmpty() }?.forEach { channelId ->
                             guild.getChannelById(Snowflake.of(channelId)).doOnError {
                                 synchronized(ConfigManager.configs) {
                                     config.listenerChannels.remove(id)
                                 }
                                 ConfigManager.save()
-                            }.subscribe { channel ->
+                            }.doOnSuccess { channel ->
                                 simpleMessages.forEach { messageContent ->
                                     (channel as MessageChannel).sendMessage {
                                         it.content = messageContent
@@ -139,9 +139,9 @@ object ChannelListeners {
                                         else Mono.just(it)
                                     }.subscribe()
                                 }
-                            }
+                            }.subscribe()
                         }
-                    }
+                    }.subscribe()
                 }
             }
         }
