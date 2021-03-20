@@ -42,6 +42,7 @@ object MinecraftVersionListener : ChannelListener<MinecraftVersionListener.Minec
         runBlocking {
             launch {
                 val versions = json.parseToJsonElement(URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").readText()).jsonObject["versions"]!!.jsonArray
+                val reportVersion = mutableListOf<Pair<String, Boolean>>()
                 versions.forEach { versionElement ->
                     val id = versionElement.jsonObject["id"]!!.jsonPrimitive.content
                     val type = versionElement.jsonObject["type"]!!.jsonPrimitive.content
@@ -49,18 +50,22 @@ object MinecraftVersionListener : ChannelListener<MinecraftVersionListener.Minec
                     val isUnstable = type != "release" || id.tryToVersion() == null || id.toVersion().snapshot != null
 
                     if (newData.versions.put(id, url) != url && data != null) {
-                        message.reply {
-                            setTitle("Minecraft Update")
-                            setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been released: $id")
-
-                            setColor(Color.GREEN)
-                        }.subscribe()
+                        reportVersion.add(id to isUnstable)
                     }
+                }
+                reportVersion.mapNotNull { it.first.tryToVersion()?.to(it) }.maxByOrNull { it.first }?.second?.also { (version, isUnstable) ->
+                    message.reply {
+                        setTitle("Minecraft Update")
+                        setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been released: $version")
+
+                        setColor(Color.GREEN)
+                    }.subscribe()
                 }
             }
 
             launch {
                 val versions = json.parseToJsonElement(URL("https://bugs.mojang.com/rest/api/latest/project/MC/versions").readText()).jsonArray
+                val reportVersion = mutableListOf<Pair<String, Pair<String, Boolean>>>()
                 versions.forEach { versionElement ->
                     if (!versionElement.jsonObject["released"]!!.jsonPrimitive.boolean) return@forEach
                     val name = versionElement.jsonObject["name"]!!.jsonPrimitive.content.removePrefix("Minecraft ")
@@ -69,13 +74,16 @@ object MinecraftVersionListener : ChannelListener<MinecraftVersionListener.Minec
                     val isUnstable = name.tryToVersion() == null || name.toVersion().snapshot != null
 
                     if (newData.issueTrackerVersions.put(name, id) != id && data != null) {
-                        message.reply {
-                            setTitle("Minecraft Update")
-                            setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been added to the issue tracker: $id")
-
-                            setColor(Color.GREEN)
-                        }.subscribe()
+                        reportVersion.add(id to (name to isUnstable))
                     }
+                }
+                reportVersion.mapNotNull { it.first.toIntOrNull()?.to(it) }.maxByOrNull { it.first }?.second?.second?.also { (version, isUnstable) ->
+                    message.reply {
+                        setTitle("Minecraft Update")
+                        setDescription("New Minecraft ${if (isUnstable) "snapshot" else "release"} has been added to the issue tracker: $version")
+
+                        setColor(Color.GREEN)
+                    }.subscribe()
                 }
             }
         }

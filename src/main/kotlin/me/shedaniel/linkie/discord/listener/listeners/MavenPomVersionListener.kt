@@ -54,7 +54,7 @@ open class MavenPomVersionListener : ChannelListener<MavenPomVersionListener.Pom
         runBlocking {
             mavenListeners.forEach { (id, listener) ->
                 launch {
-                    val newVersions = mutableSetOf<Version>()
+                    val newVersions = mutableSetOf<Pair<Version, String>>()
                     val containsKey = newData.mavens.containsKey(id)
                     val mavenData = newData.mavens.getOrPut(id, ::mutableSetOf)
                     val rootElement = SAXReader().read(listener.mavenPomURL.readText().byteInputStream()).rootElement
@@ -69,13 +69,13 @@ open class MavenPomVersionListener : ChannelListener<MavenPomVersionListener.Pom
                                 if (version.tryToVersion() == null) {
                                     listener.messageSender(version, message)
                                 } else {
-                                    newVersions.add(version.toVersion())
+                                    newVersions.add(version.toVersion() to version)
                                 }
                             }
                         }
 
                     if (newVersions.isNotEmpty()) {
-                        val latest = newVersions.maxOrNull()!!.toString()
+                        val latest = newVersions.maxByOrNull { it.first }!!.second
                         listener.messageSender(latest, message)
                     }
                 }
