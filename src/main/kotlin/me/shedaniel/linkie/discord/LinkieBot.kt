@@ -120,12 +120,12 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands()
+//        val slashCommands = SlashCommands()
         // register the commands
         registerCommands(CommandHandler)
         registerListeners(ChannelListeners)
-        registerSlashCommands(slashCommands)
-        slashCommands.register()
+//        registerSlashCommands(slashCommands)
+//        slashCommands.register()
 
         event<ReadyEvent> {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
@@ -233,6 +233,7 @@ fun registerListeners(listeners: ChannelListeners) {
     listeners["modmenu"] = ModMenuVersionListener
 }
 
+/*
 fun registerSlashCommands(commands: SlashCommands) {
     commands.guildCommand(432055962233470986L, "linkie", "Base command for Linkie.") {
         sub("help", "Display the link to Linkie help.").execute { command, cmd, interaction ->
@@ -267,3 +268,4 @@ fun registerSlashCommands(commands: SlashCommands) {
         }
     }
 }
+*/

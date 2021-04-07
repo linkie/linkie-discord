@@ -16,6 +16,7 @@
 
 package me.shedaniel.linkie.discord
 
+/*
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
@@ -409,3 +410,4 @@ interface SlashCommandOption : SlashCommandOptionAcceptor {
             get() = 8
     }
 }
+*/

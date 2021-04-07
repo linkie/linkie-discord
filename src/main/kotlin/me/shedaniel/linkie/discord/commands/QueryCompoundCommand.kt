@@ -97,9 +97,9 @@ class QueryCompoundCommand(private val namespace: Namespace?) : CommandBase {
                 searchKey = searchKey,
             )
             val result: MutableList<ResultHolder<*>> = mutableListOf()
-            var classes: ClassResultSequence? = null
-            var methods: MethodResultSequence? = null
-            var fields: FieldResultSequence? = null
+            var classes: ClassResultList? = null
+            var methods: MethodResultList? = null
+            var fields: FieldResultList? = null
             runBlocking {
                 launch {
                     try {
