@@ -21,9 +21,8 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
 object HelpCommand : CommandBase {
@@ -31,8 +30,7 @@ object HelpCommand : CommandBase {
         args.validateEmpty(prefix, cmd)
         message.reply {
             setTitle("Linkie Help Command")
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             description = "View the list of commands at https://github.com/linkie/linkie-discord/wiki/Commands"
         }.subscribe()
     }

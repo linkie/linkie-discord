@@ -21,10 +21,9 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateAdmin
 import me.shedaniel.linkie.discord.validateInGuild
 import me.shedaniel.linkie.discord.validateUsage
@@ -41,8 +40,7 @@ object SetValueCommand : CommandBase {
         ConfigManager.save()
         message.reply {
             setTitle("Successfully Set!")
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             description = "The value of property `$property` is now set to `$value`."
         }.subscribe()
     }

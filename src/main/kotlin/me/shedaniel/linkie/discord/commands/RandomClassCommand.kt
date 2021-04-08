@@ -27,10 +27,9 @@ import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.ValueKeeper
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.utils.tryRemoveAllReactions
 import me.shedaniel.linkie.discord.validateGuild
 import me.shedaniel.linkie.discord.validateNamespace
@@ -80,8 +79,7 @@ object RandomClassCommand : CommandBase {
         message: MessageCreator,
     ): MappingsContainer {
         if (!provider.cached!!) message.reply {
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
@@ -92,8 +90,6 @@ object RandomClassCommand : CommandBase {
     private fun EmbedCreateSpec.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {
         val set = mutableSetOf<String>()
         for (i in 0 until count) randomIndex(mappingsContainer.classes, set)
-        if (mappingsContainer.mappingsSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-        else setFooter("Requested by ${author.discriminatedName} • ${mappingsContainer.mappingsSource}", author.avatarUrl)
         setTitle("List of Random ${mappingsContainer.name} Classes")
         var desc = ""
         set.sorted().map { mappingsContainer.classes[it]!! }.forEach { mappingsClass ->
@@ -102,7 +98,7 @@ object RandomClassCommand : CommandBase {
             desc += mappingsClass.mappedName ?: mappingsClass.intermediaryName
         }
         description = desc
-        setTimestampToNow()
+        basicEmbed(author, mappingsContainer.mappingsSource?.toString())
     }
 
     private fun randomIndex(range: MutableMap<String, Class>, set: MutableSet<String>) {

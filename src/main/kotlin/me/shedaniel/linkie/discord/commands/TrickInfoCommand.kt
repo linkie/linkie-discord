@@ -21,13 +21,12 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 import java.time.Instant
 
@@ -38,8 +37,7 @@ object TrickInfoCommand : CommandBase {
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
         message.reply {
-            setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             setTitle("Trick Info")
             addField("Name", trick.name)
             addInlineField("Author", "<@${trick.author}>")

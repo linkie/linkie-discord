@@ -22,12 +22,11 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.sendPages
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
-import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setSafeDescription
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 import me.shedaniel.linkie.discord.valueKeeper
 import java.time.Duration
@@ -41,8 +40,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
         args.validateUsage(prefix, 0..1, "$cmd [version|list|first]")
         if (!dataKeeper.isInitialized()) {
             message.reply {
-                setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                setTimestampToNow()
+                basicEmbed(user)
                 buildSafeDescription {
                     append("Searching up version data.\n\nIf you are stuck with this message, please do the command again and report the issue on the issue tracker.")
                 }

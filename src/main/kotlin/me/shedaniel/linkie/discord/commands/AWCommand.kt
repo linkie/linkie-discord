@@ -21,17 +21,15 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
 object AWCommand : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         args.validateEmpty(prefix, cmd)
         message.reply {
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             setTitle("Everything Access Widener")
             description = "https://github.com/shedaniel/linkie-everythingaccesswidener/releases/tag/accesswideners"
         }.subscribe()

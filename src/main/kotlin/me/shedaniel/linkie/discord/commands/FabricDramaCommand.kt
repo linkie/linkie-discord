@@ -24,9 +24,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 import java.net.URL
 
@@ -45,8 +44,7 @@ object FabricDramaCommand : CommandBase {
         message.reply {
             setTitle("${user.username} starts a drama!")
             setUrl(permLink)
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             description = text
         }.subscribe()
     }

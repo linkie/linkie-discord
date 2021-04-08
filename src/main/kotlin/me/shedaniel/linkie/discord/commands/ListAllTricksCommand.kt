@@ -23,13 +23,12 @@ import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.ValueKeeper
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.sendPages
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 import me.shedaniel.linkie.utils.dropAndTake
 import java.time.Duration
@@ -51,8 +50,7 @@ object ListAllTricksCommand : CommandBase {
     }
 
     private fun EmbedCreateSpec.buildMessage(tricks: List<Trick>, page: Int, user: User, maxPage: Int) {
-        setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
-        setTimestampToNow()
+        basicEmbed(user)
         if (maxPage > 1) setTitle("Tricks by everyone (Page ${page + 1}/$maxPage)")
         else setTitle("Tricks by everyone")
         tricks.dropAndTake(page * 5, 5).forEach { trick ->

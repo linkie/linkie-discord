@@ -27,14 +27,13 @@ import kotlinx.coroutines.launch
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.SubCommandHolder
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.listener.ChannelListeners
 import me.shedaniel.linkie.discord.sendPages
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateAdmin
 import me.shedaniel.linkie.discord.validateInGuild
 import me.shedaniel.linkie.discord.validateUsage
@@ -56,8 +55,7 @@ object ListenerCommand : SubCommandHolder() {
             val listened = config.listenerChannels.filterValues { channelIds -> channelId in channelIds }.keys.toList().sorted()
             val maxPage = ceil(listened.size / 10.0).toInt()
             message.sendPages(0, listened.size / 10, user) { page ->
-                setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
-                setTimestampToNow()
+                basicEmbed(user)
                 if (maxPage > 1) setTitle("List of Listeners (Page ${page + 1}/$maxPage)")
                 else setTitle("List of Listeners")
                 buildSafeDescription {

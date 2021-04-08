@@ -24,9 +24,7 @@ import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.discord.utils.buildReactions
-import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import java.time.Duration
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
@@ -93,8 +91,7 @@ interface CommandAcceptor {
 fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {
     setTitle("Linkie Error")
     setColor(Color.RED)
-    user?.apply { setFooter("Requested by $discriminatedName", avatarUrl) }
-    setTimestampToNow()
+    basicEmbed(user)
     when {
         throwable is org.graalvm.polyglot.PolyglotException -> {
             val details = throwable.localizedMessage ?: ""

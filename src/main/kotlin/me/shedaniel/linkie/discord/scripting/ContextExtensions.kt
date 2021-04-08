@@ -26,6 +26,7 @@ import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Permission
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
@@ -34,7 +35,6 @@ import me.shedaniel.linkie.discord.utils.sendEdit
 import me.shedaniel.linkie.discord.utils.sendEditEmbed
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.sendMessage
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validatePermissions
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyArray
@@ -149,8 +149,7 @@ object ContextExtensions {
                     messageObj(evalContext, channel.sendEmbedMessage {
                         if (size == 2) setTitle(first().getAsString())
                         description = last().getAsString()
-                        setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-                        setTimestampToNow()
+                        basicEmbed(user)
                     }.block()!!, user, false)
                 } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
@@ -202,10 +201,7 @@ object ContextExtensions {
                     messageObj(evalContext, message.sendEditEmbed {
                         if (size == 2) setTitle(first().getAsString())
                         description = last().getAsString().let { it.substring(0, min(1999, it.length)) }
-                        user?.apply {
-                            setFooter("Requested by $discriminatedName", avatarUrl)
-                        }
-                        setTimestampToNow()
+                        basicEmbed(user)
                     }.block()!!, user, false)
                 } else null
             }

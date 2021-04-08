@@ -33,9 +33,8 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateUsage
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getMappedDesc
@@ -240,8 +239,7 @@ object RemapAWATCommand : CommandBase {
                     else list.joinToString(", ")
         }
         if (!provider.cached!!) message.reply {
-            setFooter("Requested by " + user.discriminatedName, user.avatarUrl)
-            setTimestampToNow()
+            basicEmbed(user)
             buildSafeDescription {
                 append("Searching up mappings for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again.")
                 if (!provider.cached!!) append("\nThis mappings version is not yet cached, might take some time to download.")

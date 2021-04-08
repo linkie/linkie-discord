@@ -22,9 +22,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.CommandBase
 import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.validateEmpty
 
 object NamespacesCommand : CommandBase {
@@ -32,9 +31,8 @@ object NamespacesCommand : CommandBase {
         args.validateEmpty(prefix, cmd)
         message.reply {
             setTitle("List of Namespaces")
-            setFooter("Requested by ${user.discriminatedName}", user.avatarUrl)
             description = Namespaces.namespaces.keys.joinToString(", ")
-            setTimestampToNow()
+            basicEmbed(user)
         }.subscribe()
     }
 }

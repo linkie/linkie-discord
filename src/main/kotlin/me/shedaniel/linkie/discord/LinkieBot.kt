@@ -30,6 +30,7 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.LinkieConfig
+import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.AWCommand
 import me.shedaniel.linkie.discord.commands.AboutCommand
@@ -46,12 +47,10 @@ import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
 import me.shedaniel.linkie.discord.commands.ListenerCommand
 import me.shedaniel.linkie.discord.commands.NamespacesCommand
-import me.shedaniel.linkie.discord.commands.QueryClassCommand
-import me.shedaniel.linkie.discord.commands.QueryCompoundCommand
-import me.shedaniel.linkie.discord.commands.QueryFieldCommand
-import me.shedaniel.linkie.discord.commands.QueryMethodCommand
+import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateClassCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateFieldCommand
+import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMethodCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
 import me.shedaniel.linkie.discord.commands.RemapAWATCommand
@@ -70,9 +69,7 @@ import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.ModMenuVersionListener
 import me.shedaniel.linkie.discord.listener.listeners.ShedanielVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
-import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.event
-import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
@@ -137,66 +134,72 @@ fun main() {
 private operator fun File.div(s: String): File = File(this, s)
 
 fun registerCommands(commands: CommandHandler) {
-    commands.registerCommand(QueryCompoundCommand(null), "mapping")
-    commands.registerCommand(QueryClassCommand(null), "c", "class")
-    commands.registerCommand(QueryMethodCommand(null), "m", "method")
-    commands.registerCommand(QueryFieldCommand(null), "f", "field")
+    commands.registerCommand(QueryMappingsCommand(null, *MappingsEntryType.values()), "mapping")
+    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.CLASS), "c", "class")
+    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")
+    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.FIELD), "f", "field")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["yarn"]), "y", "yarn")
-    commands.registerCommand(QueryClassCommand(Namespaces["yarn"]), "yc", "yarnc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["yarn"]), "ym", "yarnm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["yarn"]), "yf", "yarnf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), "y", "yarn")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.CLASS), "yc", "yarnc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.METHOD), "ym", "yarnm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.FIELD), "yf", "yarnf")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["legacy-yarn"]), "ly", "legacy-yarn")
-    commands.registerCommand(QueryClassCommand(Namespaces["legacy-yarn"]), "lyc", "legacy-yarnc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["legacy-yarn"]), "lym", "legacy-yarnm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["legacy-yarn"]), "lyf", "legacy-yarnf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], *MappingsEntryType.values()), "ly", "legacy-yarn")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.CLASS), "lyc", "legacy-yarnc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.METHOD), "lym", "legacy-yarnm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.FIELD), "lyf", "legacy-yarnf")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["yarrn"]), "yarrn")
-    commands.registerCommand(QueryClassCommand(Namespaces["yarrn"]), "yrc", "yarrnc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["yarrn"]), "yrm", "yarrnm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["yarrn"]), "yrf", "yarnrf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], *MappingsEntryType.values()), "yarrn")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.CLASS), "yrc", "yarrnc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.METHOD), "yrm", "yarrnm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.FIELD), "yrf", "yarnrf")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["mcp"]), "mcp")
-    commands.registerCommand(QueryClassCommand(Namespaces["mcp"]), "mcpc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["mcp"]), "mcpm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["mcp"]), "mcpf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], *MappingsEntryType.values()), "mcp")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.CLASS), "mcpc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.METHOD), "mcpm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.FIELD), "mcpf")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["mojang"]), "mm", "mojmap")
-    commands.registerCommand(QueryClassCommand(Namespaces["mojang"]), "mmc", "mojmapc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["mojang"]), "mmm", "mojmapm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["mojang"]), "mmf", "mojmapm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], *MappingsEntryType.values()), "mm", "mojmap")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.CLASS), "mmc", "mojmapc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.METHOD), "mmm", "mojmapm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.FIELD), "mmf", "mojmapm")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["plasma"]), "plasma")
-    commands.registerCommand(QueryClassCommand(Namespaces["plasma"]), "plasmac")
-    commands.registerCommand(QueryMethodCommand(Namespaces["plasma"]), "plasmam")
-    commands.registerCommand(QueryFieldCommand(Namespaces["plasma"]), "plasmaf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], *MappingsEntryType.values()), "plasma")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.CLASS), "plasmac")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf")
 
-    commands.registerCommand(QueryCompoundCommand(Namespaces["mojang_srg"]), "mms", "mojmaps")
-    commands.registerCommand(QueryClassCommand(Namespaces["mojang_srg"]), "mmsc", "mojmapsc")
-    commands.registerCommand(QueryMethodCommand(Namespaces["mojang_srg"]), "mmsm", "mojmapsm")
-    commands.registerCommand(QueryFieldCommand(Namespaces["mojang_srg"]), "mmsf", "mojmapsm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), "mms", "mojmaps")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
 
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefyc", "voldec", "vc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefym", "voldem", "vm")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["yarn"], Namespaces["mcp"]), "voldefyf", "voldef", "vf")
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["mcp"], Namespaces["yarn"]), "devoldefyc", "devoldec", "dvc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mcp"], Namespaces["yarn"]), "devoldefym", "devoldem", "dvm")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mcp"], Namespaces["yarn"]), "devoldefyf", "devoldef", "dvf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), "voldefy", "volde", "v", "ymcp")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.CLASS), "voldefyc", "voldec", "vc", "ymcpc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.METHOD), "voldefym", "voldem", "vm", "ymcpm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.FIELD), "voldefyf", "voldef", "vf", "ymcpf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], *MappingsEntryType.values()), "devoldefy", "devolde", "dv", "mcpy")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.CLASS), "devoldefyc", "devoldec", "dvc", "mcpyc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.METHOD), "devoldefym", "devoldem", "dvm", "mcpym")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.FIELD), "devoldefyf", "devoldef", "dvf", "mcpyf")
 
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["yarn"], Namespaces["mojang"]), "ymmc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["yarn"], Namespaces["mojang"]), "ymmm")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["yarn"], Namespaces["mojang"]), "ymmf")
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["mojang"], Namespaces["yarn"]), "mmyc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mojang"], Namespaces["yarn"]), "mmym")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mojang"], Namespaces["yarn"]), "mmyf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], *MappingsEntryType.values()), "ymm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.CLASS), "ymmc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.METHOD), "ymmm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.FIELD), "ymmf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], *MappingsEntryType.values()), "mmy")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.CLASS), "mmyc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.METHOD), "mmym")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.FIELD), "mmyf")
 
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["mcp"], Namespaces["mojang"]), "mcpmmc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mcp"], Namespaces["mojang"]), "mcpmmm")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mcp"], Namespaces["mojang"]), "mcpmmf")
-    commands.registerCommand(QueryTranslateClassCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpc")
-    commands.registerCommand(QueryTranslateMethodCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpm")
-    commands.registerCommand(QueryTranslateFieldCommand(Namespaces["mojang"], Namespaces["mcp"]), "mmmcpf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf")
 
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 

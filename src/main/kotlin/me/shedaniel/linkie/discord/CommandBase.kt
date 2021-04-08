@@ -26,17 +26,20 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.InvalidUsageException
+import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.content
+import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.sendEdit
 import me.shedaniel.linkie.discord.utils.sendEditEmbed
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import me.shedaniel.linkie.discord.utils.sendMessage
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.discord.utils.tryRemoveAllReactions
 import reactor.core.publisher.Mono
 import java.time.Duration
@@ -97,6 +100,17 @@ interface CommandBase {
     fun postRegister() {}
 }
 
+fun EmbedCreateSpec.basicEmbed(
+    author: User?,
+    footerSuffix: String? = null,
+) {
+    if (author != null) {
+        if (footerSuffix == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
+        else setFooter("Requested by ${author.discriminatedName} • $footerSuffix", author.avatarUrl)
+    }
+    setTimestampToNow()
+}
+
 fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
     this,
     previous,
@@ -106,7 +120,7 @@ fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
 interface MessageCreator {
     val executorMessage: Message?
     val executorId: Snowflake?
-    
+
     fun reply(content: String): Mono<Message>
     fun reply(content: EmbedCreator): Mono<Message>
 }

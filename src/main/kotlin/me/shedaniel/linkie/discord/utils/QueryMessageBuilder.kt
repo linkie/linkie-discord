@@ -24,19 +24,41 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.getMappedDesc
+import me.shedaniel.linkie.utils.ResultHolder
+import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.localiseFieldDesc
 
 object QueryMessageBuilder {
+    fun buildMessage(spec: EmbedCreateSpec, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
+        buildHeader(spec, mappings, page, author, maxPage)
+        spec.buildSafeDescription {
+            var isFirst = true
+            results.dropAndTake(4 * page, 4).forEach { (value, _) ->
+                if (isFirst) {
+                    isFirst = false
+                } else {
+                    appendLine().appendLine()
+                }
+                when {
+                    value is Class -> buildClass(this, namespace, value)
+                    value is Pair<*, *> && value.second is Field ->
+                        buildField(this, namespace, value.second as Field, value.first as Class, mappings as? MappingsContainer)
+                    value is Pair<*, *> && value.second is Method ->
+                        buildMethod(this, namespace, value.second as Method, value.first as Class, mappings as? MappingsContainer)
+                }
+            }
+        }
+    }
+
     fun buildHeader(spec: EmbedCreateSpec, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
-        if (metadata.mappingsSource == null) setFooter("Requested by ${author.discriminatedName}", author.avatarUrl)
-        else setFooter("Requested by ${author.discriminatedName} • ${metadata.mappingsSource}", author.avatarUrl)
-        setTimestampToNow()
+        basicEmbed(author, metadata.mappingsSource?.toString())
         if (maxPage > 1) setTitle("List of ${metadata.name} Mappings for ${metadata.version} (Page ${page + 1}/$maxPage)")
         else setTitle("List of ${metadata.name} Mappings for ${metadata.version}")
     }
 
-    fun buildClass(builder: StringBuilder, namespace: Namespace, classEntry: Class, mappings: MappingsMetadata) = builder.apply {
+    fun buildClass(builder: StringBuilder, namespace: Namespace, classEntry: Class) = builder.apply {
         appendLine("**Class: __${classEntry.optimumName}__**")
         append("__Name__: ")
         append(classEntry.obfName.buildString(nonEmptySuffix = " => "))
@@ -49,34 +71,50 @@ object QueryMessageBuilder {
         }
     }
 
-    fun buildField(builder: StringBuilder, namespace: Namespace, field: Field, parent: Class, mappings: MappingsContainer) = builder.apply {
-        val mappedDesc = field.getMappedDesc(mappings)
-        appendLine("**Field: ${parent.optimumName}#__${field.optimumName}__**")
+    fun buildField(
+        builder: StringBuilder,
+        namespace: Namespace,
+        field: Field,
+        parent: Class,
+        mappings: MappingsContainer?,
+    ) = buildField(builder, namespace, field, parent.optimumName, mappings)
+
+    fun buildField(
+        builder: StringBuilder,
+        namespace: Namespace,
+        field: Field,
+        parent: String,
+        mappings: MappingsContainer?,
+    ) = builder.apply {
+        appendLine("**Field: $parent#__${field.optimumName}__**")
         append("__Name__: ")
         append(field.obfName.buildString(nonEmptySuffix = " => "))
         append("`${field.intermediaryName}`")
         append(field.mappedName.mapIfNotNullOrNotEquals(field.intermediaryName) { " => `$it`" } ?: "")
+
+        if (mappings == null) return@apply
+        val mappedDesc = field.getMappedDesc(mappings)
         if (namespace.supportsFieldDescription()) {
             appendLine().append("__Type__: ")
             append(mappedDesc.localiseFieldDesc())
         }
         if (namespace.supportsMixin()) {
             appendLine().append("__Mixin Target__: `")
-            append("L${parent.optimumName};")
+            append("L$parent;")
             append(field.optimumName)
             append(':')
             append(mappedDesc)
             append('`')
         }
         if (namespace.supportsAT()) {
-            appendLine().append("__AT__: `public ${parent.optimumName.replace('/', '.')} ")
+            appendLine().append("__AT__: `public ${parent.replace('/', '.')} ")
             append(field.intermediaryName)
             append(" # ")
             append(field.optimumName)
             append('`')
         } else if (namespace.supportsAW()) {
             appendLine().append("__AW__: `accessible field ")
-            append(parent.optimumName)
+            append(parent)
             append(' ')
             append(field.optimumName)
             append(' ')
@@ -85,22 +123,38 @@ object QueryMessageBuilder {
         }
     }
 
-    fun buildMethod(builder: StringBuilder, namespace: Namespace, method: Method, parent: Class, mappings: MappingsContainer) = builder.apply {
-        val mappedDesc = method.getMappedDesc(mappings)
-        appendLine("**Method: ${parent.optimumName}#__${method.optimumName}__**")
+    fun buildMethod(
+        builder: StringBuilder,
+        namespace: Namespace,
+        method: Method,
+        parent: Class,
+        mappings: MappingsContainer?,
+    ) = buildMethod(builder, namespace, method, parent.optimumName, mappings)
+
+    fun buildMethod(
+        builder: StringBuilder,
+        namespace: Namespace,
+        method: Method,
+        parent: String,
+        mappings: MappingsContainer?,
+    ) = builder.apply {
+        appendLine("**Method: $parent#__${method.optimumName}__**")
         append("__Name__: ")
         append(method.obfName.buildString(nonEmptySuffix = " => "))
         append("`${method.intermediaryName}`")
         append(method.mappedName.mapIfNotNullOrNotEquals(method.intermediaryName) { " => `$it`" } ?: "")
+
+        if (mappings == null) return@apply
+        val mappedDesc = method.getMappedDesc(mappings)
         if (namespace.supportsMixin()) {
             appendLine().append("__Mixin Target__: `")
-            append("L${parent.optimumName};")
+            append("L$parent;")
             append(method.optimumName)
             append(mappedDesc)
             append('`')
         }
         if (namespace.supportsAT()) {
-            appendLine().append("__AT__: `public ${parent.optimumName.replace('/', '.')} ")
+            appendLine().append("__AT__: `public ${parent.replace('/', '.')} ")
             append(method.intermediaryName)
             append(mappedDesc)
             append(" # ")
@@ -108,7 +162,7 @@ object QueryMessageBuilder {
             append('`')
         } else if (namespace.supportsAW()) {
             appendLine().append("__AW__: `accessible method ")
-            append(parent.optimumName)
+            append(parent)
             append(' ')
             append(method.optimumName)
             append(' ')
