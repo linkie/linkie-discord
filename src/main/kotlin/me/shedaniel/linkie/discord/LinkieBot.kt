@@ -48,10 +48,7 @@ import me.shedaniel.linkie.discord.commands.ListTricksCommand
 import me.shedaniel.linkie.discord.commands.ListenerCommand
 import me.shedaniel.linkie.discord.commands.NamespacesCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
-import me.shedaniel.linkie.discord.commands.QueryTranslateClassCommand
-import me.shedaniel.linkie.discord.commands.QueryTranslateFieldCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
-import me.shedaniel.linkie.discord.commands.QueryTranslateMethodCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
 import me.shedaniel.linkie.discord.commands.RemapAWATCommand
 import me.shedaniel.linkie.discord.commands.RemoveTrickCommand
