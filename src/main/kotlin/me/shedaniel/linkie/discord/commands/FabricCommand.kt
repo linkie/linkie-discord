@@ -19,6 +19,7 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.spec.EmbedCreateSpec
 import kotlinx.serialization.json.*
 import me.shedaniel.cursemetaapi.CurseMetaAPI
+import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.utils.tryToVersion
 import java.net.URL
@@ -104,9 +105,19 @@ object FabricCommand : AbstractPlatformVersionCommand<FabricCommand.FabricVersio
             addInlineField("Loader Version", loaderVersion)
             addInlineField("Installer Version", installerVersion)
             addInlineField("Yarn Version", yarnVersion)
+            val fapiDescription: String
             if (apiVersion != null) {
                 addInlineField("Api Version", apiVersion!!.version)
+                fapiDescription = "\n\nfabric_version=${apiVersion!!.version}"
+            } else {
+                fapiDescription = ""
             }
+            addField("gradle.properties", """```
+                |minecraft_version=$version
+                |yarn_mappings=$yarnVersion
+                |loader_version=$loaderVersion$fapiDescription
+                |```
+            """.trimMargin())
         }
     }
 

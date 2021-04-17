@@ -45,7 +45,6 @@ import me.shedaniel.linkie.discord.commands.GoogleCommand
 import me.shedaniel.linkie.discord.commands.HelpCommand
 import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
-import me.shedaniel.linkie.discord.commands.ListenerCommand
 import me.shedaniel.linkie.discord.commands.NamespacesCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
@@ -59,12 +58,6 @@ import me.shedaniel.linkie.discord.commands.TricksCommand
 import me.shedaniel.linkie.discord.commands.ValueCommand
 import me.shedaniel.linkie.discord.commands.ValueListCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.listener.ChannelListeners
-import me.shedaniel.linkie.discord.listener.listeners.ArchitecturyVersionListener
-import me.shedaniel.linkie.discord.listener.listeners.FabricMCVersionListener
-import me.shedaniel.linkie.discord.listener.listeners.MinecraftVersionListener
-import me.shedaniel.linkie.discord.listener.listeners.ModMenuVersionListener
-import me.shedaniel.linkie.discord.listener.listeners.ShedanielVersionListener
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
@@ -117,7 +110,6 @@ fun main() {
 //        val slashCommands = SlashCommands()
         // register the commands
         registerCommands(CommandHandler)
-        registerListeners(ChannelListeners)
 //        registerSlashCommands(slashCommands)
 //        slashCommands.register()
 
@@ -125,7 +117,6 @@ fun main() {
             gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
         }
     }
-    ChannelListeners.init()
 }
 
 private operator fun File.div(s: String): File = File(this, s)
@@ -222,15 +213,6 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
     commands.registerCommand(GoogleCommand, "google")
-    commands.registerCommand(ListenerCommand, "listener")
-}
-
-fun registerListeners(listeners: ChannelListeners) {
-    listeners["minecraft"] = MinecraftVersionListener
-    listeners["fabricmc"] = FabricMCVersionListener
-    listeners["architectury"] = ArchitecturyVersionListener
-    listeners["shedaniel"] = ShedanielVersionListener
-    listeners["modmenu"] = ModMenuVersionListener
 }
 
 /*
