@@ -21,6 +21,7 @@ import kotlinx.serialization.json.*
 import me.shedaniel.cursemetaapi.CurseMetaAPI
 import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.tryToVersion
 import java.net.URL
 
@@ -105,19 +106,32 @@ object FabricCommand : AbstractPlatformVersionCommand<FabricCommand.FabricVersio
             addInlineField("Loader Version", loaderVersion)
             addInlineField("Installer Version", installerVersion)
             addInlineField("Yarn Version", yarnVersion)
+            val fapiGradle: String
             val fapiDescription: String
             if (apiVersion != null) {
                 addInlineField("Api Version", apiVersion!!.version)
-                fapiDescription = "\n\nfabric_version=${apiVersion!!.version}"
+                fapiDescription = "\n\n# Fabric API\nfabric_version=${apiVersion!!.version}"
+                fapiGradle = "\n\n    // Fabric API\n    modImplementation \"net.fabricmc.fabric-api:fabric-api:${apiVersion!!.version}\""
             } else {
+                fapiGradle = ""
                 fapiDescription = ""
             }
+            addField("build.gradle", """```
+                |dependencies {
+                |    minecraft "com.mojang:minecraft:$version"
+                |    mappings "net.fabricmc:yarn:$yarnVersion:v2"
+                |    modImplementation "net.fabricmc:fabric-loader:$loaderVersion"$fapiGradle
+                |}
+                |```""".trimMargin())
             addField("gradle.properties", """```
                 |minecraft_version=$version
                 |yarn_mappings=$yarnVersion
                 |loader_version=$loaderVersion$fapiDescription
+                |```""".trimMargin())
+            addField("Mappings Migration", """Learn more at [Fabric Wiki](https://fabricmc.net/wiki/tutorial:migratemappings).
                 |```
-            """.trimMargin())
+                |gradlew migrateMappings --mappings "$yarnVersion"
+                |```""".trimMargin())
         }
     }
 
