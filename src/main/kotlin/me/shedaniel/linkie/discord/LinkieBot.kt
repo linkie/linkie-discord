@@ -152,10 +152,10 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.METHOD), "mmm", "mojmapm")
     commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.FIELD), "mmf", "mojmapm")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], *MappingsEntryType.values()), "plasma")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.CLASS), "plasmac")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], *MappingsEntryType.values()), "plasma", "pl")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.CLASS), "plasmac", "plc")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam", "plm")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf", "plf")
 
     commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), "mms", "mojmaps")
     commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
