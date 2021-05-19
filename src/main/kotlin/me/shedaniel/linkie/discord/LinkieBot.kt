@@ -18,6 +18,9 @@
 
 package me.shedaniel.linkie.discord
 
+import com.soywiz.klock.TimeSpan
+import com.soywiz.klock.minutes
+import com.soywiz.klock.seconds
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.lifecycle.ReadyEvent
@@ -27,7 +30,10 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.MappingsEntryType
@@ -67,6 +73,8 @@ import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
+import me.shedaniel.linkie.utils.getMillis
+import me.shedaniel.linkie.utils.info
 import java.io.File
 import java.util.*
 
@@ -114,7 +122,29 @@ fun main() {
 //        slashCommands.register()
 
         event<ReadyEvent> {
-            gateway.updatePresence(Presence.online(Activity.watching("cool mappings"))).subscribe()
+            cycle(5.minutes, delay = 5.seconds) {
+                gateway.guilds.count().subscribe { size ->
+                    info("Serving on $size servers")
+                    gateway.updatePresence(Presence.online(Activity.watching("Serving on $size servers"))).subscribe()
+                }
+            }
+        }
+    }
+}
+
+fun cycle(time: TimeSpan, delay: TimeSpan = TimeSpan.ZERO, doThing: CoroutineScope.() -> Unit) {
+    val cycleMs = time.millisecondsLong
+
+    var nextDelay = getMillis() - cycleMs + delay.millisecondsLong
+    CoroutineScope(Dispatchers.Default).launch {
+        while (true) {
+            if (getMillis() > nextDelay + cycleMs) {
+                launch {
+                    doThing()
+                }
+                nextDelay = getMillis()
+            }
+            delay(1000)
         }
     }
 }
