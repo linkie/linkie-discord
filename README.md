@@ -8,6 +8,11 @@ The discord side of linkie.
 ### Library
 - [linkie-core](https://github.com/shedaniel/linkie-core)
 
+### Contributing Global Tricks
+Global tricks are in the `tricks` directory, you may submit tricks by PRs.
+
+There is a [TypeScript .d.ts](https://github.com/linkie/linkie-discord/blob/master/linkie.d.ts) that you may use.
+
 ### Inviting your server
 Do `!about` in any server Linkie is in.
 

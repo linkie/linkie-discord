@@ -1,0 +1,2 @@
+validateArgsEmpty()
+channel.sendMessage("Pong!")

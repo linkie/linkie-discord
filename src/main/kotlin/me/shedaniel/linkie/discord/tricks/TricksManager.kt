@@ -16,17 +16,30 @@
 
 package me.shedaniel.linkie.discord.tricks
 
+import discord4j.common.util.Snowflake
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import me.shedaniel.linkie.utils.ZipFile
 import me.shedaniel.linkie.utils.error
+import me.shedaniel.linkie.utils.info
 import java.io.File
 import java.util.*
 
 object TricksManager {
+    val globalTricks = mutableMapOf<String, GlobalTrick>()
     val tricks = mutableMapOf<UUID, Trick>()
     private val tricksFolder get() = File(File(System.getProperty("user.dir")), "tricks").also { it.mkdirs() }
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+    }
+
+    fun get(trickName: String, guildId: Snowflake?): TrickBase {
+        if (guildId != null) {
+            val trick = get(trickName to guildId.asLong())
+            if (trick != null) return trick
+        }
+        return globalTricks[trickName.toLowerCase()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
     }
 
     fun load() {
@@ -38,9 +51,41 @@ object TricksManager {
                 error("Invalid tricks file: " + trickFile.name)
             }
         }
+        val tempGlobalTricks = mutableMapOf<String, GlobalTrick>()
+        runBlocking {
+            readGlobalTrick {
+                tempGlobalTricks[it.name] = it
+            }
+        }
+        info("Loaded ${tempGlobalTricks.size} global tricks")
         tricks.clear()
         tricks.putAll(tempTricks)
+        globalTricks.clear()
+        globalTricks.putAll(tempGlobalTricks)
         save()
+    }
+
+    private suspend fun readGlobalTrick(function: (trick: GlobalTrick) -> Unit) {
+        val stream = javaClass.getResourceAsStream("/global-tricks.zip")
+        if (stream != null) {
+            ZipFile(stream.readBytes()).forEachEntry { path, entry ->
+                if (path.endsWith(".js")) {
+                    function(GlobalTrick(
+                        path.substringAfterLast('/').substringBeforeLast(".js"),
+                        entry.bytes.decodeToString()
+                    ))
+                }
+            }
+        } else {
+            File(System.getProperty("user.dir"), "tricks").walkTopDown().forEach { file ->
+                if (file.extension == "js") {
+                    function(GlobalTrick(
+                        file.nameWithoutExtension,
+                        file.readText()
+                    ))
+                }
+            }
+        }
     }
 
     fun save() {

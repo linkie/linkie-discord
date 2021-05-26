@@ -1,0 +1,1 @@
+engine.runGlobalTrick("help")

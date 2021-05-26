@@ -34,17 +34,17 @@ object RunTrickCommand : CommandBase {
         args.validateUsage(prefix, 1, "$cmd <trick>")
         val trickName = args.first()
         val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        LinkieScripting.evalTrick(EvalContext(
+        val evalContext = EvalContext(
+            prefix,
+            cmd,
             event,
             trick.flags,
-            args
-        ), channel, trick) {
+            args,
+            parent = false,
+        )
+        LinkieScripting.evalTrick(evalContext, message, trick) {
             LinkieScripting.simpleContext.push {
-                ContextExtensions.commandContexts(EvalContext(
-                    event,
-                    trick.flags,
-                    args
-                ), user, channel, this)
+                ContextExtensions.commandContexts(evalContext, user, channel, message, this)
             }
         }
     }

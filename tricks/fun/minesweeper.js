@@ -1,15 +1,17 @@
 let UNICODE = [":boom:", ":zero:", ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:"]
 
-if (args.length < 2)
-    throw "Invalid Usage! [width] [height]"
+if (args.length < 2) {
+    throw "Invalid Usage! <width> <height>"
+}
 
 let spoiler = true
 let width = parseInt(args[0])
 let height = parseInt(args[1])
 let pointCount = 20
 
-if (width < 2 || width > 20 || height < 2 || height > 20)
+if (width < 2 || width > 20 || height < 2 || height > 20) {
     throw "The size of the board must be between 2x2 and 20x20!"
+}
 
 let points = []
 
@@ -71,6 +73,7 @@ formatRow = function (row) {
     }
     return formatted
 }
+
 let result = ""
 for (let row of grid) {
     result = result + formatRow(row) + "\n"

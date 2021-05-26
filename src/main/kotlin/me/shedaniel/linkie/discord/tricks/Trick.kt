@@ -35,19 +35,42 @@ import me.shedaniel.linkie.discord.scripting.getAsString
 import me.shedaniel.linkie.discord.scripting.validateArgs
 import java.util.*
 
+interface TrickBase {
+    val name: String
+    val content: String
+    val contentType: ContentType
+    val flags: List<Char>
+    val requirePermissionForFlags: Boolean
+}
+
 @Serializable
 data class Trick(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val name: String,
+    override val name: String,
     val guildId: Long,
     val author: Long,
     val creation: Long,
     val modified: Long,
-    val contentType: ContentType,
-    val flags: List<Char> = emptyList(),
-    val content: String,
-)
+    override val contentType: ContentType,
+    override val flags: List<Char> = emptyList(),
+    override val content: String,
+) : TrickBase {
+    override val requirePermissionForFlags: Boolean
+        get() = true
+}
+
+data class GlobalTrick(
+    override val name: String,
+    override val content: String,
+) : TrickBase {
+    override val contentType: ContentType
+        get() = ContentType.SCRIPT
+    override val flags: List<Char>
+        get() = TrickFlags.flags.keys.toList()
+    override val requirePermissionForFlags: Boolean
+        get() = false
+}
 
 object TrickFlags {
     val flags = mutableMapOf<Char, Flag>()

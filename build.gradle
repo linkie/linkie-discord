@@ -3,7 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version("1.5.0")
     id("java")
     id("com.github.johnrengelman.shadow") version("7.0.0")
-    id("net.minecrell.licenser") version("0.4.1")
+    id("org.cadixdev.licenser") version("0.6.0")
 }
 
 group "me.shedaniel"
@@ -20,7 +20,13 @@ license {
 
 configurations {
     shadow {
-        extendsFrom(runtimeClasspath)
+        extendsFrom(implementation)
+    }
+}
+
+sourceSets {
+    tricks {
+        resources.srcDirs += rootProject.file("tricks")
     }
 }
 
@@ -69,7 +75,23 @@ dependencies {
 //    compile("org.graalvm.truffle:truffle-api:20.2.0")
 }
 
+task tricksZip(type: Zip) {
+    from sourceSets.tricks.resources
+    archiveFileName.set "global-tricks.zip"
+}
+
 jar {
+    classifier "raw"
+}
+
+shadowJar {
+    configurations = [project.configurations.shadow]
+    classifier "shadow"
+}
+
+task mainJar(type: Jar, dependsOn: [shadowJar, tasks.tricksZip]) {
+    from zipTree(shadowJar.archiveFile.get())
+    from tasks.tricksZip.archiveFile
     manifest {
         attributes(
                 "Main-Class": "me.shedaniel.linkie.discord.LinkieBot"
@@ -77,10 +99,7 @@ jar {
     }
 }
 
-shadowJar {
-    configurations = [project.configurations.shadow]
-    classifier null
-}
+build.finalizedBy mainJar
 
 compileKotlin {
     kotlinOptions.suppressWarnings = true

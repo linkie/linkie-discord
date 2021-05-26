@@ -39,10 +39,13 @@ object EvaluateCommand : CommandBase {
         if (string.endsWith("```")) string = string.substring(0, string.length - 3)
         LinkieScripting.eval(LinkieScripting.simpleContext.push {
             ContextExtensions.commandContexts(EvalContext(
+                prefix,
+                cmd,
                 event,
                 emptyList(),
-                emptyList()
-            ), user, channel, this)
+                emptyList(),
+                parent = false,
+            ), user, channel, message, this)
         }, string)
     }
 }

@@ -38,7 +38,6 @@ import kotlinx.coroutines.launch
 import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.commands.AWCommand
 import me.shedaniel.linkie.discord.commands.AboutCommand
 import me.shedaniel.linkie.discord.commands.AddTrickCommand
 import me.shedaniel.linkie.discord.commands.EvaluateCommand
@@ -47,11 +46,8 @@ import me.shedaniel.linkie.discord.commands.FabricCommand
 import me.shedaniel.linkie.discord.commands.FabricDramaCommand
 import me.shedaniel.linkie.discord.commands.ForgeCommand
 import me.shedaniel.linkie.discord.commands.GetValueCommand
-import me.shedaniel.linkie.discord.commands.GoogleCommand
-import me.shedaniel.linkie.discord.commands.HelpCommand
 import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
-import me.shedaniel.linkie.discord.commands.NamespacesCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
@@ -221,13 +217,10 @@ fun registerCommands(commands: CommandHandler) {
 
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 
-    commands.registerCommand(HelpCommand, "help", "commands")
     commands.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
     commands.registerCommand(FTBDramaCommand, "ftbdrama", "drama")
     commands.registerCommand(AboutCommand, "about")
     commands.registerCommand(RandomClassCommand, "randc")
-    commands.registerCommand(NamespacesCommand, "namespaces")
-    commands.registerCommand(AWCommand, "allaccesswidener")
     commands.registerCommand(EvaluateCommand, "eval", "evaluate")
     commands.registerCommand(RunTrickCommand, "run")
     commands.registerCommand(AddTrickCommand, "trickadd")
@@ -242,7 +235,6 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
-    commands.registerCommand(GoogleCommand, "google")
 }
 
 /*

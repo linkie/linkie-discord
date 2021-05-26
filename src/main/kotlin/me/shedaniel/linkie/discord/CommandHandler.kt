@@ -20,6 +20,11 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.scripting.ContextExtensions
+import me.shedaniel.linkie.discord.scripting.EvalContext
+import me.shedaniel.linkie.discord.scripting.LinkieScripting
+import me.shedaniel.linkie.discord.scripting.push
+import me.shedaniel.linkie.discord.tricks.TricksManager
 
 object CommandHandler : CommandAcceptor {
     private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
@@ -39,5 +44,22 @@ object CommandHandler : CommandAcceptor {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         if (cmd in commandMap)
             commandMap[cmd]!!.execute(event, message, prefix, user, cmd, args, channel)
+        else {
+            TricksManager.globalTricks[cmd]?.also { trick ->
+                val evalContext = EvalContext(
+                    prefix,
+                    cmd,
+                    event,
+                    trick.flags,
+                    args,
+                    parent = true,
+                )
+                LinkieScripting.evalTrick(evalContext, message, trick) {
+                    LinkieScripting.simpleContext.push {
+                        ContextExtensions.commandContexts(evalContext, user, channel, message, this)
+                    }
+                }
+            }
+        }
     }
 }

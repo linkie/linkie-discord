@@ -41,7 +41,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                     if (split.isNotEmpty()) {
                         val cmd = split[0].toLowerCase()
                         val args = split.drop(1).toMutableList()
-                        commandAcceptor.execute(event, channel.deferMessage(event.message), prefix, user, cmd, args, channel)
+                        commandAcceptor.execute(event, channel.msgCreator(event.message), prefix, user, cmd, args, channel)
                     }
                 }
             }.exceptionOrNull()?.also { throwable ->

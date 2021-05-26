@@ -35,17 +35,17 @@ object TrickHandler : CommandAcceptor {
             val guildId = event.guildId.get().asLong()
             if (!ConfigManager[guildId].tricksEnabled) return
             val trick = TricksManager[cmd to guildId] ?: return
-            LinkieScripting.evalTrick(EvalContext(
+            val evalContext = EvalContext(
+                prefix,
+                cmd,
                 event,
                 trick.flags,
-                args
-            ), channel, trick) {
+                args,
+                parent = false,
+            )
+            LinkieScripting.evalTrick(evalContext, message, trick) {
                 LinkieScripting.simpleContext.push {
-                    ContextExtensions.commandContexts(EvalContext(
-                        event,
-                        trick.flags,
-                        args
-                    ), user, channel, this)
+                    ContextExtensions.commandContexts(evalContext, user, channel, message, this)
                 }
             }
         }

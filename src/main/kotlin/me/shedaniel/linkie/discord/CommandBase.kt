@@ -111,7 +111,7 @@ fun EmbedCreateSpec.basicEmbed(
     setTimestampToNow()
 }
 
-fun MessageChannel.deferMessage(previous: Message) = MessageCreatorImpl(
+fun MessageChannel.msgCreator(previous: Message?) = MessageCreatorImpl(
     this,
     previous,
     null
@@ -127,17 +127,17 @@ interface MessageCreator {
 
 data class MessageCreatorImpl(
     val channel: MessageChannel,
-    override var executorMessage: Message,
+    override var executorMessage: Message?,
     var message: Message?,
 ) : MessageCreator {
     override val executorId: Snowflake?
-        get() = executorMessage.author.getOrNull()?.id
+        get() = executorMessage?.author?.getOrNull()?.id
 
     override fun reply(content: String): Mono<Message> {
         return if (message == null) {
             channel.sendMessage {
                 it.content = content
-                it.setMessageReference(executorMessage.id)
+                executorMessage?.id?.also(it::setMessageReference)
             }
         } else {
             message!!.sendEdit {
@@ -229,19 +229,19 @@ inline suspend fun <T> MessageCreator.getCatching(user: User, run: suspend () ->
     }
 }
 
-fun MutableList<String>.validateEmpty(prefix: String, usage: String) {
+fun List<String>.validateEmpty(prefix: String, usage: String) {
     validateUsage(prefix, 0, usage)
 }
 
-fun MutableList<String>.validateNotEmpty(prefix: String, usage: String) {
+fun List<String>.validateNotEmpty(prefix: String, usage: String) {
     validateUsage(prefix, 1..Int.MAX_VALUE, usage)
 }
 
-fun MutableList<String>.validateUsage(prefix: String, length: Int, usage: String) {
+fun List<String>.validateUsage(prefix: String, length: Int, usage: String) {
     validateUsage(prefix, length..length, usage)
 }
 
-fun MutableList<String>.validateUsage(prefix: String, length: IntRange, usage: String) {
+fun List<String>.validateUsage(prefix: String, length: IntRange, usage: String) {
     if (size !in length) {
         throw InvalidUsageException("$prefix$usage")
     }

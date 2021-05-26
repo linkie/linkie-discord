@@ -46,8 +46,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 open class QueryMappingsCommand(
-    protected val namespace: Namespace?,
-    protected vararg val types: MappingsEntryType,
+    private val namespace: Namespace?,
+    private vararg val types: MappingsEntryType,
 ) : CommandBase {
     override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
         val namespace = getNamespace(event, prefix, cmd, args)
@@ -106,7 +106,7 @@ open class QueryMappingsCommand(
         return namespace
     }
 
-    protected suspend fun getMappingsProvider(
+    private suspend fun getMappingsProvider(
         namespace: Namespace,
         args: MutableList<String>,
     ): MappingsProvider =

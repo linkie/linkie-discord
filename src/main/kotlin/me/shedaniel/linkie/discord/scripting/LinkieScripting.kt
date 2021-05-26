@@ -23,9 +23,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
+import me.shedaniel.linkie.discord.tricks.TrickBase
 import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.discord.validateInGuild
@@ -54,20 +56,22 @@ object LinkieScripting {
         }
     }
 
-    inline fun evalTrick(evalContext: EvalContext, channel: MessageChannel, trick: Trick, context: () -> ScriptingContext) {
+    inline fun evalTrick(evalContext: EvalContext, creator: MessageCreator, trick: TrickBase, context: () -> ScriptingContext) {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 val scriptingContext = context()
                 val member = evalContext.event.member.get()
                 trick.flags.forEach {
                     val flag = TrickFlags.flags[it]!!
-                    flag.validatePermission(member)
+                    if (trick.requirePermissionForFlags) {
+                        flag.validatePermission(member)
+                    }
                     flag.extendContext(evalContext, scriptingContext)
                 }
                 eval(scriptingContext, trick.content)
             }
             ContentType.TEXT -> {
-                channel.sendMessage(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) }).subscribe()
+                creator.reply(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) }).subscribe()
             }
             else -> throw IllegalStateException("Invalid Script Type: ${trick.contentType}")
         }

@@ -26,20 +26,26 @@ import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.rest.util.Permission
+import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.Namespaces
+import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.gateway
+import me.shedaniel.linkie.discord.msgCreator
+import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.sendEdit
 import me.shedaniel.linkie.discord.utils.sendEditEmbed
-import me.shedaniel.linkie.discord.utils.sendEmbedMessage
-import me.shedaniel.linkie.discord.utils.sendMessage
+import me.shedaniel.linkie.discord.validateEmpty
+import me.shedaniel.linkie.discord.validateNotEmpty
 import me.shedaniel.linkie.discord.validatePermissions
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyArray
 import org.graalvm.polyglot.proxy.ProxyExecutable
 import org.graalvm.polyglot.proxy.ProxyInstant
+import java.net.URLEncoder
 import java.time.Instant
 import java.util.*
 import kotlin.math.abs
@@ -127,26 +133,76 @@ object ContextExtensions {
             System.nanoTime()
         }
     }
+    val namespaces: ScriptingContext
+        get() = context("Namespaces") {
+            this["namespaces"] = ProxyArray.fromList(Namespaces.namespaces.values.map { namespaceObj(it) }.map { it.toProxyObject() })
+        }
 
-    fun discordContexts(evalContext: EvalContext, user: User, channel: MessageChannel, context: ScriptingContext) {
-        context["channel"] = channelObj(evalContext, user, channel)
+    fun namespaceObj(namespace: Namespace) = context("Namespace") {
+        this["id"] = namespace.id
+        this["reloading"] = namespace.reloading
+        this["defaultVersion"] = namespace.getDefaultVersion()
+        this["versions"] = ProxyArray.fromList(namespace.getAllSortedVersions())
+        this["supportsAT"] = namespace.supportsAT()
+        this["supportsAW"] = namespace.supportsAW()
+        this["supportsMixin"] = namespace.supportsMixin()
+        this["supportsFieldDescription"] = namespace.supportsFieldDescription()
     }
 
-    fun commandContexts(evalContext: EvalContext, user: User, channel: MessageChannel, context: ScriptingContext) {
+    fun engineContexts(evalContext: EvalContext, context: ScriptingContext, channel: MessageChannel, creator: MessageCreator, user: User) {
+        context["engine"] = context("Engine") {
+            this["prefix"] = evalContext.prefix
+            this["cmd"] = evalContext.cmd
+            this["flags"] = ProxyArray.fromList(evalContext.flags.map { it.toString() })
+            this["runGlobalTrick"] = funObj {
+                if (isEmpty())
+                    throw IllegalArgumentException("Invalid amount of arguments!")
+                if (!evalContext.parent)
+                    throw IllegalStateException("Cannot invoke another trick without being a parent invoker or a global trick!")
+                val trickName = first().getAsString()
+                val trick = TricksManager.get(trickName, evalContext.event.guildId.getOrNull())
+                LinkieScripting.evalTrick(evalContext.copy(parent = false), creator, trick) {
+                    LinkieScripting.simpleContext.push {
+                        commandContexts(evalContext.copy(parent = false), user, channel, creator, this)
+                    }
+                }
+            }
+            this["escapeUrl"] = funObj {
+                validateArgs(1)
+                URLEncoder.encode(first().getAsString(), "UTF-8")
+            }
+        }
+        context["validateArgsEmpty"] = funObj {
+            validateArgs(0)
+            evalContext.args.validateEmpty(evalContext.prefix, evalContext.cmd)
+        }
+        context["validateArgsNotEmpty"] = funObj {
+            validateArgs(1)
+            evalContext.args.validateNotEmpty(evalContext.prefix, evalContext.cmd + " " + first().getAsString())
+        }
+    }
+
+    fun discordContexts(evalContext: EvalContext, user: User, channel: MessageChannel, creator: MessageCreator, context: ScriptingContext) {
+        context["channel"] = channelObj(evalContext, user, channel, creator)
+    }
+
+    fun commandContexts(evalContext: EvalContext, user: User, channel: MessageChannel, creator: MessageCreator, context: ScriptingContext) {
         context["args"] = ProxyArray.fromList(evalContext.args)
         context["message"] = messageObj(evalContext, evalContext.event.message, user, false)
         context["flags"] = ProxyArray.fromList(evalContext.flags.toList())
-        discordContexts(evalContext, user, channel, context)
+        discordContexts(evalContext, user, channel, creator, context)
+        engineContexts(evalContext, context, channel, creator, user)
+        context["namespaces"] = namespaces
     }
 
-    fun channelObj(evalContext: EvalContext, user: User, channel: MessageChannel): ScriptingContext {
+    fun channelObj(evalContext: EvalContext, user: User, channel: MessageChannel, creator: MessageCreator): ScriptingContext {
         val booleans = booleanArrayOf(false)
         return context("Channel") {
             this["sendEmbed"] = funObj {
                 validateArgs(1, 2)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(evalContext, channel.sendEmbedMessage {
+                    messageObj(evalContext, creator.reply {
                         if (size == 2) setTitle(first().getAsString())
                         description = last().getAsString()
                         basicEmbed(user)
@@ -157,7 +213,7 @@ object ContextExtensions {
                 validateArgs(1)
                 if (!booleans[0]) {
                     booleans[0] = true
-                    messageObj(evalContext, channel.sendMessage(first().getAsString().let { it.substring(0, min(1999, it.length)) }).block()!!, user, false)
+                    messageObj(evalContext, creator.reply(first().getAsString().let { it.substring(0, min(1999, it.length)) }).block()!!, user, false)
                 } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
             this["id"] = channel.id.asString()
@@ -234,7 +290,8 @@ object ContextExtensions {
         if (evalContext.hasFlag('p'))
             this["openPrivateChannel"] = funObj {
                 validateArgs(0)
-                channelObj(evalContext, evalContext.event.message.author.get(), user.privateChannel.block()!!)
+                val channel = user.privateChannel.block()!!
+                channelObj(evalContext, evalContext.event.message.author.get(), channel, channel.msgCreator(null))
             }
     }
 
@@ -299,9 +356,12 @@ fun List<Value>.validateArgs(vararg size: Int) {
 fun Instant.toProxyInstant(): ProxyInstant = this.let { ProxyInstant.from(it) }
 
 data class EvalContext(
+    val prefix: String,
+    val cmd: String,
     val event: MessageCreateEvent,
     val flags: List<Char>,
     val args: List<String>,
+    val parent: Boolean,
 ) {
     fun hasFlag(c: Char): Boolean = flags.contains(c)
 }
