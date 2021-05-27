@@ -60,7 +60,7 @@ object LinkieScripting {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 val scriptingContext = context()
-                val member = evalContext.event.member.get()
+                val member by lazy { evalContext.event.member.get() }
                 trick.flags.forEach {
                     val flag = TrickFlags.flags[it]!!
                     if (trick.requirePermissionForFlags) {
