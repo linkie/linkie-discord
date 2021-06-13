@@ -19,6 +19,7 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.MappingsProvider
@@ -126,7 +127,16 @@ open class QueryMappingsCommand(
                         else availableVersions.joinToString(", ")
             )
         }
-        mappingsProvider.injectDefaultVersion(namespace.getDefaultProvider())
+        mappingsProvider.injectDefaultVersion {
+            runBlocking {
+                val defaultProvider = namespace.getDefaultProvider()
+                if (availableVersions.contains(defaultProvider.version)) {
+                    defaultProvider
+                } else {
+                    namespace.getProvider(availableVersions.firstOrNull() ?: throw IllegalStateException("No available versions found!"))
+                }
+            }
+        }
         mappingsProvider.validateDefaultVersionNotEmpty()
         return mappingsProvider
     }

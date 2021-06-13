@@ -27,8 +27,14 @@ import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
-import me.shedaniel.linkie.discord.*
-import me.shedaniel.linkie.discord.utils.*
+import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.ValueKeeper
+import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.sendPages
+import me.shedaniel.linkie.discord.utils.buildSafeDescription
+import me.shedaniel.linkie.discord.utils.buildString
+import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
+import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getObfMergedDesc
 import me.shedaniel.linkie.obfMergedName
@@ -53,6 +59,10 @@ class QueryTranslateMappingsCommand(
 
         val sourceMappingsVersion = getMappingsProvider(sourceNamespace, providedVersion, allVersions).version!!
         val targetMappingsVersion = getMappingsProvider(targetNamespace, providedVersion, allVersions).version!!
+
+        require(sourceMappingsVersion == targetMappingsVersion) {
+            "Unmatched versions: $sourceMappingsVersion, $targetMappingsVersion! Please report this!"
+        }
 
         val searchTerm = args.first().replace('.', '/')
         val maxPage = AtomicInteger(-1)
