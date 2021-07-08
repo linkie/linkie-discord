@@ -171,6 +171,10 @@ class QueryTranslateMappingsCommand(
                 }
             }
         }
+        
+        if (newResult.isEmpty()) {
+            throw NullPointerException("Some results were found, but was unable to translate to the target namespace! Please report this issue!")
+        }
 
         return TranslationResult(
             source.toSimpleMappingsMetadata(),
