@@ -67,14 +67,24 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
     private fun String.splitArgs(): List<String> {
         val args = mutableListOf<String>()
         val stringBuilder = StringBuilder()
+        var whitespaceEscaped = false
+        var characterEscaped = false
         forEach {
             val whitespace = it.isWhitespace()
-            if (whitespace) {
+            if (whitespace && !whitespaceEscaped) {
                 args.add(stringBuilder.toString())
                 stringBuilder.clear()
-            }
-            if (it == '\n' || !whitespace) {
+                if(it == '\n') {
+                    stringBuilder.append(it)
+                    characterEscaped = false
+                }
+            } else if (!characterEscaped && it == '"') {
+                whitespaceEscaped = !whitespaceEscaped
+            } else if (!characterEscaped && it == '\\') {
+                characterEscaped = true
+            } else {
                 stringBuilder.append(it)
+                characterEscaped = false
             }
         }
         if (stringBuilder.isNotEmpty())
