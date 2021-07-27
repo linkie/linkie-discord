@@ -67,7 +67,7 @@ object QueryMessageBuilder {
         if (namespace.supportsAW()) {
             appendLine().append("__AW__: `accessible class ${classEntry.optimumName}`")
         } else if (namespace.supportsAT()) {
-            appendLine().append("__AT__: `public ${classEntry.intermediaryName.replace('/', '.')}`")
+            appendLine().append("__AT__: `public ${classEntry.optimumName.replace('/', '.')}`")
         }
     }
 
