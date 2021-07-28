@@ -21,8 +21,8 @@ package me.shedaniel.linkie.discord
 import com.soywiz.klock.TimeSpan
 import com.soywiz.klock.minutes
 import com.soywiz.klock.seconds
-import discord4j.core.`object`.presence.Activity
-import discord4j.core.`object`.presence.Presence
+import discord4j.core.`object`.presence.ClientActivity
+import discord4j.core.`object`.presence.ClientPresence
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import io.ktor.application.*
 import io.ktor.http.*
@@ -60,8 +60,12 @@ import me.shedaniel.linkie.discord.commands.TricksCommand
 import me.shedaniel.linkie.discord.commands.ValueCommand
 import me.shedaniel.linkie.discord.commands.ValueListCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.scommands.SlashCommands
+import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.event
+import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
@@ -73,6 +77,8 @@ import me.shedaniel.linkie.utils.getMillis
 import me.shedaniel.linkie.utils.info
 import java.io.File
 import java.util.*
+
+const val testingGuild = 792699517631594506L
 
 fun main() {
     (File(System.getProperty("user.dir")) / ".properties").apply {
@@ -111,17 +117,22 @@ fun main() {
             )
         )
     ) {
-//        val slashCommands = SlashCommands()
+        val slashCommands = SlashCommands()
         // register the commands
         registerCommands(CommandHandler)
-//        registerSlashCommands(slashCommands)
-//        slashCommands.register()
+        registerSlashCommands(slashCommands)
+        CommandHandler.slashCommands.forEach { cmd ->
+            if (cmd.slash) {
+                slashCommands.guildCommand(testingGuild, cmd.slashCommand)
+            }
+        }
+        slashCommands.register()
 
         event<ReadyEvent> {
             cycle(5.minutes, delay = 5.seconds) {
                 gateway.guilds.count().subscribe { size ->
                     info("Serving on $size servers")
-                    gateway.updatePresence(Presence.online(Activity.watching("Serving on $size servers"))).subscribe()
+                    gateway.updatePresence(ClientPresence.online(ClientActivity.watching("Serving on $size servers"))).subscribe()
                 }
             }
         }
@@ -153,67 +164,72 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")
     commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.FIELD), "f", "field")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), "y", "yarn")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.CLASS), "yc", "yarnc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.METHOD), "ym", "yarnm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.FIELD), "yf", "yarnf")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), "y", "yarn")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.CLASS), "yc", "yarnc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.METHOD), "ym", "yarnm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.FIELD), "yf", "yarnf")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], *MappingsEntryType.values()), "ly", "legacy-yarn")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.CLASS), "lyc", "legacy-yarnc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.METHOD), "lym", "legacy-yarnm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.FIELD), "lyf", "legacy-yarnf")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["legacy-yarn"], *MappingsEntryType.values()), "ly", "legacy-yarn")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.CLASS), "lyc", "legacy-yarnc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.METHOD), "lym", "legacy-yarnm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["legacy-yarn"], MappingsEntryType.FIELD), "lyf", "legacy-yarnf")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], *MappingsEntryType.values()), "yarrn")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.CLASS), "yrc", "yarrnc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.METHOD), "yrm", "yarrnm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.FIELD), "yrf", "yarnrf")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], *MappingsEntryType.values()), "yarrn")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.CLASS), "yrc", "yarrnc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.METHOD), "yrm", "yarrnm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.FIELD), "yrf", "yarnrf")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], *MappingsEntryType.values()), "mcp")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.CLASS), "mcpc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.METHOD), "mcpm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.FIELD), "mcpf")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], *MappingsEntryType.values()), "mcp")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.CLASS), "mcpc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.METHOD), "mcpm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.FIELD), "mcpf")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], *MappingsEntryType.values()), "mm", "mojmap")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.CLASS), "mmc", "mojmapc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.METHOD), "mmm", "mojmapm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.FIELD), "mmf", "mojmapm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], *MappingsEntryType.values()), "mm", "mojmap")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.CLASS), "mmc", "mojmapc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.METHOD), "mmm", "mojmapm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.FIELD), "mmf", "mojmapm")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], *MappingsEntryType.values()), "plasma", "pl")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.CLASS), "plasmac", "plc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam", "plm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf", "plf")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], *MappingsEntryType.values()), "plasma", "pl")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.CLASS), "plasmac", "plc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam", "plm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf", "plf")
 
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), "mms", "mojmaps")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
-    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), "mms", "mojmaps")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
 
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), "voldefy", "volde", "v", "ymcp")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.CLASS), "voldefyc", "voldec", "vc", "ymcpc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.METHOD), "voldefym", "voldem", "vm", "ymcpm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.FIELD), "voldefyf", "voldef", "vf", "ymcpf")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], *MappingsEntryType.values()), "devoldefy", "devolde", "dv", "mcpy")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.CLASS), "devoldefyc", "devoldec", "dvc", "mcpyc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.METHOD), "devoldefym", "devoldem", "dvm", "mcpym")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.FIELD), "devoldefyf", "devoldef", "dvf", "mcpyf")
+    commands.registerCommand(QueryTranslateMappingsCommand(null, null, *MappingsEntryType.values()), "translate", "t")
+    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.CLASS), "translatec", "tc")
+    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.METHOD), "translatem", "tm")
+    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.FIELD), "translatef", "tf")
 
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], *MappingsEntryType.values()), "ymm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.CLASS), "ymmc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.METHOD), "ymmm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.FIELD), "ymmf")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], *MappingsEntryType.values()), "mmy")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.CLASS), "mmyc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.METHOD), "mmym")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.FIELD), "mmyf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), "voldefy", "volde", "v", "ymcp")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.CLASS), "voldefyc", "voldec", "vc", "ymcpc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.METHOD), "voldefym", "voldem", "vm", "ymcpm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.FIELD), "voldefyf", "voldef", "vf", "ymcpf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], *MappingsEntryType.values()), "devoldefy", "devolde", "dv", "mcpy")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.CLASS), "devoldefyc", "devoldec", "dvc", "mcpyc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.METHOD), "devoldefym", "devoldem", "dvm", "mcpym")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.FIELD), "devoldefyf", "devoldef", "dvf", "mcpyf")
 
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm")
-    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], *MappingsEntryType.values()), "ymm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.CLASS), "ymmc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.METHOD), "ymmm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.FIELD), "ymmf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], *MappingsEntryType.values()), "mmy")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.CLASS), "mmyc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.METHOD), "mmym")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.FIELD), "mmyf")
+
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf")
 
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 
@@ -223,53 +239,33 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(RandomClassCommand, "randc")
     commands.registerCommand(EvaluateCommand, "eval", "evaluate")
     commands.registerCommand(RunTrickCommand, "run")
-    commands.registerCommand(AddTrickCommand, "trickadd")
-    commands.registerCommand(RemoveTrickCommand, "trickremove")
-    commands.registerCommand(ListTricksCommand, "listtricks")
-    commands.registerCommand(ListAllTricksCommand, "listalltricks")
-    commands.registerCommand(TrickInfoCommand, "trickinfo")
-    commands.registerCommand(SetValueCommand, "value-set")
-    commands.registerCommand(GetValueCommand, "value-get")
-    commands.registerCommand(ValueListCommand, "value-list")
+    commands.registerCommand(false, AddTrickCommand, "trickadd")
+    commands.registerCommand(false, RemoveTrickCommand, "trickremove")
+    commands.registerCommand(false, ListTricksCommand, "listtricks")
+    commands.registerCommand(false, ListAllTricksCommand, "listalltricks")
+    commands.registerCommand(false, TrickInfoCommand, "trickinfo")
+    commands.registerCommand(false, SetValueCommand, "value-set")
+    commands.registerCommand(false, GetValueCommand, "value-get")
+    commands.registerCommand(false, ValueListCommand, "value-list")
     commands.registerCommand(TricksCommand, "trick")
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
 }
 
-/*
 fun registerSlashCommands(commands: SlashCommands) {
-    commands.guildCommand(432055962233470986L, "linkie", "Base command for Linkie.") {
-        sub("help", "Display the link to Linkie help.").execute { command, cmd, interaction ->
-            interaction.reply {
-                setTitle("Linkie Help Command")
-                setFooter("Requested by " + interaction.userDiscriminatedName, interaction.userAvatarUrl)
-                setTimestampToNow()
-                description = "View the list of commands at https://github.com/linkie/linkie-discord/wiki/Commands"
-            }
-        }
-    }
-
-    commands.guildCommand(432055962233470986L, "mappings", "Query mappings") {
-        Namespaces.namespaces.forEach { (namespaceId, namespace) ->
-            subGroup(namespaceId, "Query mappings from $namespaceId.") {
-                sub("class", "Query classes from $namespaceId.")
-                    .string("query", "The query filter")
-                    .string("version", "The version the mappings should target") { required(false) }
-                    .execute { command, cmd, interaction -> interaction.reply("LOL") }
-                sub("field", "Query fields from $namespaceId.")
-                    .string("query", "The query filter")
-                    .string("version", "The version the mappings should target") { required(false) }
-                    .execute { command, cmd, interaction -> interaction.acknowledge() }
-                sub("method", "Query methods from $namespaceId.")
-                    .string("query", "The query filter")
-                    .string("version", "The version the mappings should target") { required(false) }
-                    .execute { command, cmd, interaction -> interaction.acknowledge() }
-//                this.string("query", "The query filter")
-//                    .string("version", "The version the mappings should target") { required(false) }
-//                    .execute { command, cmd, interaction -> interaction.acknowledge() }
+    commands.globalCommand("Base command for Linkie.") {
+        cmd("linkie")
+        sub("help", "Display the link to Linkie help.") {
+            execute { command, ctx, options ->
+                ctx.message.reply {
+                    title("Linkie Help Command")
+                    footer("Requested by " + ctx.user.discriminatedName, ctx.user.avatarUrl)
+                    setTimestampToNow()
+                    description("View the list of commands at https://github.com/linkie/linkie-discord/wiki/Commands")
+                }
+                true
             }
         }
     }
 }
-*/

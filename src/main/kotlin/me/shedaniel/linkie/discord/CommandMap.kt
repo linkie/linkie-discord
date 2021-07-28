@@ -23,6 +23,7 @@ import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
@@ -41,7 +42,7 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                     if (split.isNotEmpty()) {
                         val cmd = split[0].toLowerCase()
                         val args = split.drop(1).toMutableList()
-                        commandAcceptor.execute(event, channel.msgCreator(event.message), prefix, user, cmd, args, channel)
+                        commandAcceptor.execute(event, prefix, user, cmd, args, channel)
                     }
                 }
             }.exceptionOrNull()?.also { throwable ->
@@ -63,34 +64,34 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
             }
         }
     }
+}
 
-    private fun String.splitArgs(): List<String> {
-        val args = mutableListOf<String>()
-        val stringBuilder = StringBuilder()
-        forEach {
-            val whitespace = it.isWhitespace()
-            if (whitespace) {
-                args.add(stringBuilder.toString())
-                stringBuilder.clear()
-            }
-            if (it == '\n' || !whitespace) {
-                stringBuilder.append(it)
-            }
-        }
-        if (stringBuilder.isNotEmpty())
+fun String.splitArgs(): MutableList<String> {
+    val args = mutableListOf<String>()
+    val stringBuilder = StringBuilder()
+    forEach {
+        val whitespace = it.isWhitespace()
+        if (whitespace) {
             args.add(stringBuilder.toString())
-        return args
+            stringBuilder.clear()
+        }
+        if (it == '\n' || !whitespace) {
+            stringBuilder.append(it)
+        }
     }
+    if (stringBuilder.isNotEmpty())
+        args.add(stringBuilder.toString())
+    return args
 }
 
 interface CommandAcceptor {
-    suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    suspend fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
     fun getPrefix(event: MessageCreateEvent): String?
 }
 
-fun EmbedCreateSpec.generateThrowable(throwable: Throwable, user: User? = null) {
-    setTitle("Linkie Error")
-    setColor(Color.RED)
+fun EmbedCreateSpec.Builder.generateThrowable(throwable: Throwable, user: User? = null) {
+    title("Linkie Error")
+    color(Color.RED)
     basicEmbed(user)
     when {
         throwable is org.graalvm.polyglot.PolyglotException -> {

@@ -16,24 +16,48 @@
 
 package me.shedaniel.linkie.discord
 
+import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
+import me.shedaniel.linkie.discord.utils.msgCreator
 
 object CommandHandler : CommandAcceptor {
-    private val commandMap: MutableMap<String, CommandBase> = mutableMapOf()
-    internal val commands: MutableMap<CommandBase, MutableSet<String>> = mutableMapOf()
+    private val commandMap: MutableMap<String, Any> = mutableMapOf()
+    val slashCommands: Set<BuiltCommand>
+        get() = commandMap.mapNotNull { it.value as? BuiltCommand }.toSet()
 
-    fun registerCommand(command: CommandBase, vararg l: String): CommandHandler {
+    fun registerCommand(command: Command, vararg l: String): CommandHandler =
+        registerCommand(true, command, *l)
+
+    fun registerCommand(slash: Boolean, command: Command, vararg l: String): CommandHandler {
+        val list = l.toMutableList()
+        modifyDebug(list)
+        val builtCommand = runBlockingNoJs { command.build(list.toList(), slash) { "Command '$it'" } }
+        for (ll in list)
+            commandMap[ll.toLowerCase()] = builtCommand
+        command.postRegister()
+        return this
+    }
+
+    private fun modifyDebug(list: MutableList<String>) {
+        if (isDebug) {
+            list.replaceAll { "${it}_debug" }
+        }
+    }
+
+    fun registerCommand(command: LegacyCommand, vararg l: String): CommandHandler {
         for (ll in l)
             commandMap[ll.toLowerCase()] = command
-        commands.getOrPut(command, ::mutableSetOf).addAll(l)
         command.postRegister()
         return this
     }
@@ -41,25 +65,36 @@ object CommandHandler : CommandAcceptor {
     override fun getPrefix(event: MessageCreateEvent): String? =
         event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
 
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        if (cmd in commandMap)
-            commandMap[cmd]!!.execute(event, message, prefix, user, cmd, args, channel)
-        else {
+    override suspend fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
+        if (cmd in commandMap) {
+            val command = commandMap[cmd]!!
+            if (command is LegacyCommand) {
+                command.execute(ctx, event.message, args)
+            } else if (command is BuiltCommand) {
+                executeCommand(command, args, ctx)
+            }
+        } else {
             TricksManager.globalTricks[cmd]?.also { trick ->
                 val evalContext = EvalContext(
-                    prefix,
-                    cmd,
-                    event,
+                    ctx,
+                    event.message,
                     trick.flags,
                     args,
                     parent = true,
                 )
-                LinkieScripting.evalTrick(evalContext, message, trick) {
+                LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
                     LinkieScripting.simpleContext.push {
-                        ContextExtensions.commandContexts(evalContext, user, channel, message, this)
+                        ContextExtensions.commandContexts(evalContext, user, channel, ctx.message, this)
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun executeCommand(command: BuiltCommand, args: MutableList<String>, ctx: CommandContext) {
+        if (!command.command.execute(ctx, command.slashCommand, args)) {
+            throw InvalidUsageException("Invalid Usage:\n${command.slashCommand.usage(ctx)}")
         }
     }
 }

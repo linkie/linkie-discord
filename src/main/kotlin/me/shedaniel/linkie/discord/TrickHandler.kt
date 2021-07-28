@@ -25,27 +25,29 @@ import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
+import me.shedaniel.linkie.discord.utils.msgCreator
 
 object TrickHandler : CommandAcceptor {
     override fun getPrefix(event: MessageCreateEvent): String? =
         event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].tricksPrefix }
 
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+    override suspend fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
+        val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
         if (event.guildId.isPresent) {
             val guildId = event.guildId.get().asLong()
             if (!ConfigManager[guildId].tricksEnabled) return
             val trick = TricksManager[cmd to guildId] ?: return
             val evalContext = EvalContext(
-                prefix,
-                cmd,
-                event,
+                ctx,
+                event.message,
                 trick.flags,
                 args,
                 parent = false,
             )
-            LinkieScripting.evalTrick(evalContext, message, trick) {
+            LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
                 LinkieScripting.simpleContext.push {
-                    ContextExtensions.commandContexts(evalContext, user, channel, message, this)
+                    ContextExtensions.commandContexts(evalContext, user, channel, ctx.message, this)
                 }
             }
         }

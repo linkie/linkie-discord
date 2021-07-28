@@ -16,36 +16,41 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.SimpleCommand
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.validateInGuild
 import java.time.Instant
 
-object TrickInfoCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        LinkieScripting.validateGuild(event)
-        args.validateUsage(prefix, 1, "$cmd <trick>")
-        val trickName = args.first()
-        val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        message.reply {
-            basicEmbed(user)
-            setTitle("Trick Info")
-            addField("Name", trick.name)
-            addInlineField("Author", "<@${trick.author}>")
-            addInlineField("Trick Type", trick.contentType.name.toLowerCase().capitalize())
-            addInlineField("Creation Time", Instant.ofEpochMilli(trick.creation).toString())
-            addInlineField("Last Modification Time", Instant.ofEpochMilli(trick.modified).toString())
-            addInlineField("Unique Identifier", trick.id.toString())
-            description = "```${trick.content}```"
-        }.subscribe()
+object TrickInfoCommand : SimpleCommand<String> {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val trickName = string("trick_name", "Name of the trick")
+        executeCommandWith { opt(trickName) }
+    }
+
+    override suspend fun execute(ctx: CommandContext, trickName: String) {
+        LinkieScripting.validateGuild(ctx)
+        ctx.validateInGuild {
+            val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
+            message.reply {
+                basicEmbed(user)
+                title("Trick Info")
+                addField("Name", trick.name)
+                addInlineField("Author", "<@${trick.author}>")
+                addInlineField("Trick Type", trick.contentType.name.toLowerCase().capitalize())
+                addInlineField("Creation Time", Instant.ofEpochMilli(trick.creation).toString())
+                addInlineField("Last Modification Time", Instant.ofEpochMilli(trick.modified).toString())
+                addInlineField("Unique Identifier", trick.id.toString())
+                description = "```${trick.content}```"
+            }
+        }
     }
 }

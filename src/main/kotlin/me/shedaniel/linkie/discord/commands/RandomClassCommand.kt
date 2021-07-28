@@ -17,59 +17,61 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsProvider
-import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.ValueKeeper
-import me.shedaniel.linkie.discord.basicEmbed
-import me.shedaniel.linkie.discord.utils.buildReactions
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.scommands.int
+import me.shedaniel.linkie.discord.scommands.namespace
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.optNullable
+import me.shedaniel.linkie.discord.scommands.version
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageCreator
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.utils.tryRemoveAllReactions
-import me.shedaniel.linkie.discord.validateGuild
-import me.shedaniel.linkie.discord.validateNamespace
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.discordEmote
+import me.shedaniel.linkie.discord.utils.dismissButton
+import me.shedaniel.linkie.discord.utils.embedCreator
+import me.shedaniel.linkie.discord.utils.secondaryButton
+import me.shedaniel.linkie.discord.utils.use
+import me.shedaniel.linkie.discord.utils.validateGuild
+import me.shedaniel.linkie.discord.utils.validateNamespace
 import java.time.Duration
-import java.util.*
 
-object RandomClassCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateUsage(prefix, 3, "$cmd <namespace> <version> <amount>\nDo !namespaces for list of namespaces.")
-        val namespace = Namespaces.namespaces[args.first().toLowerCase(Locale.ROOT)]
-            ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
-        namespace.validateNamespace()
-        namespace.validateGuild(event)
-        val mappingsProvider = namespace.getProvider(args[1])
-        if (mappingsProvider.isEmpty()) {
-            val list = namespace.getAllSortedVersions()
-            throw NullPointerException(
-                "Invalid Version: " + args.last() + "\nVersions: " +
-                        if (list.size > 20)
-                            list.take(20).joinToString(", ") + ", etc"
-                        else list.joinToString(", ")
-            )
+object RandomClassCommand : Command {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val namespace = namespace("namespace", "The namespace to query in")
+        val version = version("version", "The version to query for", required = false)
+        val count = int("count", "The number of classes to generate", required = false)
+        executeCommandWithGetter { ctx, options ->
+            val ns = options.opt(namespace)
+            val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
+            execute(ctx, ns, nsVersion, options.optNullable(count)?.toInt() ?: 10)
         }
-        val count = args[2].toIntOrNull()
-        require(count in 1..20) { "Invalid Amount: ${args[2]}" }
-        val version = mappingsProvider.version!!
-        val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message) }
-        message.reply { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe { msg ->
-            msg.tryRemoveAllReactions().block()
-            buildReactions(mappingsContainer.timeToKeep) {
-                registerB("❌") {
-                    msg.delete().subscribe()
-                    event.message.delete().subscribe()
-                    false
+    }
+
+    suspend fun execute(ctx: CommandContext, namespace: Namespace, provider: MappingsProvider, count: Int) {
+        ctx.use {
+            namespace.validateNamespace()
+            namespace.validateGuild(ctx)
+            require(count in 1..20) { "Invalid Amount: $count" }
+            val version = provider.version!!
+            val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message) }
+            val embedCreator = embedCreator { buildMessage(mappingsContainer.get(), count, user) }
+            message.reply(ctx, {
+                row {
+                    dismissButton()
+                    secondaryButton("🔁".discordEmote) {
+                        reply(embedCreator)
+                    }
                 }
-                register("🔁") {
-                    message.reply { buildMessage(mappingsContainer.get(), count!!, user) }.subscribe()
-                }
-            }.build(msg, user)
+            }, embedCreator)
         }
     }
 
@@ -78,19 +80,19 @@ object RandomClassCommand : CommandBase {
         user: User,
         message: MessageCreator,
     ): MappingsContainer {
-        if (!provider.cached!!) message.reply {
+        if (!provider.cached!!) message.acknowledge {
             basicEmbed(user)
             var desc = "Searching up classes for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
             if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
             description = desc
-        }.block()
+        }
         return provider.get()
     }
 
-    private fun EmbedCreateSpec.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {
+    private fun EmbedCreateSpec.Builder.buildMessage(mappingsContainer: MappingsContainer, count: Int, author: User) {
         val set = mutableSetOf<String>()
         for (i in 0 until count) randomIndex(mappingsContainer.classes, set)
-        setTitle("List of Random ${mappingsContainer.name} Classes")
+        title("List of Random ${mappingsContainer.name} Classes")
         var desc = ""
         set.sorted().map { mappingsContainer.classes[it]!! }.forEach { mappingsClass ->
             if (desc.isNotEmpty())

@@ -81,7 +81,7 @@ object TrickFlags {
                 validateArgs(1)
                 val id = first().getAsString()
                 var user: User? = null
-                val guild = it.event.guild.block()!!
+                val guild = it.ctx.guild!!
                 runCatching {
                     user = guild.getMemberById(Snowflake.of(id)).block()
                 }
@@ -100,9 +100,9 @@ object TrickFlags {
         flags['l'] = buildFlag("get last message", Permission.MANAGE_MESSAGES) {
             this["getLastMessage"] = funObj {
                 validateArgs(0)
-                val channel = it.event.message.channel.block()!!
-                val message = channel.getMessagesBefore(it.event.message.id).filter { !it.author.get().isBot }.blockFirst() ?: throw IllegalStateException("Failed to get message!")
-                ContextExtensions.messageObj(it, message, it.event.message.author.get())
+                val channel = it.ctx.channel
+                val message = channel.getMessagesBefore(it.ctx.messageId).filter { !it.author.get().isBot }.blockFirst() ?: throw IllegalStateException("Failed to get message!")
+                ContextExtensions.messageObj(it, message, it.ctx.user)
             }
         }
     }

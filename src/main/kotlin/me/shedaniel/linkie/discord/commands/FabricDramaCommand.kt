@@ -16,36 +16,38 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.OptionlessCommand
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateEmpty
+import me.shedaniel.linkie.discord.utils.linkButton
+import me.shedaniel.linkie.discord.utils.use
 import java.net.URL
 
-object FabricDramaCommand : CommandBase {
+object FabricDramaCommand : OptionlessCommand {
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateEmpty(prefix, cmd)
-        val jsonText = URL("https://fabric-drama.herokuapp.com/json").readText()
-        val jsonObject = json.parseToJsonElement(jsonText).jsonObject
-        val text = jsonObject["drama"]!!.jsonPrimitive.content
-        val permLink = "https://fabric-drama.herokuapp.com/${jsonObject["version"]!!.jsonPrimitive.content}/${jsonObject["seed"]!!.jsonPrimitive.content}"
-        message.reply {
-            setTitle("${user.username} starts a drama!")
-            setUrl(permLink)
-            basicEmbed(user)
-            description = text
-        }.subscribe()
+    override suspend fun execute(ctx: CommandContext) {
+        ctx.use {
+            message.acknowledge()
+            val jsonText = URL("https://fabric-drama.herokuapp.com/json").readText()
+            val jsonObject = json.parseToJsonElement(jsonText).jsonObject
+            val text = jsonObject["drama"]!!.jsonPrimitive.content
+            val permLink = "https://fabric-drama.herokuapp.com/${jsonObject["version"]!!.jsonPrimitive.content}/${jsonObject["seed"]!!.jsonPrimitive.content}"
+            message.reply(ctx, {
+                linkButton("Permanent Link", permLink)
+            }) {
+                title("${user.username} starts a drama!")
+                url(permLink)
+                basicEmbed(user)
+                description = text
+            }
+        }
     }
 }

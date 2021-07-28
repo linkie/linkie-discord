@@ -16,21 +16,19 @@
 
 package me.shedaniel.linkie.discord.scripting
 
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import me.shedaniel.linkie.discord.MessageCreator
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
-import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TrickBase
 import me.shedaniel.linkie.discord.tricks.TrickFlags
-import me.shedaniel.linkie.discord.utils.sendMessage
-import me.shedaniel.linkie.discord.validateInGuild
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageCreator
+import me.shedaniel.linkie.discord.utils.validateInGuild
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.EnvironmentAccess
 import org.graalvm.polyglot.HostAccess
@@ -60,18 +58,17 @@ object LinkieScripting {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 val scriptingContext = context()
-                val member by lazy { evalContext.event.member.get() }
                 trick.flags.forEach {
                     val flag = TrickFlags.flags[it]!!
                     if (trick.requirePermissionForFlags) {
-                        flag.validatePermission(member)
+                        flag.validatePermission(evalContext.ctx.member!!)
                     }
                     flag.extendContext(evalContext, scriptingContext)
                 }
                 eval(scriptingContext, trick.content)
             }
             ContentType.TEXT -> {
-                creator.reply(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) }).subscribe()
+                creator.reply(trick.content.format(*evalContext.args.toTypedArray()).let { it.substring(0, min(1999, it.length)) })
             }
             else -> throw IllegalStateException("Invalid Script Type: ${trick.contentType}")
         }
@@ -85,6 +82,12 @@ object LinkieScripting {
     fun validateGuild(event: MessageCreateEvent) {
         event.validateInGuild()
         require(ConfigManager[event.guildId.get().asLong()].tricksEnabled) { "Tricks are not enabled on this server." }
+    }
+
+    fun validateGuild(event: CommandContext) {
+        event.validateInGuild {
+            require(ConfigManager[guildId.asLong()].tricksEnabled) { "Tricks are not enabled on this server." }
+        }
     }
 
     fun eval(context: ScriptingContext, script: String) {

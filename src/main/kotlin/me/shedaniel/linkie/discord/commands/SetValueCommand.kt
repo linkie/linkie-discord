@@ -16,32 +16,46 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.SimpleCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.stringUnlimited
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateAdmin
-import me.shedaniel.linkie.discord.validateInGuild
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.validateAdmin
+import me.shedaniel.linkie.discord.utils.validateInGuild
 
-object SetValueCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        event.validateInGuild()
-        event.member.get().validateAdmin()
-        args.validateUsage(prefix, 1..Int.MAX_VALUE, "$cmd <property> <value>")
-        val config = ConfigManager[event.guildId.get().asLong()]
-        val property = args[0].toLowerCase()
-        val value = args.asSequence().drop(1).joinToString(" ")
-        ConfigManager.setValueOf(config, property, value)
-        ConfigManager.save()
-        message.reply {
-            setTitle("Successfully Set!")
-            basicEmbed(user)
-            description = "The value of property `$property` is now set to `$value`."
-        }.subscribe()
+object SetValueCommand : SimpleCommand<SetValueCommand.SetValueData> {
+    data class SetValueData(
+        val property: String,
+        val value: String,
+    )
+
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val propertyName = string("property", "The property name")
+        val value = stringUnlimited("value", "The property value")
+        executeCommandWith {
+            SetValueData(
+                property = opt(propertyName),
+                value = opt(value),
+            )
+        }
+    }
+
+    override suspend fun execute(ctx: CommandContext, options: SetValueData) {
+        ctx.validateInGuild {
+            member.validateAdmin()
+            val config = ConfigManager[guildId.asLong()]
+            ConfigManager.setValueOf(config, options.property, options.value)
+            ConfigManager.save()
+            message.reply {
+                title("Successfully Set!")
+                basicEmbed(user)
+                description = "The value of property `${options.property}` is now set to `${options.value}`."
+            }
+        }
     }
 }

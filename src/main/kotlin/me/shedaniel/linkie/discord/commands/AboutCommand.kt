@@ -17,28 +17,28 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.OptionlessCommand
 import me.shedaniel.linkie.discord.gateway
+import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.addField
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateEmpty
+import me.shedaniel.linkie.discord.utils.linkButton
 
-object AboutCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateEmpty(prefix, cmd)
-        message.reply {
-            setTitle("About Linkie")
-            gateway.self.map(User::getAvatarUrl).block()?.also { url -> setThumbnail(url) }
+object AboutCommand : OptionlessCommand {
+    override suspend fun execute(ctx: CommandContext) {
+        ctx.message.reply(ctx, {
+            row {
+                linkButton("Library Source", "https://github.com/linkie/linkie-core/")
+                linkButton("Bot Source", "https://github.com/linkie/linkie-discord/")
+                linkButton("Bot Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
+            }
+        }) {
+            title("About Linkie")
+            gateway.self.map(User::getAvatarUrl).block()?.also { url -> thumbnail(url) }
             description = "A mappings bot created by <@430615025066049538>."
-            addField("Library Src", "https://github.com/linkie/linkie-core/")
-            addField("Bot Src", "https://github.com/linkie/linkie-discord/")
             addField("License", "Apache 2.0")
-            addField("Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
-            basicEmbed(user)
-        }.subscribe()
+            basicEmbed(ctx.user)
+        }
     }
 }

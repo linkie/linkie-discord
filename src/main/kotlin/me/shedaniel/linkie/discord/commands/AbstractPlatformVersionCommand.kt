@@ -16,40 +16,49 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
-import me.shedaniel.linkie.discord.sendPages
+import me.shedaniel.linkie.discord.SimpleCommand
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.optNullable
+import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.sub
+import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.addInlineField
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
+import me.shedaniel.linkie.discord.utils.prefixedCmd
+import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.setSafeDescription
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.valueKeeper
 import java.time.Duration
 import kotlin.math.ceil
 
-abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformData<R>> : CommandBase {
+abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformData<R>> : SimpleCommand<String> {
     private val dataKeeper = valueKeeper(Duration.ofMinutes(10)) { updateData() }
     protected val data by dataKeeper
 
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateUsage(prefix, 0..1, "$cmd [version|list|first]")
-        if (!dataKeeper.isInitialized()) {
-            message.reply {
-                basicEmbed(user)
-                buildSafeDescription {
-                    append("Searching up version data.\n\nIf you are stuck with this message, please do the command again and report the issue on the issue tracker.")
-                }
-            }.subscribe()
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        sub("list", "Lists the available versions") {
+            executeCommandWithNothing(this@AbstractPlatformVersionCommand::executeList)
         }
-        if (args.isNotEmpty() && args[0] == "list") {
+        sub("first", "Returns the data for the latest version") {
+            executeCommandWith { data.versions.first() }
+        }
+        sub("get", "Returns the data for a selected version") {
+            val version = string("version", "The version to return for", required = false) {}
+            executeCommandWith {
+                optNullable(version) ?: latestVersion
+            }
+        }
+    }
+
+    fun executeList(ctx: CommandContext) {
+        ctx.use {
+            sendNotInitializedYet()
             val maxPage = ceil(data.versions.size / 20.0).toInt()
-            message.sendPages(0, maxPage, user) { page ->
-                setTitle("Available Versions (Page ${page + 1}/$maxPage)")
+            message.sendPages(ctx, 0, maxPage) { page ->
+                title("Available Versions (Page ${page + 1}/$maxPage)")
                 buildSafeDescription {
                     data.versions.asSequence().drop(page * 20).take(20).forEach { versionString ->
                         val version = data[versionString]
@@ -61,34 +70,44 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
                     }
                 }
             }
-            return
         }
-        val latestVersion = this.latestVersion
-        val gameVersion = when {
-            args.isEmpty() -> latestVersion
-            args[0] == "first" -> data.versions.first()
-            else -> args[0]
-        }
-        require(data.versions.contains(gameVersion)) { "Invalid Version Specified: $gameVersion\nYou may list the versions available by using `$prefix$cmd list`" }
-        val version = data[gameVersion]
-        message.reply {
-            setTitle(getTitle(version.version))
-            buildString {
-                if (data.versions.first() != latestVersion) {
-                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions, use `$prefix$cmd first` to view the first version, even if it is unstable, and use `$prefix$cmd [version]` to view the version info for that specific version.")
-                } else {
-                    appendLine("Tip: You can use `$prefix$cmd list` to view the available versions, and use `$prefix$cmd [version]` to view the version info for that specific version.")
+    }
+
+    override suspend fun execute(ctx: CommandContext, options: String) {
+        ctx.use {
+            sendNotInitializedYet()
+            require(data.versions.contains(options)) { "Invalid Version Specified: $options\nYou may list the versions available by using `$prefixedCmd list`" }
+            val version = data[options]
+            message.reply {
+                title(getTitle(version.version))
+                buildString {
+                    if (data.versions.first() != latestVersion) {
+                        appendLine("Tip: You can use `$prefixedCmd list` to view the available versions, use `$prefixedCmd first` to view the first version, even if it is unstable, and use `$prefixedCmd [version]` to view the version info for that specific version.")
+                    } else {
+                        appendLine("Tip: You can use `$prefixedCmd list` to view the available versions, and use `$prefixedCmd [version]` to view the version info for that specific version.")
+                    }
+                    when {
+                        version.unstable -> addInlineField("Type", "Unstable")
+                        version.version == latestVersion -> addInlineField("Type", "Release (Latest)")
+                        else -> addInlineField("Type", "Release")
+                    }
+                    version.appendData()(this@reply, this)
+                }.takeIf { it.isNotBlank() }?.also {
+                    setSafeDescription(it)
                 }
-                when {
-                    version.unstable -> addInlineField("Type", "Unstable")
-                    version.version == latestVersion -> addInlineField("Type", "Release (Latest)")
-                    else -> addInlineField("Type", "Release")
-                }
-                version.appendData()(this@reply, this)
-            }.takeIf { it.isNotBlank() }?.also {
-                setSafeDescription(it)
             }
-        }.subscribe()
+        }
+    }
+
+    private fun CommandContext.sendNotInitializedYet() {
+        if (!dataKeeper.isInitialized()) {
+            message.reply {
+                basicEmbed(user)
+                buildSafeDescription {
+                    append("Searching up version data.\n\nIf you are stuck with this message, please do the command again and report the issue on the issue tracker.")
+                }
+            }
+        }
     }
 
     abstract val latestVersion: String
@@ -106,5 +125,5 @@ interface PlatformVersion {
     val version: String
     val unstable: Boolean
 
-    fun appendData(): EmbedCreateSpec.(descriptionBuilder: StringBuilder) -> Unit
+    fun appendData(): EmbedCreateSpec.Builder.(descriptionBuilder: StringBuilder) -> Unit
 }

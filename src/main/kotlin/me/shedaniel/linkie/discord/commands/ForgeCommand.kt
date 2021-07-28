@@ -47,8 +47,8 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
                 val mcVersion = it.substringBefore('-')
                 val mcVersionSemVer = mcVersion.tryToVersion() ?: return@forEach
                 val forgeVersion = it.substring(mcVersion.length + 1).substringBeforeLast('-')
-                data.versionsMap.getOrPut(mcVersion) { ForgeVersion(mcVersion, forgeVersion) }.also { version ->
-                    version.forgeVersion = forgeVersion
+                data.versionsMap.getOrPut(mcVersion) { ForgeVersion(mcVersion) }.also { version ->
+                    version.forgeVersion.add(forgeVersion)
                 }
             }
         json.parseToJsonElement(URL("http://export.mcpbot.bspk.rs/versions.json").readText()).jsonObject.forEach { mcVersion, mcpVersionsObj ->
@@ -86,15 +86,15 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
 
     data class ForgeVersion(
         override val version: String,
-        var forgeVersion: String,
+        var forgeVersion: MutableList<String> = mutableListOf(),
         var mcpSnapshot: String? = null,
         var tmp: Boolean = false,
     ) : PlatformVersion {
         override val unstable: Boolean
             get() = false
 
-        override fun appendData(): EmbedCreateSpec.(StringBuilder) -> Unit = {
-            addInlineField("Forge Version", forgeVersion)
+        override fun appendData(): EmbedCreateSpec.Builder.(StringBuilder) -> Unit = {
+            addInlineField("Forge Version", forgeVersion.sortedWith(nullsFirst(compareBy { it.tryToVersion() })).toList().asReversed().maxOrNull().toString())
             if (mcpSnapshot != null) {
                 addInlineField("MCP Version", mcpSnapshot!!)
                 if (tmp) {

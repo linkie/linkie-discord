@@ -16,30 +16,33 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.SimpleCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateAdmin
-import me.shedaniel.linkie.discord.validateInGuild
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.validateAdmin
+import me.shedaniel.linkie.discord.utils.validateInGuild
 
-object GetValueCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        event.validateInGuild()
-        event.member.get().validateAdmin()
-        args.validateUsage(prefix, 1, "$cmd <property>")
-        val config = ConfigManager[event.guildId.get().asLong()]
-        val property = args[0].toLowerCase()
-        val value = ConfigManager.getValueOf(config, property)
-        message.reply {
-            setTitle("Value Get!")
-            basicEmbed(user)
-            description = "The value of property `$property` is set as `$value`."
-        }.subscribe()
+object GetValueCommand : SimpleCommand<String> {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val propertyName = string("property", "The property name")
+        executeCommandWith { opt(propertyName) }
+    }
+
+    override suspend fun execute(ctx: CommandContext, propertyName: String) {
+        ctx.validateInGuild {
+            member.validateAdmin()
+            val config = ConfigManager[guildId.asLong()]
+            val value = ConfigManager.getValueOf(config, propertyName)
+            message.reply {
+                title("Value Get!")
+                basicEmbed(user)
+                description = "The value of property `$propertyName` is set as `$value`."
+            }
+        }
     }
 }

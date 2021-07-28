@@ -17,27 +17,34 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.CommandBase
+import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.MappingsQueryUtils
-import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.MappingsQueryUtils.query
 import me.shedaniel.linkie.discord.ValueKeeper
-import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.discord.getCatching
-import me.shedaniel.linkie.discord.sendPages
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.scommands.namespace
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.version
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageCreator
 import me.shedaniel.linkie.discord.utils.QueryMessageBuilder
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateDefaultVersionNotEmpty
-import me.shedaniel.linkie.discord.validateGuild
-import me.shedaniel.linkie.discord.validateNamespace
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.sendPages
+import me.shedaniel.linkie.discord.utils.use
+import me.shedaniel.linkie.discord.utils.validateDefaultVersionNotEmpty
+import me.shedaniel.linkie.discord.utils.validateGuild
+import me.shedaniel.linkie.discord.utils.validateNamespace
+import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.onlyClass
@@ -49,46 +56,31 @@ import kotlin.math.ceil
 open class QueryMappingsCommand(
     private val namespace: Namespace?,
     private vararg val types: MappingsEntryType,
-) : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        val namespace = getNamespace(event, prefix, cmd, args)
-        val mappingsVersion = getMappingsProvider(namespace, args).version!!
+) : Command {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val namespaceOpt = if (namespace == null) namespace("namespace", "The namespace to query in") else null
+        val searchTerm = string("search_term", "The search term to filter with")
+        val version = version("version", "The version to query for", required = false)
+        executeCommandWithGetter { ctx, options ->
+            val ns = namespace ?: options.opt(namespaceOpt!!)
+            val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
+            val searchTermStr = options.opt(searchTerm).replace('.', '/')
+            execute(ctx, ns, nsVersion.version!!, searchTermStr)
+        }
+    }
 
-        val searchTerm = args.first().replace('.', '/')
+    suspend fun execute(ctx: CommandContext, namespace: Namespace, version: String, searchTerm: String) = ctx.use {
         val maxPage = AtomicInteger(-1)
         val query = ValueKeeper(Duration.ofMinutes(2)) {
-            query(searchTerm, namespace.getProvider(mappingsVersion), user, message, maxPage)
+            QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, types)
         }
-        message.sendPages(0, maxPage.get()) { page ->
+        message.sendPages(ctx, 0, maxPage.get()) { page ->
             QueryMessageBuilder.buildMessage(this, namespace, query.get().value, query.get().mappings, page, user, maxPage.get())
         }
     }
 
-    protected suspend fun query(
-        searchTerm: String,
-        provider: MappingsProvider,
-        user: User,
-        message: MessageCreator,
-        maxPage: AtomicInteger,
-    ): QueryResult<MappingsContainer, MutableList<ResultHolder<*>>> {
-        val hasWildcard: Boolean = searchTerm.substringBeforeLast('/').onlyClass() == "*" || searchTerm.onlyClass() == "*"
-        if (!provider.cached!! || hasWildcard) message.reply {
-            basicEmbed(user)
-            var desc = "Searching up mappings for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
-            if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
-            if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
-            description = desc
-        }.block()
-        return message.getCatching(user) {
-            val mappings = provider.get()
-            QueryResult(mappings, MappingsQueryUtils.query(mappings, searchTerm, *types).also {
-                maxPage.set(ceil(it.size / 4.0).toInt())
-            })
-        }
-    }
-
     protected fun getNamespace(
-        event: MessageCreateEvent,
+        ctx: CommandContext,
         prefix: String,
         cmd: String,
         args: MutableList<String>,
@@ -103,7 +95,7 @@ open class QueryMappingsCommand(
             ?: throw IllegalArgumentException("Invalid Namespace: ${args.first()}\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", ")))
         if (providedNamespace == null) args.removeAt(0)
         namespace.validateNamespace()
-        namespace.validateGuild(event)
+        namespace.validateGuild(ctx)
         return namespace
     }
 
@@ -139,5 +131,31 @@ open class QueryMappingsCommand(
         }
         mappingsProvider.validateDefaultVersionNotEmpty()
         return mappingsProvider
+    }
+}
+
+object QueryMappingsExtensions {
+    suspend fun query(
+        searchTerm: String,
+        provider: MappingsProvider,
+        user: User,
+        message: MessageCreator,
+        maxPage: AtomicInteger,
+        types: Array<out MappingsEntryType>,
+    ): QueryResult<MappingsContainer, MutableList<ResultHolder<*>>> {
+        val hasWildcard: Boolean = searchTerm.substringBeforeLast('/').onlyClass() == "*" || searchTerm.onlyClass() == "*"
+        if (!provider.cached!! || hasWildcard) message.acknowledge {
+            basicEmbed(user)
+            var desc = "Searching up mappings for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again."
+            if (hasWildcard) desc += "\nCurrently using wildcards, might take a while."
+            if (!provider.cached!!) desc += "\nThis mappings version is not yet cached, might take some time to download."
+            description = desc
+        }
+        return message.getCatching(user) {
+            val mappings = provider.get()
+            QueryResult(mappings, query(mappings, searchTerm, *types).also {
+                maxPage.set(ceil(it.size / 4.0).toInt())
+            })
+        }
     }
 }

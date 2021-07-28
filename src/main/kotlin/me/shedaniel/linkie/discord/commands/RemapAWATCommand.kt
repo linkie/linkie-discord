@@ -16,9 +16,8 @@
 
 package me.shedaniel.linkie.discord.commands
 
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.addJsonObject
@@ -31,11 +30,14 @@ import kotlinx.serialization.json.putJsonObject
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.LegacyCommand
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageCreator
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.optimumName
+import me.shedaniel.linkie.discord.utils.use
+import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.getObfMergedDesc
@@ -48,24 +50,26 @@ import java.net.URL
 import java.net.URLConnection
 import java.util.*
 
-object RemapAWATCommand : CommandBase {
+object RemapAWATCommand : LegacyCommand {
     private val json = Json { }
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        args.validateUsage(prefix, 2, "$cmd <source mappings> <target mappings>")
-        val sourceMappings = readMappings(message, user, args[0])
-        val source = Namespaces[sourceMappings.namespace]
-        val targetMappings = readMappings(message, user, args[1])
-        val target = Namespaces[targetMappings.namespace]
-        val awToAt = when {
-            source.supportsAT() && target.supportsAW() -> false
-            source.supportsAW() && target.supportsAT() -> true
-            else -> throw IllegalArgumentException("Illegal operation, mapping from ${source.id} to ${target.id}!")
+    override suspend fun execute(ctx: CommandContext, trigger: Message, args: MutableList<String>) {
+        ctx.use {
+            args.validateUsage(prefix, 2, "$cmd <source mappings> <target mappings>")
+            val sourceMappings = readMappings(message, user, args[0])
+            val source = Namespaces[sourceMappings.namespace]
+            val targetMappings = readMappings(message, user, args[1])
+            val target = Namespaces[targetMappings.namespace]
+            val awToAt = when {
+                source.supportsAT() && target.supportsAW() -> false
+                source.supportsAW() && target.supportsAT() -> true
+                else -> throw IllegalArgumentException("Illegal operation, mapping from ${source.id} to ${target.id}!")
+            }
+            require(trigger.attachments.size == 1) { "You must send 1 file!" }
+            val content = URL(trigger.attachments.first().url).readText()
+            var members = if (awToAt) readAW(sourceMappings, content) else readAT(sourceMappings, content)
+            members = remapMembers(members, sourceMappings, targetMappings)
+            upload(message, members, if (awToAt) writeAT(targetMappings, members) else writeAW(targetMappings, members))
         }
-        require(event.message.attachments.size == 1) { "You must send 1 file!" }
-        val content = URL(event.message.attachments.first().url).readText()
-        var members = if (awToAt) readAW(sourceMappings, content) else readAT(sourceMappings, content)
-        members = remapMembers(members, sourceMappings, targetMappings)
-        upload(message, members, if (awToAt) writeAT(targetMappings, members) else writeAW(targetMappings, members))
     }
 
     private fun URL.readText(): String {
@@ -97,13 +101,13 @@ object RemapAWATCommand : CommandBase {
         json.parseToJsonElement(con.inputStream.bufferedReader().readText()).apply {
             require(jsonObject["status"]?.jsonPrimitive?.content == "success") { "Failed to upload paste!" }
             message.reply {
-                setTitle("Remapped Access")
-                setUrl("https://paste.gg/${jsonObject["result"]!!.jsonObject["id"]!!.jsonPrimitive.content}")
-                setDescription("""Remapped ${members.members.count { it.memberType == MemberType.CLASS }} classes,
+                title("Remapped Access")
+                url("https://paste.gg/${jsonObject["result"]!!.jsonObject["id"]!!.jsonPrimitive.content}")
+                description("""Remapped ${members.members.count { it.memberType == MemberType.CLASS }} classes,
                     |${members.members.count { it.memberType == MemberType.METHOD }} methods,
                     |and ${members.members.count { it.memberType == MemberType.FIELD }} fields.
                 """.trimMargin())
-            }.subscribe()
+            }
         }
     }
 
@@ -111,7 +115,7 @@ object RemapAWATCommand : CommandBase {
         return members.copy(members = members.members.asSequence().map {
             val sourceOwner = source.getClass(it.owner)!!
             val targetOwner = target.getClassByObfName(sourceOwner.obfMergedName!!)!!
-            val copy = it.copy(owner = targetOwner.intermediaryName)
+            val copy = it.copy(owner = targetOwner.optimumName)
             when {
                 it.memberType == MemberType.CLASS -> copy
                 it.remapDescriptor -> copy.copy(
@@ -127,7 +131,7 @@ object RemapAWATCommand : CommandBase {
                         ?: throw IllegalStateException("Failed to map $sourceMember to ${target.namespace}")
                     copy.copy(
                         member = targetMember.intermediaryName,
-                        descriptor = targetMember.intermediaryDesc
+                        descriptor = targetMember.getMappedDesc(target)
                     )
                 }
             }
@@ -244,7 +248,7 @@ object RemapAWATCommand : CommandBase {
                 append("Searching up mappings for **${provider.namespace.id} ${provider.version}**.\nIf you are stuck with this message, please do the command again.")
                 if (!provider.cached!!) append("\nThis mappings version is not yet cached, might take some time to download.")
             }
-        }.block()
+        }
         return provider.get()
     }
 

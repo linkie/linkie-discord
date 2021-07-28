@@ -16,31 +16,36 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
-import me.shedaniel.linkie.discord.basicEmbed
+import me.shedaniel.linkie.discord.SimpleCommand
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.tricks.canManageTrick
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.validateInGuild
 
-object RemoveTrickCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        LinkieScripting.validateGuild(event)
-        args.validateUsage(prefix, 1, "$cmd <name>")
-        val name = args.first()
-        LinkieScripting.validateTrickName(name)
-        val trick = TricksManager[name to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$name`")
-        require(event.member.get().canManageTrick(trick)) { "You don't have permission to manage this trick!" }
-        TricksManager.removeTrick(trick)
-        message.reply {
-            basicEmbed(user)
-            setTitle("Removed Trick")
-            description = "Successfully removed trick: $name"
-        }.subscribe()
+object RemoveTrickCommand : SimpleCommand<String> {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val trickName = string("trick_name", "Name of the trick")
+        executeCommandWith { opt(trickName) }
+    }
+
+    override suspend fun execute(ctx: CommandContext, trickName: String) {
+        LinkieScripting.validateGuild(ctx)
+        ctx.validateInGuild {
+            LinkieScripting.validateTrickName(trickName)
+            val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
+            require(member.canManageTrick(trick)) { "You don't have permission to manage this trick!" }
+            TricksManager.removeTrick(trick)
+            message.reply {
+                basicEmbed(user)
+                title("Removed Trick")
+                description = "Successfully removed trick: $trickName"
+            }
+        }
     }
 }

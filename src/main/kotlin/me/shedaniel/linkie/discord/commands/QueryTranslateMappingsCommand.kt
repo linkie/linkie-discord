@@ -16,9 +16,6 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.Field
 import me.shedaniel.linkie.MappingsContainer
@@ -27,14 +24,22 @@ import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
-import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.ValueKeeper
-import me.shedaniel.linkie.discord.basicEmbed
-import me.shedaniel.linkie.discord.sendPages
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.scommands.namespace
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.version
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.buildString
 import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.optimumName
+import me.shedaniel.linkie.discord.utils.sendPages
+import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getObfMergedDesc
 import me.shedaniel.linkie.obfMergedName
@@ -45,35 +50,44 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 
 class QueryTranslateMappingsCommand(
-    private val source: Namespace,
-    private val target: Namespace,
-    vararg types: MappingsEntryType,
-) : QueryMappingsCommand(source, *types) {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        val sourceNamespace = getNamespace(event, prefix, cmd, args, source)
-        val targetNamespace = getNamespace(event, prefix, cmd, args, target)
+    private val source: Namespace?,
+    private val target: Namespace?,
+    private vararg val types: MappingsEntryType,
+) : Command {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val srcNamespaceOpt = if (source == null) namespace("source", "The source namespace to query in") else null
+        val dstNamespaceOpt = if (target == null) namespace("target", "The target namespace to query in") else null
+        val searchTerm = string("search_term", "The search term to filter with")
+        val version = version("version", "The version to query for", required = false)
+        executeCommandWithGetter { ctx, options ->
+            val src = source ?: options.opt(srcNamespaceOpt!!)
+            val dst = target ?: options.opt(dstNamespaceOpt!!)
 
-        val allVersions = source.getAllSortedVersions().toMutableList()
-        allVersions.retainAll(target.getAllSortedVersions())
-        val providedVersion = if (args.size == 2) args.last() else null
+            val allVersions = src.getAllSortedVersions().toMutableList()
+            allVersions.retainAll(dst.getAllSortedVersions())
 
-        val sourceMappingsVersion = getMappingsProvider(sourceNamespace, providedVersion, allVersions).version!!
-        val targetMappingsVersion = getMappingsProvider(targetNamespace, providedVersion, allVersions).version!!
+            val srcVersion = options.opt(version, VersionNamespaceConfig(src) { allVersions })
+            val dstVersion = options.opt(version, VersionNamespaceConfig(dst) { allVersions })
 
-        require(sourceMappingsVersion == targetMappingsVersion) {
-            "Unmatched versions: $sourceMappingsVersion, $targetMappingsVersion! Please report this!"
+            require(srcVersion == dstVersion) {
+                "Unmatched versions: $srcVersion, $dstVersion! Please report this!"
+            }
+
+            val searchTermStr = options.opt(searchTerm).replace('.', '/')
+            execute(ctx, src, dst, srcVersion.version!!, searchTermStr)
         }
+    }
 
-        val searchTerm = args.first().replace('.', '/')
+    suspend fun execute(ctx: CommandContext, src: Namespace, dst: Namespace, version: String, searchTerm: String) = ctx.use {
         val maxPage = AtomicInteger(-1)
         val query = ValueKeeper(Duration.ofMinutes(2)) {
-            translate(query(searchTerm, sourceNamespace.getProvider(sourceMappingsVersion), user, message, maxPage), targetNamespace.getProvider(targetMappingsVersion))
+            translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, types), dst.getProvider(version))
         }
-        message.sendPages(0, maxPage.get()) { page ->
+        message.sendPages(ctx, 0, maxPage.get()) { page ->
             basicEmbed(user)
             val result = query.get()
-            if (maxPage.get() > 1) setTitle("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
-            else setTitle("List of ${result.source.name}->${result.target.name} Mappings")
+            if (maxPage.get() > 1) title("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
+            else title("List of ${result.source.name}->${result.target.name} Mappings")
             buildSafeDescription {
                 var isFirst = true
                 result.value.dropAndTake(4 * page, 4).forEach { (original, translated) ->
@@ -171,7 +185,7 @@ class QueryTranslateMappingsCommand(
                 }
             }
         }
-        
+
         if (newResult.isEmpty()) {
             throw NullPointerException("Some results were found, but was unable to translate to the target namespace! Please report this issue!")
         }

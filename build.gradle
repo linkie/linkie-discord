@@ -1,5 +1,5 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version("1.5.0")
+    id("org.jetbrains.kotlin.jvm") version("1.5.21")
     id("org.jetbrains.kotlin.plugin.serialization") version("1.5.0")
     id("java")
     id("com.github.johnrengelman.shadow") version("7.0.0")
@@ -44,29 +44,29 @@ repositories {
 }
 
 dependencies {
-    implementation("me.shedaniel:linkie-core:1.0.82") {
+    implementation("me.shedaniel:linkie-core:1.0.85") {
         exclude module: "korio"
     }
-    implementation("com.discord4j:discord4j-core:3.1.3") {
+    implementation("com.discord4j.discord4j:discord4j-core:b024c18f11") {
         force = true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {
 //        force = true
 //    }
-    implementation("com.soywiz.korlibs.korio:korio-jvm:2.1.1") {
+    implementation('com.soywiz.korlibs.korio:korio-jvm:2.3.1') {
         exclude module: "kds"
         exclude module: "klock"
         exclude module: "klogger"
         exclude module: "krypto"
         exclude module: "kmem"
     }
-    implementation("com.soywiz.korlibs.kds:kds-jvm:2.1.1")
-    implementation("com.soywiz.korlibs.klock:klock-jvm:2.1.1")
-    implementation("com.soywiz.korlibs.klogger:klogger-jvm:2.1.1")
-    implementation("com.soywiz.korlibs.krypto:krypto-jvm:2.1.1")
-    implementation("com.soywiz.korlibs.kmem:kmem-jvm:2.1.1")
-    implementation "org.graalvm.js:js-scriptengine:20.2.0"
-    implementation "org.graalvm.js:js:20.2.0"
+    implementation('com.soywiz.korlibs.kds:kds-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.klock:klock-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.klogger:klogger-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.krypto:krypto-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.kmem:kmem-jvm:2.3.1')
+    implementation 'org.graalvm.js:js-scriptengine:21.2.0'
+    implementation 'org.graalvm.js:js:21.2.0'
     implementation "io.ktor:ktor-server-core:$ktor_version"
     implementation "io.ktor:ktor-server-netty:$ktor_version"
     implementation "com.github.shedaniel:CurseMetaApi:0.2"

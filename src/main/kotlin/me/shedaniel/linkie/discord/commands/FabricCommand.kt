@@ -17,11 +17,14 @@
 package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.spec.EmbedCreateSpec
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import me.shedaniel.cursemetaapi.CurseMetaAPI
 import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
-import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.utils.tryToVersion
 import java.net.URL
 
@@ -102,7 +105,7 @@ object FabricCommand : AbstractPlatformVersionCommand<FabricCommand.FabricVersio
         override val unstable: Boolean
             get() = !release
 
-        override fun appendData(): EmbedCreateSpec.(StringBuilder) -> Unit = {
+        override fun appendData(): EmbedCreateSpec.Builder.(StringBuilder) -> Unit = {
             addInlineField("Loader Version", loaderVersion)
             addInlineField("Installer Version", installerVersion)
             addInlineField("Yarn Version", yarnVersion)

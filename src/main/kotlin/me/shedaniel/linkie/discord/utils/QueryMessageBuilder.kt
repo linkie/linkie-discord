@@ -24,14 +24,13 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
-import me.shedaniel.linkie.discord.basicEmbed
 import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.localiseFieldDesc
 
 object QueryMessageBuilder {
-    fun buildMessage(spec: EmbedCreateSpec, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
+    fun buildMessage(spec: EmbedCreateSpec.Builder, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
         buildHeader(spec, mappings, page, author, maxPage)
         spec.buildSafeDescription {
             var isFirst = true
@@ -52,10 +51,10 @@ object QueryMessageBuilder {
         }
     }
 
-    fun buildHeader(spec: EmbedCreateSpec, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
+    fun buildHeader(spec: EmbedCreateSpec.Builder, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
         basicEmbed(author, metadata.mappingsSource?.toString())
-        if (maxPage > 1) setTitle("List of ${metadata.name} Mappings for ${metadata.version} (Page ${page + 1}/$maxPage)")
-        else setTitle("List of ${metadata.name} Mappings for ${metadata.version}")
+        if (maxPage > 1) title("List of ${metadata.name} Mappings for ${metadata.version} (Page ${page + 1}/$maxPage)")
+        else title("List of ${metadata.name} Mappings for ${metadata.version}")
     }
 
     fun buildClass(builder: StringBuilder, namespace: Namespace, classEntry: Class) = builder.apply {

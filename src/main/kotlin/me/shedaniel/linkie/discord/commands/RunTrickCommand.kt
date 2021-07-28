@@ -16,35 +16,40 @@
 
 package me.shedaniel.linkie.discord.commands
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.discord.CommandBase
-import me.shedaniel.linkie.discord.MessageCreator
+import me.shedaniel.linkie.discord.Command
+import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.args
+import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
-import me.shedaniel.linkie.discord.validateUsage
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.validateInGuild
 
-object RunTrickCommand : CommandBase {
-    override suspend fun execute(event: MessageCreateEvent, message: MessageCreator, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        LinkieScripting.validateGuild(event)
-        args.validateUsage(prefix, 1, "$cmd <trick>")
-        val trickName = args.first()
-        val trick = TricksManager[trickName to event.guildId.get().asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
-        val evalContext = EvalContext(
-            prefix,
-            cmd,
-            event,
-            trick.flags,
-            args,
-            parent = false,
-        )
-        LinkieScripting.evalTrick(evalContext, message, trick) {
-            LinkieScripting.simpleContext.push {
-                ContextExtensions.commandContexts(evalContext, user, channel, message, this)
+object RunTrickCommand : Command {
+    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+        val trickName = string("trick_name", "Name of the trick")
+        val args = args(required = false)
+        executeCommandWithGetter { ctx, options -> execute(ctx, options.opt(trickName), options.opt(args)) }
+    }
+
+    fun execute(ctx: CommandContext, trickName: String, args: MutableList<String>) {
+        ctx.validateInGuild {
+            val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
+            val evalContext = EvalContext(
+                ctx,
+                null,
+                trick.flags,
+                args,
+                parent = false,
+            )
+            LinkieScripting.evalTrick(evalContext, message, trick) {
+                LinkieScripting.simpleContext.push {
+                    ContextExtensions.commandContexts(evalContext, user, channel, message, this)
+                }
             }
         }
     }
