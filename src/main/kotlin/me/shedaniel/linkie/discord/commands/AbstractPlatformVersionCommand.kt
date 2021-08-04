@@ -101,7 +101,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
 
     private fun CommandContext.sendNotInitializedYet() {
         if (!dataKeeper.isInitialized()) {
-            message.reply {
+            message.acknowledge {
                 basicEmbed(user)
                 buildSafeDescription {
                     append("Searching up version data.\n\nIf you are stuck with this message, please do the command again and report the issue on the issue tracker.")
