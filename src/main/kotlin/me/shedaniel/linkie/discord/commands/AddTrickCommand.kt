@@ -34,7 +34,7 @@ import me.shedaniel.linkie.discord.utils.validateUsage
 import java.util.*
 
 object AddTrickCommand : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val args = args()
         executeCommandWithGetter { ctx, options ->
             execute(ctx, options.opt(args))

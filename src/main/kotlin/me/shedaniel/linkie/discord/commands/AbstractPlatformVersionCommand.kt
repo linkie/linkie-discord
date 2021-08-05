@@ -38,14 +38,24 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
     private val dataKeeper = valueKeeper(Duration.ofMinutes(10)) { updateData() }
     protected val data by dataKeeper
 
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         sub("list", "Lists the available versions") {
             executeCommandWithNothing(this@AbstractPlatformVersionCommand::executeList)
         }
-        sub("first", "Returns the data for the latest version") {
+        sub("first", "Returns the data for the first version") {
             executeCommandWith { data.versions.first() }
         }
-        sub("get", "Returns the data for a selected version") {
+        sub("latest", "Returns the data for the latest version") {
+            executeCommandWith { latestVersion }
+        }
+        if (slash) {
+            sub("get", "Returns the data for a selected version") {
+                val version = string("version", "The version to return for", required = false) {}
+                executeCommandWith {
+                    optNullable(version) ?: latestVersion
+                }
+            }
+        } else {
             val version = string("version", "The version to return for", required = false) {}
             executeCommandWith {
                 optNullable(version) ?: latestVersion

@@ -17,14 +17,17 @@
 package me.shedaniel.linkie.discord
 
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildReactions
+import me.shedaniel.linkie.discord.utils.dismissButton
+import me.shedaniel.linkie.discord.utils.msgCreator
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
 
@@ -35,18 +38,33 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
         val message: String = event.message.content
         val prefix = commandAcceptor.getPrefix(event) ?: defaultPrefix
         GlobalScope.launch {
-            runCatching {
+            try {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
-                    val split = content.splitArgs().dropLastWhile(String::isEmpty)
+                    val split = content.splitArgs()
                     if (split.isNotEmpty()) {
                         val cmd = split[0].toLowerCase()
+                        val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
                         val args = split.drop(1).toMutableList()
-                        commandAcceptor.execute(event, prefix, user, cmd, args, channel)
+                        try {
+                            commandAcceptor.execute(event, ctx, args)
+                        } catch (throwable: Throwable) {
+                            if (throwable is SuppressedException) return@launch
+                            try {
+                                ctx.message.reply(ctx, {
+                                    dismissButton()
+                                }) {
+                                    generateThrowable(throwable, user)
+                                }
+                            } catch (throwable2: Exception) {
+                                throwable2.addSuppressed(throwable)
+                                throwable2.printStackTrace()
+                            }
+                        }
                     }
                 }
-            }.exceptionOrNull()?.also { throwable ->
-                if (throwable is SuppressedException) return@also
+            } catch (throwable: Throwable) {
+                if (throwable is SuppressedException) return@launch
                 try {
                     channel.sendEmbedMessage { generateThrowable(throwable, user) }.subscribe { message ->
                         buildReactions(Duration.ofMinutes(2)) {
@@ -81,11 +99,11 @@ fun String.splitArgs(): MutableList<String> {
     }
     if (stringBuilder.isNotEmpty())
         args.add(stringBuilder.toString())
-    return args
+    return args.dropLastWhile(String::isEmpty).toMutableList()
 }
 
 interface CommandAcceptor {
-    suspend fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel)
+    suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>)
     fun getPrefix(event: MessageCreateEvent): String?
 }
 

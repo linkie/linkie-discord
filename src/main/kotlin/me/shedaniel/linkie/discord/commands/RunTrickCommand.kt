@@ -30,7 +30,7 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
 object RunTrickCommand : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val trickName = string("trick_name", "Name of the trick")
         val args = args(required = false)
         executeCommandWithGetter { ctx, options -> execute(ctx, options.opt(trickName), options.opt(args)) }

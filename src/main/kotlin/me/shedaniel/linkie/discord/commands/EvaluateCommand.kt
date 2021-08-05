@@ -29,7 +29,7 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.use
 
 object EvaluateCommand : SimpleCommand<String> {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val script = string("script", "The JavaScript code to be evaluated")
         executeCommandWith { opt(script) }
     }

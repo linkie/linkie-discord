@@ -28,14 +28,14 @@ fun MessageCreator.sendPages(
     val builder = embedCreator { creator(this, page) }
     reply(ctx, {
         row {
-            secondaryButton("⬅".discordEmote, disabled = page == 0) {
+            secondaryButton("◀️".discordEmote, disabled = page == 0) {
                 if (page > 0) {
                     page--
                     reply(builder)
                 }
             }
             dismissButton()
-            secondaryButton("➡".discordEmote, disabled = page >= maxPages - 1) {
+            secondaryButton("▶️".discordEmote, disabled = page >= maxPages - 1) {
                 if (page < maxPages - 1) {
                     page++
                     reply(builder)

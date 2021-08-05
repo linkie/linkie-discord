@@ -39,7 +39,7 @@ import java.time.Instant
 import kotlin.math.ceil
 
 object ListTricksCommand : SimpleCommand<User> {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val member = user("member", "The member to search for")
         executeCommandWith { opt(member) }
     }

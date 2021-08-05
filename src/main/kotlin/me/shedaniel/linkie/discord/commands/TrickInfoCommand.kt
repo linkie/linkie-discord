@@ -31,7 +31,7 @@ import me.shedaniel.linkie.discord.utils.validateInGuild
 import java.time.Instant
 
 object TrickInfoCommand : SimpleCommand<String> {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val trickName = string("trick_name", "Name of the trick")
         executeCommandWith { opt(trickName) }
     }

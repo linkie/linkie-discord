@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-package me.shedaniel.linkie.discord.commands
+package me.shedaniel.linkie.discord.commands.legacy
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.addJsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.LegacyCommand
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageCreator
+import me.shedaniel.linkie.discord.utils.PasteGGUploader
+import me.shedaniel.linkie.discord.utils.attachmentMessage
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.optimumName
@@ -45,7 +39,6 @@ import me.shedaniel.linkie.obfMergedName
 import me.shedaniel.linkie.optimumName
 import me.shedaniel.linkie.utils.remapDescriptor
 import java.io.InputStream
-import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLConnection
 import java.util.*
@@ -64,8 +57,7 @@ object RemapAWATCommand : LegacyCommand {
                 source.supportsAW() && target.supportsAT() -> true
                 else -> throw IllegalArgumentException("Illegal operation, mapping from ${source.id} to ${target.id}!")
             }
-            require(trigger.attachments.size == 1) { "You must send 1 file!" }
-            val content = URL(trigger.attachments.first().url).readText()
+            val content = URL(trigger.attachmentMessage.url).readText()
             var members = if (awToAt) readAW(sourceMappings, content) else readAT(sourceMappings, content)
             members = remapMembers(members, sourceMappings, targetMappings)
             upload(message, members, if (awToAt) writeAT(targetMappings, members) else writeAW(targetMappings, members))
@@ -81,33 +73,15 @@ object RemapAWATCommand : LegacyCommand {
     }
 
     private fun upload(message: MessageCreator, members: Format, content: String) {
-        val con = URL("https://api.paste.gg/v1/pastes/").openConnection() as HttpURLConnection
-        con.requestMethod = "POST"
-        con.setRequestProperty("Content-Type", "application/json")
-        con.doOutput = true
-        con.outputStream.use { stream ->
-            val input: ByteArray = json.encodeToString(buildJsonObject {
-                putJsonArray("files") {
-                    addJsonObject {
-                        putJsonObject("content") {
-                            put("format", "text")
-                            put("value", content)
-                        }
-                    }
-                }
-            }).toByteArray()
-            stream.write(input, 0, input.size)
-        }
-        json.parseToJsonElement(con.inputStream.bufferedReader().readText()).apply {
-            require(jsonObject["status"]?.jsonPrimitive?.content == "success") { "Failed to upload paste!" }
-            message.reply {
-                title("Remapped Access")
-                url("https://paste.gg/${jsonObject["result"]!!.jsonObject["id"]!!.jsonPrimitive.content}")
-                description("""Remapped ${members.members.count { it.memberType == MemberType.CLASS }} classes,
+        message.reply {
+            title("Remapped Access")
+            url(PasteGGUploader.upload(content))
+            description(
+                """Remapped ${members.members.count { it.memberType == MemberType.CLASS }} classes,
                     |${members.members.count { it.memberType == MemberType.METHOD }} methods,
                     |and ${members.members.count { it.memberType == MemberType.FIELD }} fields.
-                """.trimMargin())
-            }
+                """.trimMargin()
+            )
         }
     }
 

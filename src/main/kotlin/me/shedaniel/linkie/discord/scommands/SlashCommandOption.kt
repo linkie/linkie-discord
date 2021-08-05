@@ -152,12 +152,13 @@ class SubCommandOption(
                     ExecuteResult.READ_VALUE -> reader.set(copy)
                 }
             }
+            return if (execute(command, ctx, builder)) {
+                ExecuteResult.EXECUTED
+            } else {
+                ExecuteResult.READ_VALUE
+            }
         }
-        return if (execute(command, ctx, builder)) {
-            ExecuteResult.EXECUTED
-        } else {
-            ExecuteResult.READ_VALUE
-        }
+        return ExecuteResult.NONE
     }
 }
 

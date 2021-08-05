@@ -51,7 +51,6 @@ import me.shedaniel.linkie.discord.commands.ListTricksCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
-import me.shedaniel.linkie.discord.commands.RemapAWATCommand
 import me.shedaniel.linkie.discord.commands.RemoveTrickCommand
 import me.shedaniel.linkie.discord.commands.RunTrickCommand
 import me.shedaniel.linkie.discord.commands.SetValueCommand
@@ -59,6 +58,7 @@ import me.shedaniel.linkie.discord.commands.TrickInfoCommand
 import me.shedaniel.linkie.discord.commands.TricksCommand
 import me.shedaniel.linkie.discord.commands.ValueCommand
 import me.shedaniel.linkie.discord.commands.ValueListCommand
+import me.shedaniel.linkie.discord.commands.legacy.RemapAWATCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.sub
@@ -78,7 +78,7 @@ import me.shedaniel.linkie.utils.info
 import java.io.File
 import java.util.*
 
-const val testingGuild = 792699517631594506L
+const val testingGuild = 432055962233470986L
 
 fun main() {
     (File(System.getProperty("user.dir")) / ".properties").apply {
@@ -107,13 +107,13 @@ fun main() {
     start(
         LinkieConfig.DEFAULT.copy(
             namespaces = listOf(
-                LegacyYarnNamespace,
-                YarrnNamespace,
                 YarnNamespace,
-                PlasmaNamespace,
-                MCPNamespace,
                 MojangNamespace,
                 MojangSrgNamespace,
+                MCPNamespace,
+                LegacyYarnNamespace,
+                YarrnNamespace,
+                PlasmaNamespace,
             )
         )
     ) {
@@ -122,8 +122,12 @@ fun main() {
         registerCommands(CommandHandler)
         registerSlashCommands(slashCommands)
         CommandHandler.slashCommands.forEach { cmd ->
-            if (cmd.slash) {
-                slashCommands.guildCommand(testingGuild, cmd.slashCommand)
+            if (cmd.slashCommand != null) {
+                if (isDebug) {
+                    slashCommands.guildCommand(testingGuild, cmd.slashCommand)
+                } else {
+                    slashCommands.globalCommand(cmd.slashCommand)
+                }
             }
         }
         slashCommands.register()
@@ -160,9 +164,9 @@ private operator fun File.div(s: String): File = File(this, s)
 
 fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(QueryMappingsCommand(null, *MappingsEntryType.values()), "mapping")
-    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.CLASS), "c", "class")
-    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")
-    commands.registerCommand(QueryMappingsCommand(null, MappingsEntryType.FIELD), "f", "field")
+    commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.CLASS), "c", "class")
+    commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")
+    commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.FIELD), "f", "field")
 
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), "y", "yarn")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.CLASS), "yc", "yarnc")
@@ -199,10 +203,10 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
 
-    commands.registerCommand(QueryTranslateMappingsCommand(null, null, *MappingsEntryType.values()), "translate", "t")
-    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.CLASS), "translatec", "tc")
-    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.METHOD), "translatem", "tm")
-    commands.registerCommand(QueryTranslateMappingsCommand(null, null, MappingsEntryType.FIELD), "translatef", "tf")
+    commands.registerCommand(QueryTranslateMappingsCommand(null, null, *MappingsEntryType.values()), listOf("translate", "t"), listOf("translate"))
+    commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.CLASS), "translatec", "tc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.METHOD), "translatem", "tm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.FIELD), "translatef", "tf")
 
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), "voldefy", "volde", "v", "ymcp")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.CLASS), "voldefyc", "voldec", "vc", "ymcpc")
@@ -231,13 +235,15 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf")
 
+//    commands.registerCommand(RemapStackTraceCommand(MojangNamespace), "fabriccrash")
+//    commands.registerCommand(RemapStackTraceCommand(MojangSrgNamespace), "forgecrash")
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 
-    commands.registerCommand(FabricDramaCommand, "fabricdrama", "fdrama")
-    commands.registerCommand(FTBDramaCommand, "ftbdrama", "drama")
+    commands.registerCommand(FabricDramaCommand, listOf("fabricdrama", "fdrama"), listOf("fabricdrama"))
+    commands.registerCommand(FTBDramaCommand, listOf("ftbdrama", "drama"), listOf("ftbdrama"))
     commands.registerCommand(AboutCommand, "about")
-    commands.registerCommand(RandomClassCommand, "randc")
-    commands.registerCommand(EvaluateCommand, "eval", "evaluate")
+    commands.registerCommand(RandomClassCommand, listOf("randc"), listOf("random_class"))
+    commands.registerCommand(EvaluateCommand, listOf("eval", "evaluate"), listOf("evaluate"))
     commands.registerCommand(RunTrickCommand, "run")
     commands.registerCommand(false, AddTrickCommand, "trickadd")
     commands.registerCommand(false, RemoveTrickCommand, "trickremove")

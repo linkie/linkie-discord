@@ -28,7 +28,7 @@ import me.shedaniel.linkie.discord.utils.validateAdmin
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
 object GetValueCommand : SimpleCommand<String> {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val propertyName = string("property", "The property name")
         executeCommandWith { opt(propertyName) }
     }

@@ -45,12 +45,14 @@ import me.shedaniel.linkie.discord.utils.validateNamespace
 import java.time.Duration
 
 object RandomClassCommand : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val namespace = namespace("namespace", "The namespace to query in")
         val version = version("version", "The version to query for", required = false)
         val count = int("count", "The number of classes to generate", required = false)
         executeCommandWithGetter { ctx, options ->
             val ns = options.opt(namespace)
+            ns.validateNamespace()
+            ns.validateGuild(ctx)
             val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
             execute(ctx, ns, nsVersion, options.optNullable(count)?.toInt() ?: 10)
         }

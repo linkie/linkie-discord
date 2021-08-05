@@ -42,8 +42,8 @@ typealias CommandExecutor<T> = suspend (ctx: CommandContext, options: T) -> Unit
 
 data class BuiltCommand(
     val command: Command,
-    val slashCommand: SlashCommand,
-    val slash: Boolean,
+    val regularCommand: SlashCommand,
+    val slashCommand: SlashCommand?,
 )
 
 interface Command {
@@ -69,8 +69,8 @@ interface Command {
         }
     }
 
-    suspend fun buildCommandPrivate(builder: SlashCommandBuilderInterface) = builder.buildCommand()
-    suspend fun SlashCommandBuilderInterface.buildCommand()
+    suspend fun buildCommandPrivate(builder: SlashCommandBuilderInterface, slash: Boolean) = builder.buildCommand(slash)
+    suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean)
     suspend fun execute(ctx: CommandContext, command: SlashCommand, args: MutableList<String>): Boolean {
         val isGroup = command.options.any { it is NestedSlashCommandOption }
         val root = if (isGroup) SubGroupCommandOption(ctx.cmd, "", listOf()) else SubCommandOption(ctx.cmd, "", listOf())
@@ -101,17 +101,18 @@ interface SimpleCommand<T> : Command {
 }
 
 suspend fun Command.build(
-    cmds: List<String>,
+    regular: List<String>,
+    slashAlias: List<String>,
     slash: Boolean,
     description: (cmd: String) -> String,
 ): BuiltCommand = BuiltCommand(
     command = this,
-    slashCommand = SlashCommandBuilder(description).cmd(*cmds.toTypedArray()).also { buildCommandPrivate(it) },
-    slash = slash,
+    regularCommand = SlashCommandBuilder(description).cmd(*regular.toTypedArray()).also { buildCommandPrivate(it, false) },
+    slashCommand = if (slash) SlashCommandBuilder(description).cmd(*slashAlias.toTypedArray()).also { buildCommandPrivate(it, true) } else null,
 )
 
 interface OptionlessCommand : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() =
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) =
         executeCommandWithNothing { execute(it) }
 
     override suspend fun execute(ctx: CommandContext, command: SlashCommand, args: MutableList<String>): Boolean {
@@ -130,7 +131,7 @@ interface LegacyCommand {
 
 open class SubCommandHolder : Command {
     private val subcommands = mutableMapOf<String, Command>()
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         this@SubCommandHolder.javaClass.declaredFields.forEach { field ->
             if (field.type.isAssignableFrom(SubCommandEntry::class.java)) {
                 val name = field.name.toLowerCase(Locale.ROOT)
@@ -141,7 +142,7 @@ open class SubCommandHolder : Command {
         }
         subcommands.forEach { (name, command) ->
             sub(name, "Sub command '$name'") {
-                command.buildCommandPrivate(this@sub)
+                command.buildCommandPrivate(this@sub, slash)
             }
         }
     }

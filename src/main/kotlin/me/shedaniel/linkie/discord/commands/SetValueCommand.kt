@@ -34,7 +34,7 @@ object SetValueCommand : SimpleCommand<SetValueCommand.SetValueData> {
         val value: String,
     )
 
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val propertyName = string("property", "The property name")
         val value = stringUnlimited("value", "The property value")
         executeCommandWith {

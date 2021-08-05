@@ -17,6 +17,7 @@
 package me.shedaniel.linkie.discord.utils
 
 import discord4j.common.util.Snowflake
+import discord4j.core.`object`.entity.Attachment
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
@@ -138,3 +139,12 @@ fun Message.subscribeReactions(vararg unicodes: String) {
 
 val String.discordEmote: ReactionEmoji
     get() = ReactionEmoji.unicode(this)
+
+val Message.attachmentMessage: Attachment
+    get() = referencedMessage.getOrNull()?.let {
+        require(it.attachments.size == 1) { "You must reference 1 file!" }
+        it.attachments.first()
+    } ?: let {
+        require(it.attachments.size == 1) { "You must send 1 file!" }
+        it.attachments.first()
+    }

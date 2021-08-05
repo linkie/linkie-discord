@@ -25,6 +25,7 @@ import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
 import me.shedaniel.linkie.discord.utils.msgCreator
 
@@ -32,12 +33,11 @@ object TrickHandler : CommandAcceptor {
     override fun getPrefix(event: MessageCreateEvent): String? =
         event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].tricksPrefix }
 
-    override suspend fun execute(event: MessageCreateEvent, prefix: String, user: User, cmd: String, args: MutableList<String>, channel: MessageChannel) {
-        val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
+    override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>) {
         if (event.guildId.isPresent) {
             val guildId = event.guildId.get().asLong()
             if (!ConfigManager[guildId].tricksEnabled) return
-            val trick = TricksManager[cmd to guildId] ?: return
+            val trick = TricksManager[ctx.cmd to guildId] ?: return
             val evalContext = EvalContext(
                 ctx,
                 event.message,
@@ -47,7 +47,7 @@ object TrickHandler : CommandAcceptor {
             )
             LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
                 LinkieScripting.simpleContext.push {
-                    ContextExtensions.commandContexts(evalContext, user, channel, ctx.message, this)
+                    ContextExtensions.commandContexts(evalContext, ctx.user, ctx.channel, ctx.message, this)
                 }
             }
         }

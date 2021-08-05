@@ -107,6 +107,7 @@ object LinkieScripting {
             .option("js.experimental-foreign-object-prototype", "true")
             .option("js.disable-eval", "true")
             .option("js.load", "false")
+            .option("log.level", "OFF")
             .build()
         try {
             var t: Throwable? = null

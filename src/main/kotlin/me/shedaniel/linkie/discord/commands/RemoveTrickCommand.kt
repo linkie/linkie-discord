@@ -29,7 +29,7 @@ import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
 object RemoveTrickCommand : SimpleCommand<String> {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val trickName = string("trick_name", "Name of the trick")
         executeCommandWith { opt(trickName) }
     }

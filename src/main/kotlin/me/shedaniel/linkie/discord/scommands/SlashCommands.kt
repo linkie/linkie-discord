@@ -34,6 +34,7 @@ import me.shedaniel.linkie.discord.testingGuild
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
+import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.getOrNull
 import me.shedaniel.linkie.discord.utils.replyEmbed
@@ -110,7 +111,7 @@ class SlashCommands {
                         val commandData = buildData(command, cmd, data.id(), data.applicationId())
                         if (data.toString() != commandData.toString()) {
                             println("not same $cmd guild ${guild.asString()}")
-                            return@flatMap createGuildCommand(guild, command, cmd)
+                            return@flatMap modifyGuildCommand(guild, command, data.id().toLong(), cmd)
                         }
                     }
                     return@flatMap Mono.empty()
@@ -131,9 +132,21 @@ class SlashCommands {
             .doOnError { warn("Unable to create global command: {}", it.message ?: "null") }
             .onErrorResume { Mono.empty() }
 
+    private fun modifyGlobalCommand(command: SlashCommand, commandId: Long, cmd: String) =
+        gateway.restClient.applicationService
+            .modifyGlobalApplicationCommand(applicationId, commandId, buildRequest(command, cmd))
+            .doOnError { warn("Unable to create global command: {}", it.message ?: "null") }
+            .onErrorResume { Mono.empty() }
+
     private fun createGuildCommand(guildId: Snowflake, command: SlashCommand, cmd: String) =
         gateway.restClient.applicationService
             .createGuildApplicationCommand(applicationId, guildId.asLong(), buildRequest(command, cmd))
+            .doOnError { warn("Unable to create guild command: {}", it.message ?: "null") }
+            .onErrorResume { Mono.empty() }
+
+    private fun modifyGuildCommand(guildId: Snowflake, command: SlashCommand, commandId: Long, cmd: String) =
+        gateway.restClient.applicationService
+            .modifyGuildApplicationCommand(applicationId, guildId.asLong(), commandId, buildRequest(command, cmd))
             .doOnError { warn("Unable to create guild command: {}", it.message ?: "null") }
             .onErrorResume { Mono.empty() }
 
@@ -147,7 +160,7 @@ class SlashCommands {
                         val commandData = buildData(command, cmd, data.id(), data.applicationId())
                         if (data.toString() != commandData.toString()) {
                             println("not same $cmd global")
-                            return@flatMap createGlobalCommand(command, cmd)
+                            return@flatMap modifyGlobalCommand(command, data.id().toLong(), cmd)
                         }
                     }
                     return@flatMap Mono.empty()
@@ -175,7 +188,11 @@ class SlashCommands {
         }.exceptionOrNull()?.also { throwable ->
             if (throwable is SuppressedException) return@also
             try {
-                event.replyEmbed { generateThrowable(throwable, ctx.user) }.subscribe()
+                ctx.message.reply(ctx, {
+                    dismissButton()
+                }) {
+                    generateThrowable(throwable, ctx.user)
+                }
             } catch (throwable2: Exception) {
                 throwable2.addSuppressed(throwable)
                 throwable2.printStackTrace()

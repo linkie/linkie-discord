@@ -24,15 +24,17 @@ import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.Command
-import me.shedaniel.linkie.discord.MappingsQueryUtils
 import me.shedaniel.linkie.discord.MappingsQueryUtils.query
 import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.getCatching
+import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.scommands.namespace
 import me.shedaniel.linkie.discord.scommands.opt
 import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.sub
+import me.shedaniel.linkie.discord.scommands.subGroup
 import me.shedaniel.linkie.discord.scommands.version
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageCreator
@@ -57,19 +59,46 @@ open class QueryMappingsCommand(
     private val namespace: Namespace?,
     private vararg val types: MappingsEntryType,
 ) : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
-        val namespaceOpt = if (namespace == null) namespace("namespace", "The namespace to query in") else null
-        val searchTerm = string("search_term", "The search term to filter with")
-        val version = version("version", "The version to query for", required = false)
-        executeCommandWithGetter { ctx, options ->
-            val ns = namespace ?: options.opt(namespaceOpt!!)
-            val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
-            val searchTermStr = options.opt(searchTerm).replace('.', '/')
-            execute(ctx, ns, nsVersion.version!!, searchTermStr)
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
+        if (slash) {
+            (sequenceOf("all") + MappingsEntryType.values().asSequence().map { it.name.toLowerCase() }).forEach { type ->
+                subGroup(type, "Queries mappings for the '$type' type") {
+                    buildNamespaces(slash, if (type == "all") MappingsEntryType.values() else arrayOf(MappingsEntryType.valueOf(type.toUpperCase())))
+                }
+            }
+        } else {
+            buildNamespaces(slash, types)
         }
     }
 
-    suspend fun execute(ctx: CommandContext, namespace: Namespace, version: String, searchTerm: String) = ctx.use {
+    suspend fun SlashCommandBuilderInterface.buildNamespaces(slash: Boolean, types: Array<out MappingsEntryType>) {
+        if (slash) {
+            Namespaces.namespaces.values.forEach { namespace ->
+                sub(namespace.id, "Searches $namespace") {
+                    buildExecutor({ namespace }, types)
+                }
+            }
+        } else {
+            val namespaceOpt = if (namespace == null) namespace("namespace", "The namespace to query in") else null
+            buildExecutor({ namespace ?: it.opt(namespaceOpt!!) }, types)
+        }
+    }
+
+    suspend fun SlashCommandBuilderInterface.buildExecutor(namespaceGetter: (OptionsGetter) -> Namespace, types: Array<out MappingsEntryType>) {
+        val searchTerm = string("search_term", "The search term to filter with")
+        val version = version("version", "The version to query for", required = false)
+        executeCommandWithGetter { ctx, options ->
+            ctx.message.acknowledge()
+            val ns = namespaceGetter(options)
+            ns.validateNamespace()
+            ns.validateGuild(ctx)
+            val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
+            val searchTermStr = options.opt(searchTerm).replace('.', '/')
+            execute(ctx, ns, nsVersion.version!!, searchTermStr, types)
+        }
+    }
+
+    suspend fun execute(ctx: CommandContext, namespace: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
         val maxPage = AtomicInteger(-1)
         val query = ValueKeeper(Duration.ofMinutes(2)) {
             QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, types)

@@ -26,11 +26,14 @@ import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.ValueKeeper
+import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.scommands.namespace
 import me.shedaniel.linkie.discord.scommands.opt
 import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.scommands.sub
+import me.shedaniel.linkie.discord.scommands.subGroup
 import me.shedaniel.linkie.discord.scommands.version
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
@@ -40,8 +43,14 @@ import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.use
+import me.shedaniel.linkie.discord.utils.validateGuild
+import me.shedaniel.linkie.discord.utils.validateNamespace
 import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getObfMergedDesc
+import me.shedaniel.linkie.namespaces.MCPNamespace
+import me.shedaniel.linkie.namespaces.MojangNamespace
+import me.shedaniel.linkie.namespaces.MojangSrgNamespace
+import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.obfMergedName
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
@@ -54,14 +63,59 @@ class QueryTranslateMappingsCommand(
     private val target: Namespace?,
     private vararg val types: MappingsEntryType,
 ) : Command {
-    override suspend fun SlashCommandBuilderInterface.buildCommand() {
-        val srcNamespaceOpt = if (source == null) namespace("source", "The source namespace to query in") else null
-        val dstNamespaceOpt = if (target == null) namespace("target", "The target namespace to query in") else null
+    override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
+        if (slash) {
+            (sequenceOf("all") + MappingsEntryType.values().asSequence().map { it.name.toLowerCase() }).forEach { type ->
+                subGroup(type, "Queries mappings for the '$type' type") {
+                    buildNamespaces(slash, if (type == "all") MappingsEntryType.values() else arrayOf(MappingsEntryType.valueOf(type.toUpperCase())))
+                }
+            }
+        } else {
+            buildNamespaces(slash, types)
+        }
+    }
+
+    suspend fun SlashCommandBuilderInterface.buildNamespaces(slash: Boolean, types: Array<out MappingsEntryType>) {
+        if (slash) {
+            val bridges: List<Pair<Namespace, Namespace>> = listOf(
+                YarnNamespace to MCPNamespace,
+                YarnNamespace to MojangNamespace,
+                MCPNamespace to MojangNamespace,
+            )
+            bridges.forEach { (src, dst) ->
+                val srcId = src.id.substringBeforeLast("_srg")
+                val dstId = dst.id.substringBeforeLast("_srg")
+                sub(srcId + "_to_" + dstId, "Translates from $srcId to $dstId") {
+                    buildExecutor({ src }, { dst }, types)
+                }
+                sub(dstId + "_to_" + srcId, "Translates from $dstId to $srcId") {
+                    buildExecutor({ dst }, { src }, types)
+                }
+            }
+        } else {
+            val srcNamespaceOpt = if (source == null) namespace("source", "The source namespace to query in") else null
+            val dstNamespaceOpt = if (target == null) namespace("target", "The target namespace to query in") else null
+            buildExecutor({ source ?: it.opt(srcNamespaceOpt!!) }, { target ?: it.opt(dstNamespaceOpt!!) }, types)
+        }
+    }
+
+    suspend fun SlashCommandBuilderInterface.buildExecutor(
+        srcNamespaceGetter: (OptionsGetter) -> Namespace,
+        dstNamespaceGetter: (OptionsGetter) -> Namespace,
+        types: Array<out MappingsEntryType>
+    ) {
+
         val searchTerm = string("search_term", "The search term to filter with")
         val version = version("version", "The version to query for", required = false)
         executeCommandWithGetter { ctx, options ->
-            val src = source ?: options.opt(srcNamespaceOpt!!)
-            val dst = target ?: options.opt(dstNamespaceOpt!!)
+            ctx.message.acknowledge()
+            val src = srcNamespaceGetter(options)
+            val dst = dstNamespaceGetter(options)
+
+            src.validateNamespace()
+            src.validateGuild(ctx)
+            dst.validateNamespace()
+            dst.validateGuild(ctx)
 
             val allVersions = src.getAllSortedVersions().toMutableList()
             allVersions.retainAll(dst.getAllSortedVersions())
@@ -69,16 +123,16 @@ class QueryTranslateMappingsCommand(
             val srcVersion = options.opt(version, VersionNamespaceConfig(src) { allVersions })
             val dstVersion = options.opt(version, VersionNamespaceConfig(dst) { allVersions })
 
-            require(srcVersion == dstVersion) {
-                "Unmatched versions: $srcVersion, $dstVersion! Please report this!"
+            require(srcVersion.version == dstVersion.version) {
+                "Unmatched versions: ${srcVersion.version}, ${dstVersion.version}! Please report this!"
             }
 
             val searchTermStr = options.opt(searchTerm).replace('.', '/')
-            execute(ctx, src, dst, srcVersion.version!!, searchTermStr)
+            execute(ctx, src, dst, srcVersion.version!!, searchTermStr, types)
         }
     }
 
-    suspend fun execute(ctx: CommandContext, src: Namespace, dst: Namespace, version: String, searchTerm: String) = ctx.use {
+    suspend fun execute(ctx: CommandContext, src: Namespace, dst: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
         val maxPage = AtomicInteger(-1)
         val query = ValueKeeper(Duration.ofMinutes(2)) {
             translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, types), dst.getProvider(version))
