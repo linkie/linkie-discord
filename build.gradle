@@ -87,6 +87,7 @@ jar {
 shadowJar {
     configurations = [project.configurations.shadow]
     classifier "shadow"
+    mergeServiceFiles()
 }
 
 task mainJar(type: Jar, dependsOn: [shadowJar, tasks.tricksZip]) {
