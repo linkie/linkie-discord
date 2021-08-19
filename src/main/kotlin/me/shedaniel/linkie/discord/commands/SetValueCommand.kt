@@ -20,6 +20,7 @@ import me.shedaniel.linkie.discord.SimpleCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scommands.stringUnlimited
 import me.shedaniel.linkie.discord.utils.CommandContext
@@ -36,11 +37,11 @@ object SetValueCommand : SimpleCommand<SetValueCommand.SetValueData> {
 
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val propertyName = string("property", "The property name")
-        val value = stringUnlimited("value", "The property value")
+        val value = stringUnlimited("value", "The property value", required = false)
         executeCommandWith {
             SetValueData(
                 property = opt(propertyName),
-                value = opt(value),
+                value = optNullable(value) ?: "",
             )
         }
     }
