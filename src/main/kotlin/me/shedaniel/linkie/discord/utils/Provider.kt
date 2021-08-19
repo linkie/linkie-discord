@@ -25,18 +25,35 @@ fun interface Provider<T : Any> {
 val <T : Any> T.provider: Provider<T>
     get() = Provider { this }
 
+val <T : Any> Provider<T>.lazy: Provider<T>
+    get() {
+        val value by lazy { this.get() }
+        return Provider { value }
+    }
+
+fun <T : Any, R : Any> Provider<T>.map(mapper: (T) -> R): Provider<R> =
+    Provider { mapper(get()) }
+
 interface Property<T : Any> : Provider<T> {
     fun set(value: T): Property<T> = set(value.provider)
     fun set(value: Provider<T>): Property<T>
+    fun listen(listener: (Provider<T>) -> Unit)
 
     companion object {
         fun <T : Any> create(): Property<T> = object : Property<T> {
             var value by Delegates.notNull<Provider<T>>()
+            val listeners = mutableListOf<(Provider<T>) -> Unit>()
             override fun set(value: Provider<T>): Property<T> = apply {
                 this.value = value
+                this.listeners.forEach { listener ->
+                    listener(this.value)
+                }
             }
 
-            override fun get(): T = value.get()
+            override fun get(): T = this.value.get()
+            override fun listen(listener: (Provider<T>) -> Unit) {
+                this.listeners.add(listener)
+            }
         }
 
         fun <T : Any> create(initialValue: T): Property<T> = create(initialValue.provider)
@@ -47,5 +64,8 @@ interface Property<T : Any> : Provider<T> {
 val <T : Any> T.property: Property<T>
     get() = Property.create(this)
 
-fun <T : Any, R : Any> Property<T>.map(mapper: (T) -> R): Property<R> =
-    Property.create { mapper(this@map.get()) }
+fun <T : Any, R : Any> Property<T>.map(mapper: (T) -> R): Property<R> {
+    val property: Property<R> = Property.create(Provider { get() }.map(mapper).lazy)
+    listen { property.set(it.map(mapper).lazy) }
+    return property
+}
