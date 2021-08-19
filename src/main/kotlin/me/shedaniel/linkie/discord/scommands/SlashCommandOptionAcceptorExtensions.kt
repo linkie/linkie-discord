@@ -59,8 +59,9 @@ inline fun SlashCommandOptionAcceptor.namespace(
     description: String,
     required: Boolean = true,
     builder: StringCommandOption.() -> Unit = {},
-): SimpleCommandOptionMeta<Namespace> = StringCommandOption(name, description, parents).also(applyRequired(required)).also(builder).also(this::arg).apply {
+): SimpleCommandOptionMeta<Namespace> = string(name, description, required) {
     Namespaces.namespaces.keys.forEach(this::choice)
+    builder()
 }.map { namespaceName ->
     namespaceName?.let {
         Namespaces.namespaces[it] ?: throw IllegalArgumentException("Invalid Namespace: $it\nNamespaces: " + Namespaces.namespaces.keys.joinToString(", "))
@@ -77,7 +78,7 @@ fun SlashCommandOptionAcceptor.version(
     description: String,
     required: Boolean = true,
     builder: StringCommandOption.() -> Unit = {},
-): CommandOptionMeta<MappingsProvider, VersionNamespaceConfig> = StringCommandOption(name, description, parents).also(applyRequired(required)).also(builder).also(this::arg).mapCompound { version, config ->
+): CommandOptionMeta<MappingsProvider, VersionNamespaceConfig> = string(name, description, required, builder).mapCompound { version, config ->
     val namespace = config.namespace
     val provider = runBlockingNoJs { if (version != null) namespace.getProvider(version) else MappingsProvider.empty(namespace) }
     val versions = config.availableVersions(namespace)

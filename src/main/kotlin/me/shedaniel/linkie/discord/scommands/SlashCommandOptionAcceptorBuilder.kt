@@ -37,14 +37,14 @@ inline fun SlashCommandOptionAcceptor.string(
     description: String,
     required: Boolean = true,
     builder: StringCommandOption.() -> Unit = {},
-): SimpleCommandOptionMeta<String> = StringCommandOption(name, description, parents).also(applyRequired(required)).also(builder).also(this::arg)
+): SimpleCommandOptionMeta<String> = StringCommandOption(name, description, parents, false).also(applyRequired(required)).also(builder).also(this::arg)
 
 inline fun SlashCommandOptionAcceptor.stringUnlimited(
     name: String,
     description: String,
     required: Boolean = true,
     builder: StringCommandOption.() -> Unit = {},
-): SimpleCommandOptionMeta<String> = StringCommandOption(name, description, parents).also(applyRequired(required)).also(builder).also(this::arg)
+): SimpleCommandOptionMeta<String> = StringCommandOption(name, description, parents, true).also(applyRequired(required)).also(builder).also(this::arg)
 
 fun <T : AbstractSlashCommandOption<*>> applyRequired(required: Boolean): (T) -> Unit = {
     it.required = required

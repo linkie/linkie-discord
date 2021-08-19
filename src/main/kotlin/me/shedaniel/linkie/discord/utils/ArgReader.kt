@@ -26,6 +26,11 @@ interface ArgReader {
     fun all(): String
 }
 
+fun ArgReader.iterator(): Iterator<String> = object : Iterator<String> {
+    override fun hasNext(): Boolean = this@iterator.hasNext()
+    override fun next(): String = this@iterator.next() ?: throw ArrayIndexOutOfBoundsException()
+}
+
 class ArgReaderImpl(
     val args: MutableList<String>,
     var cursor: Int = 0,

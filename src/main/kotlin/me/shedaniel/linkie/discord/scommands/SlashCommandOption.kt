@@ -29,6 +29,7 @@ import me.shedaniel.linkie.discord.utils.ArgReader
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.Property
 import me.shedaniel.linkie.discord.utils.blockNotNull
+import me.shedaniel.linkie.discord.utils.iterator
 import me.shedaniel.linkie.discord.utils.map
 import me.shedaniel.linkie.discord.utils.property
 
@@ -210,6 +211,7 @@ class StringCommandOption(
     name: String,
     description: String,
     parents: List<CommandOptionProperties>,
+    private val unlimited: Boolean,
 ) : AbstractSingleChoicesSlashCommandOption<String>(name, description, parents) {
     override val type: Int
         get() = ApplicationCommandOptionType.STRING.value
@@ -221,7 +223,11 @@ class StringCommandOption(
     }
 
     override fun read(reader: ArgReader): ReadResult<String> =
-        reader.next()?.result ?: ReadResult.notFound()
+        when (unlimited) {
+            true -> if (!reader.hasNext()) ReadResult.notFound()
+                    else reader.iterator().asSequence().joinToString(" ").result
+            else -> reader.next()?.result
+        } ?: ReadResult.notFound()
 }
 
 class IntegerCommandOption(
