@@ -25,7 +25,6 @@ import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.MappingsQueryUtils.query
-import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.getCatching
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
@@ -41,6 +40,7 @@ import me.shedaniel.linkie.discord.utils.MessageCreator
 import me.shedaniel.linkie.discord.utils.QueryMessageBuilder
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateDefaultVersionNotEmpty
@@ -50,7 +50,7 @@ import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.onlyClass
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
@@ -100,11 +100,11 @@ open class QueryMappingsCommand(
 
     suspend fun execute(ctx: CommandContext, namespace: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
         val maxPage = AtomicInteger(-1)
-        val query = ValueKeeper(Duration.ofMinutes(2)) {
+        val query by valueKeeper {
             QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, types)
-        }
+        }.initiate()
         message.sendPages(ctx, 0, maxPage.get()) { page ->
-            QueryMessageBuilder.buildMessage(this, namespace, query.get().value, query.get().mappings, page, user, maxPage.get())
+            QueryMessageBuilder.buildMessage(this, namespace, query.value, query.mappings, page, user, maxPage.get())
         }
     }
 

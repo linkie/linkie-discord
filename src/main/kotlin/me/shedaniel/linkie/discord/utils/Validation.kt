@@ -23,6 +23,8 @@ import me.shedaniel.linkie.InvalidUsageException
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.utils.ValueKeeper
+import me.shedaniel.linkie.utils.ValueKeeperProperty
 import java.util.*
 
 fun MessageCreateEvent.validateInGuild() {
@@ -86,4 +88,9 @@ fun MappingsProvider.validateDefaultVersionNotEmpty() {
     if (isEmpty()) {
         throw IllegalStateException("Invalid Default Version! Linkie may be reloading its cache right now.")
     }
+}
+
+fun <T> ValueKeeperProperty<T>.initiate(): ValueKeeperProperty<T> {
+    value
+    return this
 }

@@ -18,10 +18,16 @@
 
 package me.shedaniel.linkie.discord
 
+import com.soywiz.klock.minutes
+import com.soywiz.klock.seconds
 import discord4j.core.DiscordClient
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.GatewayDiscordClient
+import discord4j.core.`object`.presence.ClientActivity
+import discord4j.core.`object`.presence.ClientPresence
+import discord4j.core.event.domain.lifecycle.ReadyEvent
 import me.shedaniel.linkie.LinkieConfig
+import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.utils.info
@@ -48,9 +54,30 @@ inline fun start(
     Timer().schedule(0, Duration.ofMinutes(1).toMillis()) {
         System.gc()
     }
-    gateway = api.login().block()!!
+    gateway = api.login().doOnSuccess {
+        it.eventDispatcher.on(ReadyEvent::class.java).subscribe {
+            cycle(5.minutes, delay = 5.seconds) {
+                gateway.guilds.count().subscribe { size ->
+                    info("Serving on $size servers")
+                    gateway.updatePresence(ClientPresence.online(ClientActivity.watching("Serving on $size servers"))).subscribe()
+                }
+            }
+        }
+    }.block()!!
     Namespaces.init(config)
+    // pretendInit(config)
     setup()
     event(commandMap::onMessageCreate)
     event(trickMap::onMessageCreate)
+}
+
+private fun pretendInit(config: LinkieConfig) {
+    fun registerNamespace(namespace: Namespace) {
+        namespace.getDependencies().forEach(::registerNamespace)
+        Namespaces.namespaces[namespace.id] = namespace
+    }
+
+    Namespaces.config = config
+    Namespaces.gameJarProvider = config.gameJarProvider?.let { it(config) }
+    config.namespaces.forEach(::registerNamespace)
 }

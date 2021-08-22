@@ -20,7 +20,8 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
@@ -32,12 +33,14 @@ import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
 
 class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
+    val scope = CoroutineScope(Dispatchers.Default)
+
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block() ?: return
         val user = event.message.author.orElse(null)?.takeUnless { it.isBot } ?: return
         val message: String = event.message.content
         val prefix = commandAcceptor.getPrefix(event) ?: defaultPrefix
-        GlobalScope.launch {
+        scope.launch {
             try {
                 if (message.toLowerCase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)

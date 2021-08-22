@@ -23,7 +23,6 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
-import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.scommands.int
@@ -38,11 +37,12 @@ import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discordEmote
 import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.embedCreator
+import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.secondaryButton
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateGuild
 import me.shedaniel.linkie.discord.utils.validateNamespace
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 
 object RandomClassCommand : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
@@ -64,8 +64,8 @@ object RandomClassCommand : Command {
             namespace.validateGuild(ctx)
             require(count in 1..20) { "Invalid Amount: $count" }
             val version = provider.version!!
-            val mappingsContainer = ValueKeeper(Duration.ofMinutes(2)) { build(namespace.getProvider(version), user, message) }
-            val embedCreator = embedCreator { buildMessage(mappingsContainer.get(), count, user) }
+            val mappingsContainer by valueKeeper { build(namespace.getProvider(version), user, message) }.initiate()
+            val embedCreator = embedCreator { buildMessage(mappingsContainer, count, user) }
             message.reply(ctx, {
                 row {
                     dismissButton()

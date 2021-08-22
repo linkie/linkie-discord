@@ -19,11 +19,6 @@
 package me.shedaniel.linkie.discord
 
 import com.soywiz.klock.TimeSpan
-import com.soywiz.klock.minutes
-import com.soywiz.klock.seconds
-import discord4j.core.`object`.presence.ClientActivity
-import discord4j.core.`object`.presence.ClientPresence
-import discord4j.core.event.domain.lifecycle.ReadyEvent
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
@@ -64,17 +59,16 @@ import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
+import me.shedaniel.linkie.namespaces.MojangHashedNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
 import me.shedaniel.linkie.utils.getMillis
-import me.shedaniel.linkie.utils.info
 import java.io.File
 import java.util.*
 
@@ -110,6 +104,7 @@ fun main() {
                 YarnNamespace,
                 MojangNamespace,
                 MojangSrgNamespace,
+                MojangHashedNamespace,
                 MCPNamespace,
                 LegacyYarnNamespace,
                 YarrnNamespace,
@@ -131,15 +126,6 @@ fun main() {
             }
         }
         slashCommands.register()
-
-        event<ReadyEvent> {
-            cycle(5.minutes, delay = 5.seconds) {
-                gateway.guilds.count().subscribe { size ->
-                    info("Serving on $size servers")
-                    gateway.updatePresence(ClientPresence.online(ClientActivity.watching("Serving on $size servers"))).subscribe()
-                }
-            }
-        }
     }
 }
 
@@ -202,6 +188,11 @@ fun registerCommands(commands: CommandHandler) {
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
+
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], *MappingsEntryType.values()), "qh")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.CLASS), "qhc")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.METHOD), "qhm")
+    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.FIELD), "qhf")
 
     commands.registerCommand(QueryTranslateMappingsCommand(null, null, *MappingsEntryType.values()), listOf("translate", "t"), listOf("translate"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.CLASS), "translatec", "tc")

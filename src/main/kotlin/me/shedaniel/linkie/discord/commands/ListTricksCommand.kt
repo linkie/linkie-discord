@@ -20,7 +20,6 @@ import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.User
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.SimpleCommand
-import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.opt
 import me.shedaniel.linkie.discord.scommands.user
@@ -31,10 +30,11 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.discriminatedName
+import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.validateInGuild
 import me.shedaniel.linkie.utils.dropAndTake
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 import java.time.Instant
 import kotlin.math.ceil
 
@@ -48,12 +48,12 @@ object ListTricksCommand : SimpleCommand<User> {
         LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
             val member = guild.getMemberById(options.id).block() ?: throw NullPointerException("Failed to find member in guild: ${options.discriminatedName}")
-            val tricks = ValueKeeper(Duration.ofMinutes(2)) {
+            val tricks by valueKeeper {
                 val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() && it.author == member.id.asLong() }.sortedBy { it.name }
                 list to ceil(list.size / 5.0).toInt()
-            }
-            message.sendPages(ctx, 0, tricks.get().second) { page ->
-                buildMessage(tricks.get().first, page, user, member, tricks.get().second)
+            }.initiate()
+            message.sendPages(ctx, 0, tricks.second) { page ->
+                buildMessage(tricks.first, page, user, member, tricks.second)
             }
         }
     }

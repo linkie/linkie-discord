@@ -36,7 +36,7 @@ object RunTrickCommand : Command {
         executeCommandWithGetter { ctx, options -> execute(ctx, options.opt(trickName), options.opt(args)) }
     }
 
-    fun execute(ctx: CommandContext, trickName: String, args: MutableList<String>) {
+    suspend fun execute(ctx: CommandContext, trickName: String, args: MutableList<String>) {
         ctx.validateInGuild {
             val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
             val evalContext = EvalContext(

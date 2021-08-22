@@ -44,10 +44,10 @@ repositories {
 }
 
 dependencies {
-    implementation("me.shedaniel:linkie-core:1.0.85") {
+    implementation("me.shedaniel:linkie-core:1.0.87") {
         exclude module: "korio"
     }
-    implementation("com.discord4j.discord4j:discord4j-core:b024c18f11") {
+    implementation("com.discord4j.discord4j:discord4j-core:bab624fb5e") {
         force = true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {

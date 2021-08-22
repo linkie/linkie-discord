@@ -19,18 +19,17 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.User
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.OptionlessCommand
-import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.Trick
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.QueryMessageBuilder.buildMessage
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.basicEmbed
+import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.validateInGuild
 import me.shedaniel.linkie.utils.dropAndTake
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 import java.time.Instant
 import kotlin.math.ceil
 
@@ -38,12 +37,12 @@ object ListAllTricksCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {
         LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
-            val tricks = ValueKeeper(Duration.ofMinutes(2)) {
+            val tricks by valueKeeper {
                 val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() }.sortedBy { it.name }
                 list to ceil(list.size / 5.0).toInt()
-            }
-            message.sendPages(ctx, 0, tricks.get().second) { page ->
-                buildMessage(tricks.get().first, page, user, tricks.get().second)
+            }.initiate()
+            message.sendPages(ctx, 0, tricks.second) { page ->
+                buildMessage(tricks.first, page, user, tricks.second)
             }
         }
     }

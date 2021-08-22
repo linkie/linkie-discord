@@ -25,7 +25,6 @@ import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
-import me.shedaniel.linkie.discord.ValueKeeper
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
@@ -39,6 +38,7 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.buildString
+import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.discord.utils.sendPages
@@ -49,13 +49,12 @@ import me.shedaniel.linkie.getClassByObfName
 import me.shedaniel.linkie.getObfMergedDesc
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
-import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.obfMergedName
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 import java.util.concurrent.atomic.AtomicInteger
 
 class QueryTranslateMappingsCommand(
@@ -134,12 +133,11 @@ class QueryTranslateMappingsCommand(
 
     suspend fun execute(ctx: CommandContext, src: Namespace, dst: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
         val maxPage = AtomicInteger(-1)
-        val query = ValueKeeper(Duration.ofMinutes(2)) {
+        val result by valueKeeper {
             translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, types), dst.getProvider(version))
-        }
+        }.initiate()
         message.sendPages(ctx, 0, maxPage.get()) { page ->
             basicEmbed(user)
-            val result = query.get()
             if (maxPage.get() > 1) title("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
             else title("List of ${result.source.name}->${result.target.name} Mappings")
             buildSafeDescription {

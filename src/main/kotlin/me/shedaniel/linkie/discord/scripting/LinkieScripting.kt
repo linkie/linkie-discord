@@ -18,9 +18,8 @@ package me.shedaniel.linkie.discord.scripting
 
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
@@ -46,15 +45,15 @@ object LinkieScripting {
         this["parseNumber"] = ContextExtensions.parseNumber
         this["range"] = ContextExtensions.range
         this["equals"] = ContextExtensions.equals
-        this["exit"] = funObj { 
+        this["exit"] = funObj {
             throw YouTriedException("Achievement Get!\nYou tried to stop Linkie!")
         }
-        this["quit"] = funObj { 
+        this["quit"] = funObj {
             throw YouTriedException("Achievement Get!\nYou tried to stop Linkie!")
         }
     }
 
-    inline fun evalTrick(evalContext: EvalContext, creator: MessageCreator, trick: TrickBase, context: () -> ScriptingContext) {
+    suspend inline fun evalTrick(evalContext: EvalContext, creator: MessageCreator, trick: TrickBase, context: () -> ScriptingContext) {
         when (trick.contentType) {
             ContentType.SCRIPT -> {
                 val scriptingContext = context()
@@ -90,7 +89,7 @@ object LinkieScripting {
         }
     }
 
-    fun eval(context: ScriptingContext, script: String) {
+    suspend fun eval(context: ScriptingContext, script: String) {
         val engine = Context.newBuilder("js")
             .allowExperimentalOptions(true)
             .allowNativeAccess(false)
@@ -98,10 +97,12 @@ object LinkieScripting {
             .allowCreateProcess(false)
             .allowEnvironmentAccess(EnvironmentAccess.NONE)
             .allowHostClassLoading(false)
-            .allowHostAccess(HostAccess.newBuilder()
-                .allowArrayAccess(true)
-                .allowListAccess(true)
-                .build())
+            .allowHostAccess(
+                HostAccess.newBuilder()
+                    .allowArrayAccess(true)
+                    .allowListAccess(true)
+                    .build()
+            )
             .option("js.console", "false")
             .option("js.nashorn-compat", "true")
             .option("js.experimental-foreign-object-prototype", "true")
@@ -111,9 +112,9 @@ object LinkieScripting {
             .build()
         try {
             var t: Throwable? = null
-            runBlocking {
+            withContext(Dispatchers.IO) {
                 withTimeout(3000) {
-                    GlobalScope.launch(Dispatchers.IO) {
+                    launch {
                         try {
                             engine.getBindings("js").also {
                                 it.removeMember("load")

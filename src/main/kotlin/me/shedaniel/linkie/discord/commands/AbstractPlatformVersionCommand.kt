@@ -16,6 +16,7 @@
 
 package me.shedaniel.linkie.discord.commands
 
+import com.soywiz.klock.minutes
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.SimpleCommand
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
@@ -30,12 +31,11 @@ import me.shedaniel.linkie.discord.utils.prefixedCmd
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.setSafeDescription
 import me.shedaniel.linkie.discord.utils.use
-import me.shedaniel.linkie.discord.valueKeeper
-import java.time.Duration
+import me.shedaniel.linkie.utils.valueKeeper
 import kotlin.math.ceil
 
 abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformData<R>> : SimpleCommand<String> {
-    private val dataKeeper = valueKeeper(Duration.ofMinutes(10)) { updateData() }
+    private val dataKeeper = valueKeeper(10.minutes) { updateData() }
     protected val data by dataKeeper
 
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
@@ -72,11 +72,13 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
                 buildSafeDescription {
                     data.versions.asSequence().drop(page * 20).take(20).forEach { versionString ->
                         val version = data[versionString]
-                        appendLine("• $versionString" + when {
-                            version.unstable -> " (Unstable)"
-                            version.version == latestVersion -> " **(Latest)**"
-                            else -> ""
-                        })
+                        appendLine(
+                            "• $versionString" + when {
+                                version.unstable -> " (Unstable)"
+                                version.version == latestVersion -> " **(Latest)**"
+                                else -> ""
+                            }
+                        )
                     }
                 }
             }

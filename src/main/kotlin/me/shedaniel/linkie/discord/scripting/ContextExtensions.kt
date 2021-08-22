@@ -18,6 +18,7 @@
 
 package me.shedaniel.linkie.discord.scripting
 
+import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
@@ -161,9 +162,11 @@ object ContextExtensions {
                     throw IllegalStateException("Cannot invoke another trick without being a parent invoker or a global trick!")
                 val trickName = first().getAsString()
                 val trick = TricksManager.get(trickName, evalContext.ctx.guildId)
-                LinkieScripting.evalTrick(evalContext.copy(parent = false), creator, trick) {
-                    LinkieScripting.simpleContext.push {
-                        commandContexts(evalContext.copy(parent = false), user, channel, creator, this)
+                runBlockingNoJs {
+                    LinkieScripting.evalTrick(evalContext.copy(parent = false), creator, trick) {
+                        LinkieScripting.simpleContext.push {
+                            commandContexts(evalContext.copy(parent = false), user, channel, creator, this)
+                        }
                     }
                 }
             }
