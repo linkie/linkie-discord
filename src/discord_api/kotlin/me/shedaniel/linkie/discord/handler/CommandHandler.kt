@@ -65,15 +65,17 @@ class CommandHandler(
                         try {
                             commandAcceptor.execute(event, ctx, args)
                         } catch (throwable: Throwable) {
-                            try {
-                                ctx.message.reply(ctx, {
-                                    dismissButton()
-                                }) {
-                                    throwableHandler.generateThrowable(this, throwable, user)
+                            if (throwableHandler.shouldError(throwable)) {
+                                try {
+                                    ctx.message.reply(ctx, {
+                                        dismissButton()
+                                    }) {
+                                        throwableHandler.generateThrowable(this, throwable, user)
+                                    }
+                                } catch (throwable2: Exception) {
+                                    throwable2.addSuppressed(throwable)
+                                    throwable2.printStackTrace()
                                 }
-                            } catch (throwable2: Exception) {
-                                throwable2.addSuppressed(throwable)
-                                throwable2.printStackTrace()
                             }
                         }
                     }
@@ -91,12 +93,14 @@ interface CommandAcceptor {
 }
 
 interface ThrowableHandler {
+    fun shouldError(throwable: Throwable): Boolean = true
     fun generateErrorMessage(original: Message?, throwable: Throwable, channel: MessageChannel, user: User)
     fun generateThrowable(builder: EmbedCreateSpec.Builder, throwable: Throwable, user: User)
 }
 
 open class SimpleThrowableHandler : ThrowableHandler {
     override fun generateErrorMessage(original: Message?, throwable: Throwable, channel: MessageChannel, user: User) {
+        if (!shouldError(throwable)) return
         try {
             channel.sendEmbedMessage { generateThrowable(this, throwable, user) }.subscribe { message ->
                 buildReactions(Duration.ofMinutes(2)) {

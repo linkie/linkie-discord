@@ -187,15 +187,17 @@ class SlashCommands(
             if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
             }
         }.exceptionOrNull()?.also { throwable ->
-            try {
-                ctx.message.reply(ctx, {
-                    dismissButton()
-                }) {
-                    throwableHandler.generateThrowable(this, throwable, ctx.user)
+            if (throwableHandler.shouldError(throwable)) {
+                try {
+                    ctx.message.reply(ctx, {
+                        dismissButton()
+                    }) {
+                        throwableHandler.generateThrowable(this, throwable, ctx.user)
+                    }
+                } catch (throwable2: Exception) {
+                    throwable2.addSuppressed(throwable)
+                    throwable2.printStackTrace()
                 }
-            } catch (throwable2: Exception) {
-                throwable2.addSuppressed(throwable)
-                throwable2.printStackTrace()
             }
         }
         if (!sentAny) {

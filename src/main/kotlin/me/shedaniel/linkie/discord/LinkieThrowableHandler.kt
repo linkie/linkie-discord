@@ -16,19 +16,13 @@
 
 package me.shedaniel.linkie.discord
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import me.shedaniel.linkie.discord.handler.SimpleThrowableHandler
-import me.shedaniel.linkie.discord.utils.CommandContext
 
 object LinkieThrowableHandler : SimpleThrowableHandler() {
-    override fun generateErrorMessage(original: Message?, throwable: Throwable, channel: MessageChannel, user: User) {
-        if (throwable is SuppressedException) return
-        super.generateErrorMessage(original, throwable, channel, user)
-    }
+    override fun shouldError(throwable: Throwable): Boolean =
+        throwable !is SuppressedException && super.shouldError(throwable)
 
     override fun generateThrowable(builder: EmbedCreateSpec.Builder, throwable: Throwable, user: User) {
         super.generateThrowable(builder, throwable, user)
