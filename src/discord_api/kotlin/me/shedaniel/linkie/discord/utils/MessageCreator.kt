@@ -25,6 +25,7 @@ import discord4j.core.event.domain.interaction.ComponentInteractEvent
 import discord4j.core.event.domain.interaction.SlashCommandEvent
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
 import discord4j.discordjson.json.ImmutableWebhookMessageEditRequest
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import reactor.core.publisher.Mono
 import java.time.Duration
 
@@ -64,7 +65,7 @@ interface MessageCreator {
 fun listenAndBuild(ctx: CommandContext, spec: LayoutComponentsBuilder.() -> Unit): List<LayoutComponent> {
     val builder = spec.build()
     var actions = builder.actions
-    event<ComponentInteractEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
+    ctx.client.event<ComponentInteractEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
         actions.any { (filter, action) ->
             if (filter(event)) {
                 if (event.user.id == ctx.user.id) {

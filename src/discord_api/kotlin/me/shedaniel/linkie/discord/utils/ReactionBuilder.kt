@@ -21,7 +21,6 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.message.ReactionAddEvent
-import me.shedaniel.linkie.discord.gateway
 import java.time.Duration
 
 inline fun buildReactions(duration: Duration = Duration.ofMinutes(10), builder: ReactionBuilder.() -> Unit): ReactionBuilder {
@@ -47,14 +46,14 @@ class ReactionBuilder(val duration: Duration = Duration.ofMinutes(10)) {
 
     fun build(message: Message, userPredicate: (Snowflake) -> Boolean) {
         message.subscribeReactions(*actions.keys.toTypedArray())
-        event<ReactionAddEvent>().filter { e -> e.messageId == message.id }.take(duration).subscribe {
+        message.client.event<ReactionAddEvent>().filter { e -> e.messageId == message.id }.take(duration).subscribe {
             if (userPredicate(it.userId)) {
                 val emote = it.emoji.asUnicodeEmoji().map(ReactionEmoji.Unicode::getRaw).orElse(null)
                 val action = actions[emote]
                 if (action == null || action()) {
                     message.tryRemoveReaction(it.emoji, it.userId)
                 }
-            } else if (it.userId != gateway.selfId) {
+            } else if (it.userId != message.client.selfId) {
                 message.tryRemoveReaction(it.emoji, it.userId)
             }
         }

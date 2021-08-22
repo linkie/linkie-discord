@@ -24,12 +24,10 @@ import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandOptionData
 import discord4j.discordjson.json.ImmutableApplicationCommandOptionData
 import discord4j.rest.util.ApplicationCommandOptionType
-import me.shedaniel.linkie.discord.gateway
-import me.shedaniel.linkie.discord.utils.ArgReader
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.Property
 import me.shedaniel.linkie.discord.utils.blockNotNull
-import me.shedaniel.linkie.discord.utils.iterator
+import me.shedaniel.linkie.discord.utils.client
 import me.shedaniel.linkie.discord.utils.map
 import me.shedaniel.linkie.discord.utils.property
 
@@ -106,7 +104,7 @@ abstract class AbstractSingleSlashCommandOption<T>(
     override var required: Boolean = true,
 ) : AbstractSlashCommandOption<T>(name, description) {
     override fun execute(ctx: CommandContext, command: SlashCommand, reader: Property<ArgReader>, builder: OptionsGetterBuilder): ExecuteResult {
-        val value = read(reader.get())
+        val value = read(ctx, reader.get())
         return if (value.isSuccessful) {
             builder[this] = value.value
             if (execute(command, ctx, builder)) ExecuteResult.EXECUTED else ExecuteResult.READ_VALUE
@@ -115,7 +113,7 @@ abstract class AbstractSingleSlashCommandOption<T>(
         }
     }
 
-    abstract fun read(reader: ArgReader): ReadResult<T>
+    abstract fun read(ctx: CommandContext, reader: ArgReader): ReadResult<T>
 }
 
 abstract class AbstractNestedSlashCommandOption<T>(
@@ -222,10 +220,10 @@ class StringCommandOption(
         internalChoice(name, value)
     }
 
-    override fun read(reader: ArgReader): ReadResult<String> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<String> =
         when (unlimited) {
             true -> if (!reader.hasNext()) ReadResult.notFound()
-                    else reader.iterator().asSequence().joinToString(" ").result
+            else reader.iterator().asSequence().joinToString(" ").result
             else -> reader.next()?.result
         } ?: ReadResult.notFound()
 }
@@ -244,7 +242,7 @@ class IntegerCommandOption(
         internalChoice(name, value)
     }
 
-    override fun read(reader: ArgReader): ReadResult<Long> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Long> =
         reader.next()?.let {
             it.toLongOrNull()?.result ?: ReadResult.fail("$it is not a valid number!")
         } ?: ReadResult.notFound()
@@ -258,7 +256,7 @@ class BooleanCommandOption(
     override val type: Int
         get() = ApplicationCommandOptionType.BOOLEAN.value
 
-    override fun read(reader: ArgReader): ReadResult<Boolean> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Boolean> =
         reader.next().let {
             when (it) {
                 "true" -> true.result
@@ -276,11 +274,11 @@ class UserCommandOption(
     override val type: Int
         get() = ApplicationCommandOptionType.USER.value
 
-    override fun read(reader: ArgReader): ReadResult<User> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<User> =
         reader.next()?.let {
             it.toLongOrNull()?.result ?: ReadResult.fail("$it is not a valid number!")
         }?.map {
-            gateway.getUserById(Snowflake.of(it)).blockNotNull()
+            ctx.client.getUserById(Snowflake.of(it)).blockNotNull()
         } ?: ReadResult.notFound()
 }
 
@@ -292,11 +290,11 @@ class ChannelCommandOption(
     override val type: Int
         get() = ApplicationCommandOptionType.CHANNEL.value
 
-    override fun read(reader: ArgReader): ReadResult<Channel> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Channel> =
         reader.next()?.let {
             it.toLongOrNull()?.result ?: ReadResult.fail("$it is not a valid number!")
         }?.map {
-            gateway.getChannelById(Snowflake.of(it)).blockNotNull()
+            ctx.client.getChannelById(Snowflake.of(it)).blockNotNull()
         } ?: ReadResult.notFound()
 }
 
@@ -308,7 +306,7 @@ class RoleCommandOption(
     override val type: Int
         get() = ApplicationCommandOptionType.ROLE.value
 
-    override fun read(reader: ArgReader): ReadResult<Role> =
+    override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Role> =
         TODO()
 }
 

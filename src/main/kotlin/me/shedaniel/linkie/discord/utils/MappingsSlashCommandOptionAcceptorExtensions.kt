@@ -14,45 +14,19 @@
  * limitations under the License.
  */
 
-package me.shedaniel.linkie.discord.scommands
+package me.shedaniel.linkie.discord.utils
 
 import com.soywiz.korio.async.runBlockingNoJs
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.splitArgs
-import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.validateDefaultVersionNotEmpty
-
-fun <T, R> SimpleCommandOptionMeta<T>.map(mapper: (T?) -> R?): SimpleCommandOptionMeta<R> = object : SimpleCommandOptionMeta<R> {
-    override val parents: List<CommandOptionProperties>
-        get() = this@map.parents
-    override val description: String
-        get() = this@map.description
-    override val required: Boolean
-        get() = this@map.required
-
-    override fun name(ctx: CommandContext): String =
-        this@map.name(ctx)
-
-    override fun mapValue(value: Any?): R? =
-        mapper(this@map.mapValue(value))
-}
-
-fun <T, E, R> SimpleCommandOptionMeta<T>.mapCompound(mapper: (T?, E) -> R?): CommandOptionMeta<R, E> = object : CommandOptionMeta<R, E> {
-    override val parents: List<CommandOptionProperties>
-        get() = this@mapCompound.parents
-    override val description: String
-        get() = this@mapCompound.description
-    override val required: Boolean
-        get() = this@mapCompound.required
-
-    override fun name(ctx: CommandContext): String =
-        this@mapCompound.name(ctx)
-
-    override fun mapValue(value: Any?, extra: E): R? =
-        mapper(this@mapCompound.mapValue(value), extra)
-}
+import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
+import me.shedaniel.linkie.discord.scommands.SimpleCommandOptionMeta
+import me.shedaniel.linkie.discord.scommands.SlashCommandOptionAcceptor
+import me.shedaniel.linkie.discord.scommands.StringCommandOption
+import me.shedaniel.linkie.discord.scommands.map
+import me.shedaniel.linkie.discord.scommands.mapCompound
+import me.shedaniel.linkie.discord.scommands.string
 
 inline fun SlashCommandOptionAcceptor.namespace(
     name: String,
@@ -103,8 +77,3 @@ fun SlashCommandOptionAcceptor.version(
     provider.validateDefaultVersionNotEmpty()
     provider
 }
-
-inline fun SlashCommandOptionAcceptor.args(
-    required: Boolean = true,
-    builder: StringCommandOption.() -> Unit = {},
-): SimpleCommandOptionMeta<MutableList<String>> = stringUnlimited("args", "The arguments for the command", required, builder).map { args -> args?.splitArgs() }

@@ -17,6 +17,7 @@
 package me.shedaniel.linkie.discord.utils
 
 import discord4j.common.util.Snowflake
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.User
@@ -24,6 +25,7 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.interaction.SlashCommandEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.scommands.SlashCommand
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import reactor.core.publisher.Mono
 
 interface CommandContext {
@@ -38,6 +40,9 @@ interface CommandContext {
     val cmd: String
     val channel: MessageChannel
 }
+
+val CommandContext.client: GatewayDiscordClient
+    get() = channel.client
 
 val CommandContext.prefixedCmd: String
     get() = "$prefix$cmd"

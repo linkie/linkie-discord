@@ -16,28 +16,24 @@
 
 package me.shedaniel.linkie.discord
 
-import discord4j.core.`object`.entity.User
-import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.handler.CommandAcceptor
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
-import me.shedaniel.linkie.discord.utils.msgCreator
 
-object TrickHandler : CommandAcceptor {
-    override fun getPrefix(event: MessageCreateEvent): String? =
-        event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].tricksPrefix }
+class TrickHandler(private val prefix: String) : CommandAcceptor {
+    override fun getPrefix(event: MessageCreateEvent): String = prefix
 
-    override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>) {
+    override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>): Boolean {
         if (event.guildId.isPresent) {
             val guildId = event.guildId.get().asLong()
-            if (!ConfigManager[guildId].tricksEnabled) return
-            val trick = TricksManager[ctx.cmd to guildId] ?: return
+            if (!ConfigManager[guildId].tricksEnabled) return false
+            val trick = TricksManager[ctx.cmd to guildId] ?: return false
             val evalContext = EvalContext(
                 ctx,
                 event.message,
@@ -50,6 +46,8 @@ object TrickHandler : CommandAcceptor {
                     ContextExtensions.commandContexts(evalContext, ctx.user, ctx.channel, ctx.message, this)
                 }
             }
+            return true
         }
+        return false
     }
 }

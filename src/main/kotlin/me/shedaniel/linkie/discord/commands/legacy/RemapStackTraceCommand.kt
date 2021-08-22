@@ -20,17 +20,17 @@ import discord4j.core.`object`.entity.Message
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.LegacyCommand
+import me.shedaniel.linkie.discord.scommands.ArgReader
 import me.shedaniel.linkie.discord.scommands.OptionsGetterBuilder
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilder
 import me.shedaniel.linkie.discord.scommands.SubCommandOption
-import me.shedaniel.linkie.discord.scommands.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.scommands.opt
-import me.shedaniel.linkie.discord.scommands.version
-import me.shedaniel.linkie.discord.utils.ArgReaderImpl
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.PasteGGUploader
+import me.shedaniel.linkie.discord.utils.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.utils.attachmentMessage
 import me.shedaniel.linkie.discord.utils.property
+import me.shedaniel.linkie.discord.utils.version
 import java.net.URL
 
 class RemapStackTraceCommand(private val namespace: Namespace) : LegacyCommand {
@@ -40,7 +40,7 @@ class RemapStackTraceCommand(private val namespace: Namespace) : LegacyCommand {
         val versionOption = root.version("version", "")
         val command = SlashCommandBuilder("")
         val optionsGetter = OptionsGetterBuilder(command, ctx)
-        root.execute(ctx, command, ArgReaderImpl(args).property, optionsGetter)
+        root.execute(ctx, command, ArgReader(args).property, optionsGetter)
         val version = optionsGetter.opt(versionOption, VersionNamespaceConfig(namespace))
         content = remap(content, version.get())
         ctx.message.reply {

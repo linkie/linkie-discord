@@ -18,15 +18,25 @@ license {
     }
 }
 
-configurations {
-    shadow {
-        extendsFrom(implementation)
-    }
-}
-
 sourceSets {
     tricks {
         resources.srcDirs += rootProject.file("tricks")
+    }
+    discord_api
+    main {
+        compileClasspath += discord_api.compileClasspath + discord_api.output
+        runtimeClasspath += discord_api.runtimeClasspath + discord_api.output
+    }
+    testDiscordApi {
+        compileClasspath += discord_api.compileClasspath + discord_api.output
+        runtimeClasspath += discord_api.runtimeClasspath + discord_api.output
+    }
+}
+
+configurations {
+    shadow {
+        extendsFrom(implementation)
+        extendsFrom(discord_apiImplementation)
     }
 }
 
@@ -47,29 +57,30 @@ dependencies {
     implementation("me.shedaniel:linkie-core:1.0.87") {
         exclude module: "korio"
     }
-    implementation("com.discord4j.discord4j:discord4j-core:bab624fb5e") {
+    discord_apiImplementation("com.discord4j.discord4j:discord4j-core:bab624fb5e") {
         force = true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {
 //        force = true
 //    }
-    implementation('com.soywiz.korlibs.korio:korio-jvm:2.3.1') {
+    discord_apiImplementation('com.soywiz.korlibs.korio:korio-jvm:2.3.1') {
         exclude module: "kds"
         exclude module: "klock"
         exclude module: "klogger"
         exclude module: "krypto"
         exclude module: "kmem"
     }
-    implementation('com.soywiz.korlibs.kds:kds-jvm:2.3.1')
-    implementation('com.soywiz.korlibs.klock:klock-jvm:2.3.1')
-    implementation('com.soywiz.korlibs.klogger:klogger-jvm:2.3.1')
-    implementation('com.soywiz.korlibs.krypto:krypto-jvm:2.3.1')
-    implementation('com.soywiz.korlibs.kmem:kmem-jvm:2.3.1')
+    discord_apiImplementation('com.soywiz.korlibs.kds:kds-jvm:2.3.1')
+    discord_apiImplementation('com.soywiz.korlibs.klock:klock-jvm:2.3.1')
+    discord_apiImplementation('com.soywiz.korlibs.klogger:klogger-jvm:2.3.1')
+    discord_apiImplementation('com.soywiz.korlibs.krypto:krypto-jvm:2.3.1')
+    discord_apiImplementation('com.soywiz.korlibs.kmem:kmem-jvm:2.3.1')
     implementation 'org.graalvm.js:js-scriptengine:21.2.0'
     implementation 'org.graalvm.js:js:21.2.0'
-    implementation "io.ktor:ktor-server-core:$ktor_version"
-    implementation "io.ktor:ktor-server-netty:$ktor_version"
+    discord_apiImplementation "io.ktor:ktor-server-core:$ktor_version"
+    discord_apiImplementation "io.ktor:ktor-server-netty:$ktor_version"
     implementation "com.github.shedaniel:CurseMetaApi:0.2"
+    testDiscordApiImplementation "org.jetbrains.kotlin:kotlin-test-junit5:1.5.21"
 //        exclude(module: "truffle-api")
 //    compile("org.graalvm.sdk:graal-sdk:20.2.0")
 //    compile("org.graalvm.truffle:truffle-api:20.2.0")
@@ -92,6 +103,7 @@ shadowJar {
 
 task mainJar(type: Jar, dependsOn: [shadowJar, tasks.tricksZip]) {
     from zipTree(shadowJar.archiveFile.get())
+    from tasks.compileDiscord_apiKotlin.outputs
     from tasks.tricksZip.archiveFile
     manifest {
         attributes(

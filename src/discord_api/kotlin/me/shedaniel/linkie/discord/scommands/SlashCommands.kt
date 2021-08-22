@@ -16,7 +16,9 @@
 
 package me.shedaniel.linkie.discord.scommands
 
+import com.soywiz.korio.lang.InvalidArgumentException
 import discord4j.common.util.Snowflake
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.command.ApplicationCommandInteractionOption
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
@@ -26,29 +28,28 @@ import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4j.rest.util.ApplicationCommandOptionType.*
 import discord4j.rest.util.Color
-import me.shedaniel.linkie.InvalidUsageException
-import me.shedaniel.linkie.discord.SuppressedException
-import me.shedaniel.linkie.discord.gateway
-import me.shedaniel.linkie.discord.generateThrowable
-import me.shedaniel.linkie.discord.testingGuild
+import me.shedaniel.linkie.discord.handler.ThrowableHandler
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
-import me.shedaniel.linkie.discord.utils.getOrNull
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import me.shedaniel.linkie.discord.utils.replyEmbed
 import me.shedaniel.linkie.discord.utils.user
-import me.shedaniel.linkie.utils.warn
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-class SlashCommands {
-    val applicationId: Long by lazy { gateway.restClient.applicationId.block() }
+class SlashCommands(
+    private val client: GatewayDiscordClient,
+    private val throwableHandler: ThrowableHandler,
+    private val errorHandler: (String) -> Unit = { println("Error: $it") },
+) {
+    val applicationId: Long by lazy { client.restClient.applicationId.block() }
     val handlers = mutableMapOf<String, (event: SlashCommandEvent) -> Unit>()
     val guildHandlers = mutableMapOf<GuildCommandKey, (event: SlashCommandEvent) -> Unit>()
     val globalCommands: Flux<ApplicationCommandData> by lazy {
-        gateway.restClient.applicationService
+        client.restClient.applicationService
             .getGlobalApplicationCommands(applicationId)
             .cache()
     }
@@ -58,7 +59,7 @@ class SlashCommands {
 
     fun getGuildCommands(id: Snowflake): Flux<ApplicationCommandData> {
         return guildCommands.getOrPut(id) {
-            gateway.restClient.applicationService
+            client.restClient.applicationService
                 .getGuildApplicationCommands(applicationId, id.asLong())
                 .cache()
         }
@@ -73,8 +74,8 @@ class SlashCommands {
         }.then().block()*/
     }
 
-    fun register() {
-        event<SlashCommandEvent> { event ->
+    init {
+        client.event<SlashCommandEvent> { event ->
             val handler = when {
                 handlers.containsKey(event.commandName) -> handlers[event.commandName]!!
                 event.interaction.guildId.isPresent && guildHandlers.containsKey(GuildCommandKey(event.interaction.guildId.get(), event.commandName)) ->
@@ -127,27 +128,27 @@ class SlashCommands {
     }
 
     private fun createGlobalCommand(command: SlashCommand, cmd: String) =
-        gateway.restClient.applicationService
+        client.restClient.applicationService
             .createGlobalApplicationCommand(applicationId, buildRequest(command, cmd))
-            .doOnError { warn("Unable to create global command: {}", it.message ?: "null") }
+            .doOnError { errorHandler("Unable to create global command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
     private fun modifyGlobalCommand(command: SlashCommand, commandId: Long, cmd: String) =
-        gateway.restClient.applicationService
+        client.restClient.applicationService
             .modifyGlobalApplicationCommand(applicationId, commandId, buildRequest(command, cmd))
-            .doOnError { warn("Unable to create global command: {}", it.message ?: "null") }
+            .doOnError { errorHandler("Unable to create global command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
     private fun createGuildCommand(guildId: Snowflake, command: SlashCommand, cmd: String) =
-        gateway.restClient.applicationService
+        client.restClient.applicationService
             .createGuildApplicationCommand(applicationId, guildId.asLong(), buildRequest(command, cmd))
-            .doOnError { warn("Unable to create guild command: {}", it.message ?: "null") }
+            .doOnError { errorHandler("Unable to create guild command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
     private fun modifyGuildCommand(guildId: Snowflake, command: SlashCommand, commandId: Long, cmd: String) =
-        gateway.restClient.applicationService
+        client.restClient.applicationService
             .modifyGuildApplicationCommand(applicationId, guildId.asLong(), commandId, buildRequest(command, cmd))
-            .doOnError { warn("Unable to create guild command: {}", it.message ?: "null") }
+            .doOnError { errorHandler("Unable to create guild command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
     fun globalCommand(command: SlashCommand) {
@@ -186,12 +187,11 @@ class SlashCommands {
             if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
             }
         }.exceptionOrNull()?.also { throwable ->
-            if (throwable is SuppressedException) return@also
             try {
                 ctx.message.reply(ctx, {
                     dismissButton()
                 }) {
-                    generateThrowable(throwable, ctx.user)
+                    throwableHandler.generateThrowable(this, throwable, ctx.user)
                 }
             } catch (throwable2: Exception) {
                 throwable2.addSuppressed(throwable)
@@ -468,7 +468,7 @@ class OptionsGetterBuilder(override val slashCommand: SlashCommand, override val
 
     inner class InnerOptionsGetterBuilder(
         val parent: String,
-        val options: OptionsGetter?
+        val options: OptionsGetter?,
     ) : OptionsGetter {
         override val slashCommand: SlashCommand
             get() = this@OptionsGetterBuilder.slashCommand
@@ -487,7 +487,7 @@ class OptionsGetterBuilder(override val slashCommand: SlashCommand, override val
 }
 
 fun <T> OptionsGetter.opt(option: SimpleCommandOptionMeta<T>): T {
-    return optNullable(option) ?: throw InvalidUsageException("Option \"${option.id(ctx)}\" is required but was not provided!\nUsage: ${slashCommand.usage(ctx)}")
+    return optNullable(option) ?: throw InvalidArgumentException("Option \"${option.id(ctx)}\" is required but was not provided!\nUsage: ${slashCommand.usage(ctx)}")
 }
 
 fun <T> OptionsGetter.optNullable(option: SimpleCommandOptionMeta<T>): T? {
@@ -495,7 +495,7 @@ fun <T> OptionsGetter.optNullable(option: SimpleCommandOptionMeta<T>): T? {
 }
 
 fun <T, R> OptionsGetter.opt(option: CommandOptionMeta<T, R>, extra: R): T {
-    return optNullable(option, extra) ?: throw InvalidUsageException("Option \"${option.id(ctx)}\" is required but was not provided!\nUsage: ${slashCommand.usage(ctx)}")
+    return optNullable(option, extra) ?: throw InvalidArgumentException("Option \"${option.id(ctx)}\" is required but was not provided!\nUsage: ${slashCommand.usage(ctx)}")
 }
 
 fun <T, R> OptionsGetter.optNullable(option: CommandOptionMeta<T, R>, extra: R): T? {

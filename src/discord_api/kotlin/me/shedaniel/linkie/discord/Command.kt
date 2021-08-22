@@ -18,7 +18,7 @@ package me.shedaniel.linkie.discord
 
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.User
+import me.shedaniel.linkie.discord.scommands.ArgReader
 import me.shedaniel.linkie.discord.scommands.ExecuteResult
 import me.shedaniel.linkie.discord.scommands.NestedSlashCommandOption
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
@@ -30,9 +30,7 @@ import me.shedaniel.linkie.discord.scommands.SlashCommandExecutorAcceptor
 import me.shedaniel.linkie.discord.scommands.SubCommandOption
 import me.shedaniel.linkie.discord.scommands.SubGroupCommandOption
 import me.shedaniel.linkie.discord.scommands.sub
-import me.shedaniel.linkie.discord.utils.ArgReaderImpl
 import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.MessageCreator
 import me.shedaniel.linkie.discord.utils.property
 import java.util.*
 
@@ -76,7 +74,7 @@ interface Command {
         val root = if (isGroup) SubGroupCommandOption(ctx.cmd, "", listOf()) else SubCommandOption(ctx.cmd, "", listOf())
         command.options.forEach(root::arg)
         root.execute(command)
-        val reader = ArgReaderImpl(if (isGroup) args else (sequenceOf(ctx.cmd) + args.asSequence()).toMutableList())
+        val reader = ArgReader(if (isGroup) args else (sequenceOf(ctx.cmd) + args.asSequence()).toMutableList())
         return root.execute(ctx, command, reader.property, OptionsGetterBuilder(command, ctx)) == ExecuteResult.EXECUTED
     }
 
@@ -123,7 +121,7 @@ interface OptionlessCommand : Command {
     suspend fun execute(ctx: CommandContext)
 }
 
-@Deprecated("bruh")
+@Deprecated("Legacy Command!")
 interface LegacyCommand {
     suspend fun execute(ctx: CommandContext, trigger: Message, args: MutableList<String>)
     fun postRegister() {}
@@ -151,17 +149,3 @@ open class SubCommandHolder : Command {
 }
 
 data class SubCommandEntry<T : Command>(val command: T)
-
-inline fun <T> MessageCreator.getCatching(user: User, run: () -> T): T {
-    try {
-        return run()
-    } catch (t: Throwable) {
-        try {
-            if (t !is SuppressedException) reply { generateThrowable(t, user) }
-            throw SuppressedException()
-        } catch (throwable2: Throwable) {
-            throwable2.addSuppressed(t)
-            throw throwable2
-        }
-    }
-}

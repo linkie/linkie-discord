@@ -19,6 +19,7 @@
 package me.shedaniel.linkie.discord
 
 import com.soywiz.klock.TimeSpan
+import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
@@ -55,9 +56,16 @@ import me.shedaniel.linkie.discord.commands.ValueCommand
 import me.shedaniel.linkie.discord.commands.ValueListCommand
 import me.shedaniel.linkie.discord.commands.legacy.RemapAWATCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
+import me.shedaniel.linkie.discord.handler.CommandHandler
+import me.shedaniel.linkie.discord.handler.CommandManager
 import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.sub
+import me.shedaniel.linkie.discord.scripting.ContextExtensions
+import me.shedaniel.linkie.discord.scripting.EvalContext
+import me.shedaniel.linkie.discord.scripting.LinkieScripting
+import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
@@ -69,6 +77,7 @@ import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
 import me.shedaniel.linkie.utils.getMillis
+import me.shedaniel.linkie.utils.warn
 import java.io.File
 import java.util.*
 
@@ -112,20 +121,39 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands()
-        // register the commands
-        registerCommands(CommandHandler)
-        registerSlashCommands(slashCommands)
-        CommandHandler.slashCommands.forEach { cmd ->
-            if (cmd.slashCommand != null) {
-                if (isDebug) {
-                    slashCommands.guildCommand(testingGuild, cmd.slashCommand)
-                } else {
-                    slashCommands.globalCommand(cmd.slashCommand)
+        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn)
+        val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
+            override fun getPrefix(event: MessageCreateEvent): String {
+                return event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix } ?: super.getPrefix(event)
+            }
+
+            override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>): Boolean {
+                if (super.execute(event, ctx, args)) {
+                    return true
                 }
+                val trick = TricksManager.globalTricks[ctx.cmd] ?: return false
+                val evalContext = EvalContext(
+                    ctx,
+                    event.message,
+                    trick.flags,
+                    args,
+                    parent = true,
+                )
+                LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
+                    LinkieScripting.simpleContext.push {
+                        ContextExtensions.commandContexts(evalContext, ctx.user, ctx.channel, ctx.message, this)
+                    }
+                }
+                return true
             }
         }
-        slashCommands.register()
+        val trickHandler = TrickHandler(if (isDebug) "@@" else "!!")
+        // register the commands
+        registerCommands(commandManager)
+        registerSlashCommands(slashCommands)
+        CommandHandler(this, commandManager, LinkieThrowableHandler).register()
+        CommandHandler(this, trickHandler, LinkieThrowableHandler).register()
+        commandManager.registerToSlashCommands(slashCommands)
     }
 }
 
@@ -148,7 +176,7 @@ fun cycle(time: TimeSpan, delay: TimeSpan = TimeSpan.ZERO, doThing: CoroutineSco
 
 private operator fun File.div(s: String): File = File(this, s)
 
-fun registerCommands(commands: CommandHandler) {
+fun registerCommands(commands: CommandManager) {
     commands.registerCommand(QueryMappingsCommand(null, *MappingsEntryType.values()), "mapping")
     commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.CLASS), "c", "class")
     commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")

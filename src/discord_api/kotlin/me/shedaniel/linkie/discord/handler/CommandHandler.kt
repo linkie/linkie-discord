@@ -14,50 +14,62 @@
  * limitations under the License.
  */
 
-package me.shedaniel.linkie.discord
+package me.shedaniel.linkie.discord.handler
 
+import discord4j.core.GatewayDiscordClient
+import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.rest.util.Color
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import me.shedaniel.linkie.discord.scommands.splitArgs
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageBasedCommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.dismissButton
+import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.msgCreator
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
 
-class CommandMap(private val commandAcceptor: CommandAcceptor, private val defaultPrefix: String) {
+class CommandHandler(
+    private val client: GatewayDiscordClient,
+    private val commandAcceptor: CommandAcceptor,
+    private val throwableHandler: ThrowableHandler,
+) {
     val scope = CoroutineScope(Dispatchers.Default)
+
+    fun register() {
+        client.event(this::onMessageCreate)
+    }
 
     fun onMessageCreate(event: MessageCreateEvent) {
         val channel = event.message.channel.block() ?: return
         val user = event.message.author.orElse(null)?.takeUnless { it.isBot } ?: return
         val message: String = event.message.content
-        val prefix = commandAcceptor.getPrefix(event) ?: defaultPrefix
+        val prefix = commandAcceptor.getPrefix(event)
         scope.launch {
             try {
-                if (message.toLowerCase().startsWith(prefix)) {
+                if (message.lowercase().startsWith(prefix)) {
                     val content = message.substring(prefix.length)
                     val split = content.splitArgs()
                     if (split.isNotEmpty()) {
-                        val cmd = split[0].toLowerCase()
+                        val cmd = split[0].lowercase()
                         val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
                         val args = split.drop(1).toMutableList()
                         try {
                             commandAcceptor.execute(event, ctx, args)
                         } catch (throwable: Throwable) {
-                            if (throwable is SuppressedException) return@launch
                             try {
                                 ctx.message.reply(ctx, {
                                     dismissButton()
                                 }) {
-                                    generateThrowable(throwable, user)
+                                    throwableHandler.generateThrowable(this, throwable, user)
                                 }
                             } catch (throwable2: Exception) {
                                 throwable2.addSuppressed(throwable)
@@ -67,66 +79,46 @@ class CommandMap(private val commandAcceptor: CommandAcceptor, private val defau
                     }
                 }
             } catch (throwable: Throwable) {
-                if (throwable is SuppressedException) return@launch
-                try {
-                    channel.sendEmbedMessage { generateThrowable(throwable, user) }.subscribe { message ->
-                        buildReactions(Duration.ofMinutes(2)) {
-                            registerB("❌") {
-                                message.delete().subscribe()
-                                event.message.delete().subscribe()
-                                false
-                            }
-                        }.build(message) { it == user.id }
-                    }
-                } catch (throwable2: Exception) {
-                    throwable2.addSuppressed(throwable)
-                    throwable2.printStackTrace()
-                }
+                throwableHandler.generateErrorMessage(event.message, throwable, channel, user)
             }
         }
     }
 }
 
-fun String.splitArgs(): MutableList<String> {
-    val args = mutableListOf<String>()
-    val stringBuilder = StringBuilder()
-    forEach {
-        val whitespace = it.isWhitespace()
-        if (whitespace) {
-            args.add(stringBuilder.toString())
-            stringBuilder.clear()
-        }
-        if (it == '\n' || !whitespace) {
-            stringBuilder.append(it)
+interface CommandAcceptor {
+    suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>): Boolean
+    fun getPrefix(event: MessageCreateEvent): String
+}
+
+interface ThrowableHandler {
+    fun generateErrorMessage(original: Message?, throwable: Throwable, channel: MessageChannel, user: User)
+    fun generateThrowable(builder: EmbedCreateSpec.Builder, throwable: Throwable, user: User)
+}
+
+open class SimpleThrowableHandler : ThrowableHandler {
+    override fun generateErrorMessage(original: Message?, throwable: Throwable, channel: MessageChannel, user: User) {
+        try {
+            channel.sendEmbedMessage { generateThrowable(this, throwable, user) }.subscribe { message ->
+                buildReactions(Duration.ofMinutes(2)) {
+                    registerB("❌") {
+                        message.delete().subscribe()
+                        original?.delete()?.subscribe()
+                        false
+                    }
+                }.build(message) { it == user.id }
+            }
+        } catch (throwable2: Exception) {
+            throwable2.addSuppressed(throwable)
+            throwable2.printStackTrace()
         }
     }
-    if (stringBuilder.isNotEmpty())
-        args.add(stringBuilder.toString())
-    return args.dropLastWhile(String::isEmpty).toMutableList()
-}
 
-interface CommandAcceptor {
-    suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>)
-    fun getPrefix(event: MessageCreateEvent): String?
-}
-
-fun EmbedCreateSpec.Builder.generateThrowable(throwable: Throwable, user: User? = null) {
-    title("Linkie Error")
-    color(Color.RED)
-    basicEmbed(user)
-    when {
-        throwable is org.graalvm.polyglot.PolyglotException -> {
-            val details = throwable.localizedMessage ?: ""
-            addField("Error occurred while processing the command", "```$details```", false)
-        }
-        throwable.javaClass.name.startsWith("org.graalvm") -> {
-            val details = throwable.localizedMessage ?: ""
-            addField("Error occurred while processing the command", "```" + throwable.javaClass.name + (if (details.isEmpty()) "" else ":\n") + details + "```", false)
-        }
-        else -> {
+    override fun generateThrowable(builder: EmbedCreateSpec.Builder, throwable: Throwable, user: User) {
+        builder.apply {
+            title("Linkie Error")
+            color(Color.RED)
+            basicEmbed(user)
             addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)
         }
     }
-    if (isDebug)
-        throwable.printStackTrace()
 }

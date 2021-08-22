@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package me.shedaniel.linkie.discord.utils
-
-import me.shedaniel.linkie.discord.scommands.OptionsGetter
+package me.shedaniel.linkie.discord.scommands
 
 interface ArgReader {
     fun copy(): ArgReader
@@ -31,7 +29,31 @@ fun ArgReader.iterator(): Iterator<String> = object : Iterator<String> {
     override fun next(): String = this@iterator.next() ?: throw ArrayIndexOutOfBoundsException()
 }
 
-class ArgReaderImpl(
+fun ArgReader(args: MutableList<String>): ArgReader =
+    ArgReaderImpl(args)
+
+fun ArgReader(args: String): ArgReader =
+    ArgReader(args.splitArgs())
+
+fun String.splitArgs(): MutableList<String> {
+    val args = mutableListOf<String>()
+    val stringBuilder = StringBuilder()
+    forEach {
+        val whitespace = it.isWhitespace()
+        if (whitespace) {
+            args.add(stringBuilder.toString())
+            stringBuilder.clear()
+        }
+        if (it == '\n' || !whitespace) {
+            stringBuilder.append(it)
+        }
+    }
+    if (stringBuilder.isNotEmpty())
+        args.add(stringBuilder.toString())
+    return args.dropLastWhile(String::isEmpty).toMutableList()
+}
+
+private class ArgReaderImpl(
     val args: MutableList<String>,
     var cursor: Int = 0,
 ) : ArgReader {

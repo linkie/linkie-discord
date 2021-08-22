@@ -17,12 +17,14 @@
 package me.shedaniel.linkie.discord.utils
 
 import discord4j.common.util.Snowflake
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Attachment
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.interaction.ComponentInteractEvent
 import discord4j.core.event.domain.interaction.InteractionCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
@@ -32,7 +34,11 @@ import discord4j.core.spec.MessageEditSpec
 import discord4j.discordjson.json.ImmutableWebhookMessageEditRequest
 import discord4j.discordjson.json.MessageData
 import discord4j.rest.util.AllowedMentions
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+
+fun <T> Mono<T>.blockNotNull(): T = block()!!
 
 fun MessageChannel.sendMessage(spec: (MessageCreateSpec.Builder) -> Unit): Mono<Message> {
     val protected: MessageCreateSpec.Builder.() -> Unit = {
@@ -148,3 +154,9 @@ val Message.attachmentMessage: Attachment
         require(it.attachments.size == 1) { "You must send 1 file!" }
         it.attachments.first()
     }
+
+inline fun <reified T : Event> GatewayDiscordClient.event(): Flux<T> = eventDispatcher.on(T::class.java)
+
+inline fun <reified T : Event> GatewayDiscordClient.event(noinline listener: (T) -> Unit) {
+    event<T>().subscribe(listener)
+}

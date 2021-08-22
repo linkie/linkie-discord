@@ -16,29 +16,13 @@
 
 package me.shedaniel.linkie.discord.utils
 
-import discord4j.core.event.domain.Event
-import discord4j.discordjson.possible.Possible
+import discord4j.core.`object`.entity.User
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.Field
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Obf
-import me.shedaniel.linkie.discord.gateway
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
-import java.util.*
-
-fun <T> Optional<T>.getOrNull(): T? = orElse(null)
-fun OptionalInt.getOrNull(): Int? = if (isPresent) asInt else null
-fun OptionalLong.getOrNull(): Long? = if (isPresent) asLong else null
-fun OptionalDouble.getOrNull(): Double? = if (isPresent) asDouble else null
-
-fun <T> Mono<T>.blockNotNull(): T = block()!!
-
-fun <T> Possible<T>.getOrNull(): T? = if (isAbsent) null else get()
-
-private fun <T> T?.possible(): Possible<T> =
-    if (this == null) Possible.absent()
-    else Possible.of(this)
+import me.shedaniel.linkie.discord.LinkieThrowableHandler
+import me.shedaniel.linkie.discord.SuppressedException
 
 fun Obf.buildString(nonEmptySuffix: String? = null): String =
     when {
@@ -89,8 +73,16 @@ fun String.isValidIdentifier(): Boolean {
     return isNotEmpty()
 }
 
-inline fun <reified T : Event> event(): Flux<T> = gateway.eventDispatcher.on(T::class.java)
-
-inline fun <reified T : Event> event(noinline listener: (T) -> Unit) {
-    event<T>().subscribe(listener)
+inline fun <T> MessageCreator.getCatching(user: User, run: () -> T): T {
+    try {
+        return run()
+    } catch (t: Throwable) {
+        try {
+            if (t !is SuppressedException) reply { LinkieThrowableHandler.generateThrowable(this, t, user) }
+            throw SuppressedException()
+        } catch (throwable2: Throwable) {
+            throwable2.addSuppressed(t)
+            throw throwable2
+        }
+    }
 }

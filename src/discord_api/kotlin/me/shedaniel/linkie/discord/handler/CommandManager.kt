@@ -14,92 +14,87 @@
  * limitations under the License.
  */
 
-package me.shedaniel.linkie.discord
+package me.shedaniel.linkie.discord.handler
 
 import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.event.domain.message.MessageCreateEvent
-import me.shedaniel.linkie.InvalidUsageException
-import me.shedaniel.linkie.discord.config.ConfigManager
-import me.shedaniel.linkie.discord.scripting.ContextExtensions
-import me.shedaniel.linkie.discord.scripting.EvalContext
-import me.shedaniel.linkie.discord.scripting.LinkieScripting
-import me.shedaniel.linkie.discord.scripting.push
-import me.shedaniel.linkie.discord.tricks.TricksManager
+import me.shedaniel.linkie.discord.BuiltCommand
+import me.shedaniel.linkie.discord.Command
+import me.shedaniel.linkie.discord.LegacyCommand
+import me.shedaniel.linkie.discord.build
+import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.utils.CommandContext
 
-object CommandHandler : CommandAcceptor {
+open class CommandManager(
+    private val prefix: String,
+) : CommandAcceptor {
     private val slashCommandMap: MutableMap<String, BuiltCommand> = mutableMapOf()
     private val regularCommandMap: MutableMap<String, Any> = mutableMapOf()
     val slashCommands: MutableCollection<BuiltCommand>
         get() = slashCommandMap.values
 
-    fun registerCommand(command: Command, vararg l: String): CommandHandler =
+    fun registerCommand(command: Command, vararg l: String): CommandManager =
         registerCommand(true, command, l.toList())
 
-    fun registerCommand(slash: Boolean, command: Command, vararg l: String): CommandHandler =
+    fun registerCommand(slash: Boolean, command: Command, vararg l: String): CommandManager =
         registerCommand(slash, command, l.toList())
 
     fun registerCommand(
         command: Command,
         regular: List<String>,
-        slashAlias: List<String> = regular
-    ): CommandHandler =
+        slashAlias: List<String> = regular,
+    ): CommandManager =
         registerCommand(true, command, regular, slashAlias)
 
     fun registerCommand(
         slash: Boolean,
         command: Command,
         regular: List<String>,
-        slashAlias: List<String> = regular
-    ): CommandHandler {
+        slashAlias: List<String> = regular,
+    ): CommandManager {
         val builtCommand = runBlockingNoJs { command.build(regular, slashAlias, slash) { "Command '$it'" } }
         for (ll in regular)
-            regularCommandMap[ll.toLowerCase()] = builtCommand
+            regularCommandMap[ll.lowercase()] = builtCommand
         for (ll in slashAlias)
-            slashCommandMap[ll.toLowerCase()] = builtCommand
+            slashCommandMap[ll.lowercase()] = builtCommand
         command.postRegister()
         return this
     }
 
-    fun registerCommand(command: LegacyCommand, vararg regular: String): CommandHandler {
+    fun registerCommand(command: LegacyCommand, vararg regular: String): CommandManager {
         for (ll in regular)
-            regularCommandMap[ll.toLowerCase()] = command
+            regularCommandMap[ll.lowercase()] = command
         command.postRegister()
         return this
     }
 
-    override fun getPrefix(event: MessageCreateEvent): String? =
-        event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix }
+    override fun getPrefix(event: MessageCreateEvent): String = prefix
 
-    override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>) {
+    override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>): Boolean {
         if (ctx.cmd in regularCommandMap) {
             val command = regularCommandMap[ctx.cmd]!!
             if (command is LegacyCommand) {
                 command.execute(ctx, event.message, args)
+                return true
             } else if (command is BuiltCommand) {
                 executeCommand(command, args, ctx)
-            }
-        } else {
-            TricksManager.globalTricks[ctx.cmd]?.also { trick ->
-                val evalContext = EvalContext(
-                    ctx,
-                    event.message,
-                    trick.flags,
-                    args,
-                    parent = true,
-                )
-                LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
-                    LinkieScripting.simpleContext.push {
-                        ContextExtensions.commandContexts(evalContext, ctx.user, ctx.channel, ctx.message, this)
-                    }
-                }
+                return true
             }
         }
+        return false
     }
 
     private suspend fun executeCommand(command: BuiltCommand, args: MutableList<String>, ctx: CommandContext) {
         if (!command.command.execute(ctx, command.regularCommand, args)) {
-            throw InvalidUsageException("Invalid Usage:\n${command.regularCommand.usage(ctx)}")
+            throw IllegalArgumentException("Invalid Usage:\n${command.regularCommand.usage(ctx)}")
+        }
+    }
+
+    fun registerToSlashCommands(slashCommands: SlashCommands) {
+        this.slashCommands.forEach { cmd ->
+            if (cmd.slashCommand != null) {
+                slashCommands.globalCommand(cmd.slashCommand)
+            }
         }
     }
 }
