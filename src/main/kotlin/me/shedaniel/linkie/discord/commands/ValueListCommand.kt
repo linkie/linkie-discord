@@ -22,7 +22,6 @@ import me.shedaniel.linkie.discord.OptionlessCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.config.GuildConfig
 import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.QueryMessageBuilder.buildMessage
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description

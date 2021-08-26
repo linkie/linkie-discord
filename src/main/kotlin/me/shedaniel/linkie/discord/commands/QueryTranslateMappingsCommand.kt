@@ -55,6 +55,7 @@ import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.valueKeeper
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class QueryTranslateMappingsCommand(
@@ -132,15 +133,20 @@ class QueryTranslateMappingsCommand(
     }
 
     suspend fun execute(ctx: CommandContext, src: Namespace, dst: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
+        val fuzzy = AtomicBoolean(false)
         val maxPage = AtomicInteger(-1)
         val result by valueKeeper {
-            translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, types), dst.getProvider(version))
+            translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, fuzzy, types), dst.getProvider(version))
         }.initiate()
         message.sendPages(ctx, 0, maxPage.get()) { page ->
             basicEmbed(user)
             if (maxPage.get() > 1) title("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
             else title("List of ${result.source.name}->${result.target.name} Mappings")
             buildSafeDescription {
+                if (fuzzy.get()) {
+                    append("**No results found for __${searchTerm}__. Displaying related results.**").appendLine().appendLine()
+                }
+
                 var isFirst = true
                 result.value.dropAndTake(4 * page, 4).forEach { (original, translated) ->
                     if (!isFirst) {

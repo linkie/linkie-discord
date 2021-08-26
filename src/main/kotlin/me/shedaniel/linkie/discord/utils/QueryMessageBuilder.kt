@@ -30,9 +30,13 @@ import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.localiseFieldDesc
 
 object QueryMessageBuilder {
-    fun buildMessage(spec: EmbedCreateSpec.Builder, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int) {
+    fun buildMessage(spec: EmbedCreateSpec.Builder, searchTerm: String, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int, fuzzy: Boolean) {
         buildHeader(spec, mappings, page, author, maxPage)
         spec.buildSafeDescription {
+            if (fuzzy) {
+                append("**No results found for __${searchTerm}__. Displaying related results.**").appendLine().appendLine()
+            }
+
             var isFirst = true
             results.dropAndTake(4 * page, 4).forEach { (value, _) ->
                 if (isFirst) {

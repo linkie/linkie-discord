@@ -52,6 +52,7 @@ import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.onlyClass
 import me.shedaniel.linkie.utils.valueKeeper
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
@@ -99,12 +100,13 @@ open class QueryMappingsCommand(
     }
 
     suspend fun execute(ctx: CommandContext, namespace: Namespace, version: String, searchTerm: String, types: Array<out MappingsEntryType>) = ctx.use {
+        val fuzzy = AtomicBoolean(false)
         val maxPage = AtomicInteger(-1)
         val query by valueKeeper {
-            QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, types)
+            QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, fuzzy, types)
         }.initiate()
         message.sendPages(ctx, 0, maxPage.get()) { page ->
-            QueryMessageBuilder.buildMessage(this, namespace, query.value, query.mappings, page, user, maxPage.get())
+            QueryMessageBuilder.buildMessage(this, searchTerm, namespace, query.value, query.mappings, page, user, maxPage.get(), fuzzy.get())
         }
     }
 
@@ -170,6 +172,7 @@ object QueryMappingsExtensions {
         user: User,
         message: MessageCreator,
         maxPage: AtomicInteger,
+        fuzzy: AtomicBoolean,
         types: Array<out MappingsEntryType>,
     ): QueryResult<MappingsContainer, MutableList<ResultHolder<*>>> {
         val hasWildcard: Boolean = searchTerm.substringBeforeLast('/').onlyClass() == "*" || searchTerm.onlyClass() == "*"
@@ -182,8 +185,10 @@ object QueryMappingsExtensions {
         }
         return message.getCatching(user) {
             val mappings = provider.get()
-            QueryResult(mappings, query(mappings, searchTerm, *types).also {
-                maxPage.set(ceil(it.size / 4.0).toInt())
+            QueryResult(mappings, query(mappings, searchTerm, *types).let {
+                maxPage.set(ceil(it.results.size / 4.0).toInt())
+                fuzzy.set(it.fuzzy)
+                it.results
             })
         }
     }

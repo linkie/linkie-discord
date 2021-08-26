@@ -29,7 +29,12 @@ import me.shedaniel.linkie.utils.QueryContext
 import me.shedaniel.linkie.utils.ResultHolder
 
 object MappingsQueryUtils {
-    suspend fun query(mappings: MappingsContainer, searchTerm: String, vararg types: MappingsEntryType): MutableList<ResultHolder<*>> {
+    data class Result(
+        val results: MutableList<ResultHolder<*>>,
+        val fuzzy: Boolean,
+    )
+
+    suspend fun query(mappings: MappingsContainer, searchTerm: String, vararg types: MappingsEntryType): Result {
         require(types.isNotEmpty())
         val context = QueryContext(
             provider = { mappings },
@@ -70,50 +75,52 @@ object MappingsQueryUtils {
         fields?.also(result::addAll)
         result.sortByDescending { it.score }
 
-        if (result.isEmpty()) {
-            runBlocking {
-                if (MappingsEntryType.CLASS in types) {
-                    launch {
-                        try {
-                            classes = MappingsQuery.queryClasses(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
-                        } catch (e: NullPointerException) {
+        if (result.isNotEmpty()) {
+            return Result(result, false)
+        }
 
-                        }
-                    }
-                }
-                if (MappingsEntryType.METHOD in types) {
-                    launch {
-                        try {
-                            methods = MappingsQuery.queryMethods(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
-                        } catch (e: NullPointerException) {
+        runBlocking {
+            if (MappingsEntryType.CLASS in types) {
+                launch {
+                    try {
+                        classes = MappingsQuery.queryClasses(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                    } catch (e: NullPointerException) {
 
-                        }
-                    }
-                }
-                if (MappingsEntryType.FIELD in types) {
-                    launch {
-                        try {
-                            fields = MappingsQuery.queryFields(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
-                        } catch (e: NullPointerException) {
-
-                        }
                     }
                 }
             }
-            classes?.also(result::addAll)
-            methods?.also(result::addAll)
-            fields?.also(result::addAll)
-            result.sortByDescending { it.score }
+            if (MappingsEntryType.METHOD in types) {
+                launch {
+                    try {
+                        methods = MappingsQuery.queryMethods(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                    } catch (e: NullPointerException) {
 
-            if (result.isEmpty()) {
-                if (types.size != 1) {
-                    MappingsQuery.errorNoResultsFound(null, searchTerm)
-                } else {
-                    MappingsQuery.errorNoResultsFound(types.first(), searchTerm)
+                    }
+                }
+            }
+            if (MappingsEntryType.FIELD in types) {
+                launch {
+                    try {
+                        fields = MappingsQuery.queryFields(context.copy(accuracy = MatchAccuracy.Fuzzy)).value
+                    } catch (e: NullPointerException) {
+
+                    }
                 }
             }
         }
+        classes?.also(result::addAll)
+        methods?.also(result::addAll)
+        fields?.also(result::addAll)
+        result.sortByDescending { it.score }
 
-        return result
+        if (result.isEmpty()) {
+            if (types.size != 1) {
+                MappingsQuery.errorNoResultsFound(null, searchTerm)
+            } else {
+                MappingsQuery.errorNoResultsFound(types.first(), searchTerm)
+            }
+        }
+
+        return Result(result, true)
     }
 }
