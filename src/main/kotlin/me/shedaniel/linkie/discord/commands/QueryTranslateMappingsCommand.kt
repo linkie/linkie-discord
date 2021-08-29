@@ -127,7 +127,7 @@ class QueryTranslateMappingsCommand(
                 "Unmatched versions: ${srcVersion.version}, ${dstVersion.version}! Please report this!"
             }
 
-            val searchTermStr = options.opt(searchTerm).replace('.', '/')
+            val searchTermStr = options.opt(searchTerm).replace('.', '/').replace('#', '/')
             execute(ctx, src, dst, srcVersion.version!!, searchTermStr, types)
         }
     }

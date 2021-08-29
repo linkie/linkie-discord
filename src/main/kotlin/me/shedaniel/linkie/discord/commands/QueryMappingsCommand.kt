@@ -94,7 +94,7 @@ open class QueryMappingsCommand(
             ns.validateNamespace()
             ns.validateGuild(ctx)
             val nsVersion = options.opt(version, VersionNamespaceConfig(ns))
-            val searchTermStr = options.opt(searchTerm).replace('.', '/')
+            val searchTermStr = options.opt(searchTerm).replace('.', '/').replace('#', '/')
             execute(ctx, ns, nsVersion.version!!, searchTermStr, types)
         }
     }
