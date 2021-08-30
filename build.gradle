@@ -51,10 +51,11 @@ repositories {
     }
     maven { url "https://maven.shedaniel.me/" }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://maven.quiltmc.org/repository/snapshot" }
 }
 
 dependencies {
-    implementation("me.shedaniel:linkie-core:1.0.87") {
+    implementation("me.shedaniel:linkie-core:1.0.88") {
         exclude module: "korio"
     }
     discord_apiImplementation("com.discord4j.discord4j:discord4j-core:bab624fb5e") {
