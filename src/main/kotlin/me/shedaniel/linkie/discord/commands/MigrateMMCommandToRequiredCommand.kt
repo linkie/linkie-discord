@@ -24,16 +24,17 @@ import me.shedaniel.linkie.discord.utils.dismissButton
 
 class MigrateMMCommandToRequiredCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {
+        val prefix = ctx.prefix
         ctx.message.reply(ctx, {
             dismissButton()
         }) {
             title("Command Scheduled to be Removed")
-            description("""Commands **!mm** / **!mmc** / **!mmf** / **!mmm** is scheduled to be removed,
+            description("""Commands **${prefix}mm** / **${prefix}mmc** / **${prefix}mmf** / **${prefix}mmm** is scheduled to be removed,
                           |please switch to the following more explicit commands:
                           |
-                          |**!mmi** / **!mmic** / **!mmif** / **!mmim** for Mojang Mappings via Intermediary **(Fabric)**
-                          |**!mms** / **!mmsc** / **!mmsf** / **!mmsm** for Mojang Mappings via SRG **(Forge)**
-                          |**!qh** / **!qhc** / **!qhf** / **!qhm** for Mojang Mappings via Hash **(Quilt)**""".trimMargin())
+                          |**${prefix}mmi** / **${prefix}mmic** / **${prefix}mmif** / **${prefix}mmim** for Mojang Mappings via Intermediary **(Fabric)**
+                          |**${prefix}mms** / **${prefix}mmsc** / **${prefix}mmsf** / **${prefix}mmsm** for Mojang Mappings via SRG **(Forge)**
+                          |**${prefix}qh** / **${prefix}qhc** / **${prefix}qhf** / **${prefix}qhm** for Mojang Mappings via Hash **(Quilt)**""".trimMargin())
             color(Color.RED)
             basicEmbed(ctx.user)
         }
