@@ -16,7 +16,6 @@
 
 package me.shedaniel.linkie.discord.scommands
 
-import com.soywiz.korio.lang.InvalidArgumentException
 import discord4j.common.util.Snowflake
 import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.command.ApplicationCommandInteractionOption
@@ -189,10 +188,9 @@ class SlashCommands(
         }.exceptionOrNull()?.also { throwable ->
             if (throwableHandler.shouldError(throwable)) {
                 try {
-                    ctx.message.reply(ctx, {
-                        dismissButton()
-                    }) {
-                        throwableHandler.generateThrowable(this, throwable, ctx.user)
+                    ctx.message.replyComplex {
+                        layout { dismissButton() }
+                        embed { throwableHandler.generateThrowable(this, throwable, ctx.user) }
                     }
                 } catch (throwable2: Exception) {
                     throwable2.addSuppressed(throwable)
@@ -515,4 +513,12 @@ fun <T, R> OptionsGetter.optNullable(option: CommandOptionMeta<T, R>, extra: R):
         opt = optional
     }
     return option.mapValue(opt?.value, extra)
+}
+
+class InvalidArgumentException : RuntimeException {
+    constructor() : super()
+    constructor(message: String?) : super(message)
+    constructor(message: String?, cause: Throwable?) : super(message, cause)
+    constructor(cause: Throwable?) : super(cause)
+    constructor(message: String?, cause: Throwable?, enableSuppression: Boolean, writableStackTrace: Boolean) : super(message, cause, enableSuppression, writableStackTrace)
 }

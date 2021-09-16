@@ -40,13 +40,16 @@ object FabricDramaCommand : OptionlessCommand {
             val jsonObject = json.parseToJsonElement(jsonText).jsonObject
             val text = jsonObject["drama"]!!.jsonPrimitive.content
             val permLink = "https://fabric-drama.herokuapp.com/${jsonObject["version"]!!.jsonPrimitive.content}/${jsonObject["seed"]!!.jsonPrimitive.content}"
-            message.reply(ctx, {
-                linkButton("Permanent Link", permLink)
-            }) {
-                title("${user.username} starts a drama!")
-                url(permLink)
-                basicEmbed(user)
-                description = text
+            message.replyComplex {
+                layout {
+                    linkButton("Permanent Link", permLink)
+                }
+                embed {
+                    title("${user.username} starts a drama!")
+                    url(permLink)
+                    basicEmbed(user)
+                    description = text
+                }
             }
         }
     }

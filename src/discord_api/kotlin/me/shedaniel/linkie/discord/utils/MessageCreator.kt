@@ -16,18 +16,19 @@
 
 package me.shedaniel.linkie.discord.utils
 
-import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.common.util.Snowflake
-import discord4j.core.`object`.component.LayoutComponent
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.interaction.ComponentInteractEvent
 import discord4j.core.event.domain.interaction.SlashCommandEvent
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
 import discord4j.discordjson.json.ImmutableWebhookMessageEditRequest
+import discord4j.discordjson.possible.Possible
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import reactor.core.publisher.Mono
-import java.time.Duration
 
 interface FuturePossible<T> {
     val isPossible: Boolean
@@ -46,67 +47,38 @@ interface MessageCreator {
     fun acknowledge(content: EmbedCreator)
     fun acknowledge(content: String)
 
-    fun reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message>
-    fun reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message>
+    //    fun _reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message>
+//    fun _reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message>
+    fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message>
 
-    fun reply(blockIfPossible: Boolean, content: String): FuturePossible<Message> = reply(blockIfPossible, content, listOf())
-    fun reply(blockIfPossible: Boolean, content: EmbedCreator): FuturePossible<Message> = reply(blockIfPossible, content, listOf())
+    fun reply(content: String): FuturePossible<Message> = _reply(false, MessageCreatorComplex(TextContent(content)))
+    fun reply(content: EmbedCreator): FuturePossible<Message> = _reply(false, MessageCreatorComplex(EmbedContent(content)))
 
-    fun reply(content: String): FuturePossible<Message> = reply(false, content, listOf())
-    fun reply(content: EmbedCreator): FuturePossible<Message> = reply(false, content, listOf())
-
-    fun reply(ctx: CommandContext, spec: LayoutComponentsBuilder.() -> Unit, content: String): FuturePossible<Message> =
-        reply(false, content, listenAndBuild(ctx, spec))
-
-    fun reply(ctx: CommandContext, spec: LayoutComponentsBuilder.() -> Unit, content: EmbedCreator): FuturePossible<Message> =
-        reply(false, content, listenAndBuild(ctx, spec))
+    fun replyComplex(spec: MessageCreatorComplex.() -> Unit) = _reply(false, spec.build())
 }
 
-fun listenAndBuild(ctx: CommandContext, spec: LayoutComponentsBuilder.() -> Unit): List<LayoutComponent> {
-    val builder = spec.build()
-    var actions = builder.actions
-    ctx.client.event<ComponentInteractEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
-        actions.any { (filter, action) ->
-            if (filter(event)) {
-                if (event.user.id == ctx.user.id) {
-                    var sentAny = false
-                    val msgCreator = ComponentInteractMessageCreator(event, extraConfig = {
-                        val newBuilder = spec.build()
-                        actions = newBuilder.actions
-                        components(newBuilder.components.toList())
-                    }, {
-                        val newBuilder = spec.build()
-                        actions = newBuilder.actions
-                        components(newBuilder.components.toList().map { it.data })
-                    }) {
-                        it.subscribe()
-                        sentAny = true
-                    }
-                    action.invoke(msgCreator, event.message.getOrNull())
-                    if (!sentAny) {
-                        event.acknowledge().subscribe()
-                    }
-                } else {
-                    event.acknowledge().subscribe()
-                }
-                return@any true
-            } else {
-                return@any false
-            }
-        }
-
-    }
-    return builder.components.toList()
+interface InteractionMessageCreator : MessageCreator {
+    fun markDeleted()
 }
 
-fun MessageChannel.msgCreator(previous: Message?) = MessageCreatorImpl(
+fun MessageChannel.msgCreator(ctx: CommandContext, previous: Message?) = msgCreator(ctx.client, ctx.user, previous)
+
+fun MessageChannel.msgCreator(
+    client: GatewayDiscordClient,
+    user: User,
+    previous: Message?,
+) = MessageCreatorImpl(
     this,
+    client,
+    user,
     previous?.id,
     null
 )
 
 data class MessageCreatorImpl(
     val channel: MessageChannel,
+    val client: GatewayDiscordClient,
+    val user: User,
     val executorMessageId: Snowflake?,
     var message: Message?,
 ) : MessageCreator {
@@ -114,45 +86,37 @@ data class MessageCreatorImpl(
     }
 
     override fun acknowledge(content: EmbedCreator) {
-        reply(true, content)
+        _reply(true, MessageCreatorComplex(EmbedContent(content)))
     }
 
     override fun acknowledge(content: String) {
-        reply(true, content)
+        _reply(true, MessageCreatorComplex(TextContent(content)))
     }
 
-    override fun reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
         return if (message == null) {
             channel.sendMessage {
-                it.content = content
+                it.embeds(listOf())
+                it.content(Possible.absent())
+                spec.text?.content?.also(it::content)
+                spec.embed?.content?.also { creator ->
+                    it.addEmbed {
+                        val builder = this
+                        runBlocking { creator(builder) }
+                    }
+                }
                 executorMessageId?.also(it::messageReference)
-                it.components(components)
+                spec.layout?.compile(client, user)?.also(it::components)
             }
         } else {
             message!!.sendEdit {
-                contentOrNull(content)
-                components(components)
-            }
-        }.doOnSuccess { message = it }.cache().apply {
-            if (blockIfPossible) block()
-            else subscribe()
-        }.toFuturePossible()
-    }
-
-    override fun reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message> {
-        return if (message == null) {
-            channel.sendMessage {
-                it.addEmbed {
-                    runBlockingNoJs { content() }
+                embeds(listOf())
+                content(Possible.absent())
+                spec.text?.content?.also(this::contentOrNull)
+                spec.embed?.content?.also { creator ->
+                    addEmbed(runBlocking { creator.build() })
                 }
-                it.components(components)
-            }
-        } else {
-            message!!.sendEdit {
-                addEmbed {
-                    runBlockingNoJs { content() }
-                }
-                components(components)
+                spec.layout?.compile(client, user)?.also(this::components)
             }
         }.doOnSuccess { message = it }.cache().apply {
             if (blockIfPossible) block()
@@ -168,6 +132,7 @@ private fun <T> Mono<T>.toFuturePossible(): FuturePossible<T> = object : FutureP
 
 class SlashCommandMessageCreator(
     val event: SlashCommandEvent,
+    val ctx: CommandContext,
     val send: (Mono<*>) -> Unit,
 ) : MessageCreator {
     var sent: Boolean = false
@@ -178,43 +143,33 @@ class SlashCommandMessageCreator(
         }
     }
 
-    override fun acknowledge(content: EmbedCreator) =
-        acknowledge()
+    override fun acknowledge(content: EmbedCreator) = acknowledge()
+    override fun acknowledge(content: String) = acknowledge()
 
-    override fun acknowledge(content: String) =
-        acknowledge()
-
-    override fun reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
         if (!sent) {
             sent = true
             send(event.replyMessage {
-                content(content)
-                addAllComponents(components)
-            })
-        } else {
-            send(event.sendOriginalEdit {
-                contentOrNull(content)
-                addAllComponents(components.map { it.data })
-            })
-        }
-        return FuturePossible.notPossible()
-    }
-
-    override fun reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message> {
-        if (!sent) {
-            sent = true
-            send(event.replyMessage {
-                addEmbed {
-                    runBlockingNoJs {
-                        content(this@addEmbed)
+                embeds(listOf())
+                content(Possible.absent())
+                spec.text?.content?.also(this::content)
+                spec.embed?.content?.also { creator ->
+                    addEmbed {
+                        val builder = this
+                        runBlocking { creator(builder) }
                     }
                 }
-                addAllComponents(components)
+                spec.layout?.compile(ctx)?.also(this::components)
             })
         } else {
             send(event.sendOriginalEdit {
-                addEmbed(runBlockingNoJs { content.build().asRequest() })
-                addAllComponents(components.map { it.data })
+                embeds(listOf())
+                content(Possible.absent())
+                spec.text?.content?.also(this::contentOrNull)
+                spec.embed?.content?.also { creator ->
+                    addEmbed(runBlocking { creator.build() }.asRequest())
+                }
+                spec.layout?.compile(ctx)?.map { it.data }?.also(this::components)
             })
         }
         return FuturePossible.notPossible()
@@ -223,10 +178,13 @@ class SlashCommandMessageCreator(
 
 class ComponentInteractMessageCreator(
     val event: ComponentInteractEvent,
-    val extraConfig: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit,
-    val extraConfigEdit: ImmutableWebhookMessageEditRequest.Builder.() -> Unit,
+    val client: GatewayDiscordClient,
+    val user: User,
+    val extraConfig: InteractionApplicationCommandCallbackSpec.Builder.(MessageCreatorComplex) -> Unit,
+    val extraConfigEdit: ImmutableWebhookMessageEditRequest.Builder.(MessageCreatorComplex) -> Unit,
     val send: (Mono<*>) -> Unit,
-) : MessageCreator {
+    val markDeleted: () -> Unit,
+) : InteractionMessageCreator {
     var sent: Boolean = false
     override fun acknowledge() {
         if (!sent) {
@@ -235,49 +193,45 @@ class ComponentInteractMessageCreator(
         }
     }
 
-    override fun acknowledge(content: EmbedCreator) =
-        acknowledge()
+    override fun acknowledge(content: EmbedCreator) = acknowledge()
+    override fun acknowledge(content: String) = acknowledge()
 
-    override fun acknowledge(content: String) =
-        acknowledge()
-
-    override fun reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
         if (!sent) {
             sent = true
             send(event.sendEdit {
-                content(content)
-                addAllComponents(components)
-                extraConfig()
+                if (spec.text != null || spec.embed != null) {
+                    content(Possible.absent())
+                    embeds(listOf())
+                }
+                spec.text?.content?.also(this::content)
+                spec.embed?.content?.also { creator ->
+                    addEmbed {
+                        val builder = this
+                        runBlocking { creator(builder) }
+                    }
+                }
+                spec.layout?.compile(client, user)?.also(this::components)
+                extraConfig(spec)
             })
         } else {
             send(event.sendOriginalEdit {
-                contentOrNull(content)
-                addAllComponents(components.map { it.data })
-                extraConfigEdit()
+                if (spec.text != null || spec.embed != null) {
+                    content(Possible.absent())
+                    embeds(listOf())
+                }
+                spec.text?.content?.also(this::contentOrNull)
+                spec.embed?.content?.also { creator ->
+                    addEmbed(runBlocking { creator.build() }.asRequest())
+                }
+                spec.layout?.compile(client, user)?.map { it.data }?.also(this::components)
+                extraConfigEdit(spec)
             })
         }
         return FuturePossible.notPossible()
     }
 
-    override fun reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message> {
-        if (!sent) {
-            sent = true
-            send(event.sendEdit {
-                addEmbed {
-                    runBlockingNoJs {
-                        content(this@addEmbed)
-                    }
-                }
-                addAllComponents(components)
-                extraConfig()
-            })
-        } else {
-            send(event.sendOriginalEdit {
-                addEmbed(runBlockingNoJs { content.build() }.asRequest())
-                addAllComponents(components.map { it.data })
-                extraConfigEdit()
-            })
-        }
-        return FuturePossible.notPossible()
+    override fun markDeleted() {
+        markDeleted()
     }
 }

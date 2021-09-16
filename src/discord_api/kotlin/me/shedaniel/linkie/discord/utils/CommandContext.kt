@@ -83,15 +83,10 @@ val CommandContext.inGuild: InGuildCommandContext
 class SlashCommandBasedContext(
     val command: SlashCommand,
     override val cmd: String,
-    override val message: MessageCreator,
     val event: SlashCommandEvent,
+    val send: (Mono<*>) -> Unit,
 ) : CommandContext {
-    constructor(
-        command: SlashCommand,
-        cmd: String,
-        event: SlashCommandEvent,
-        send: (Mono<*>) -> Unit,
-    ) : this(command, cmd, SlashCommandMessageCreator(event, send), event)
+    override val message: MessageCreator by lazy { SlashCommandMessageCreator(event, this, send) }
 
     override val prefix: String
         get() = "/"
@@ -115,11 +110,12 @@ class SlashCommandBasedContext(
 
 class MessageBasedCommandContext(
     val event: MessageCreateEvent,
-    override val message: MessageCreator,
     override val prefix: String,
     override val cmd: String,
     override val channel: MessageChannel,
 ) : CommandContext {
+    override val message: MessageCreator by lazy { channel.msgCreator(this, event.message) }
+
     override val interactionId: Snowflake
         get() = messageId
     override val messageId: Snowflake

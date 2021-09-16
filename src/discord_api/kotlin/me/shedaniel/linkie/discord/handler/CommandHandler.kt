@@ -33,7 +33,6 @@ import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildReactions
 import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
-import me.shedaniel.linkie.discord.utils.msgCreator
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
 
@@ -60,17 +59,16 @@ class CommandHandler(
                     val split = content.splitArgs()
                     if (split.isNotEmpty()) {
                         val cmd = split[0].lowercase()
-                        val ctx = MessageBasedCommandContext(event, channel.msgCreator(event.message), prefix, cmd, channel)
+                        val ctx = MessageBasedCommandContext(event, prefix, cmd, channel)
                         val args = split.drop(1).toMutableList()
                         try {
                             commandAcceptor.execute(event, ctx, args)
                         } catch (throwable: Throwable) {
                             if (throwableHandler.shouldError(throwable)) {
                                 try {
-                                    ctx.message.reply(ctx, {
-                                        dismissButton()
-                                    }) {
-                                        throwableHandler.generateThrowable(this, throwable, user)
+                                    ctx.message.replyComplex {
+                                        layout { dismissButton() }
+                                        embed { throwableHandler.generateThrowable(this, throwable, user) }
                                     }
                                 } catch (throwable2: Exception) {
                                     throwable2.addSuppressed(throwable)

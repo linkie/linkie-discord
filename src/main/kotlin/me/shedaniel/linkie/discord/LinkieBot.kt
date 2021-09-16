@@ -305,3 +305,4 @@ fun registerSlashCommands(commands: SlashCommands) {
         }
     }
 }
+

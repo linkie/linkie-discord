@@ -16,8 +16,8 @@
 
 package me.shedaniel.linkie.discord.handler
 
-import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.discord.BuiltCommand
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.LegacyCommand
@@ -52,7 +52,7 @@ open class CommandManager(
         regular: List<String>,
         slashAlias: List<String> = regular,
     ): CommandManager {
-        val builtCommand = runBlockingNoJs { command.build(regular, slashAlias, slash) { "Command '$it'" } }
+        val builtCommand = runBlocking { command.build(regular, slashAlias, slash) { "Command '$it'" } }
         for (ll in regular)
             regularCommandMap[ll.lowercase()] = builtCommand
         for (ll in slashAlias)

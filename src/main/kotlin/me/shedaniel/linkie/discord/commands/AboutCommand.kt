@@ -27,18 +27,21 @@ import me.shedaniel.linkie.discord.utils.linkButton
 
 object AboutCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {
-        ctx.message.reply(ctx, {
-            row {
-                linkButton("Library Source", "https://github.com/linkie/linkie-core/")
-                linkButton("Bot Source", "https://github.com/linkie/linkie-discord/")
-                linkButton("Bot Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
+        ctx.message.replyComplex {
+            layout {
+                row {
+                    linkButton("Library Source", "https://github.com/linkie/linkie-core/")
+                    linkButton("Bot Source", "https://github.com/linkie/linkie-discord/")
+                    linkButton("Bot Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
+                }
             }
-        }) {
-            title("About Linkie")
-            gateway.self.map(User::getAvatarUrl).block()?.also { url -> thumbnail(url) }
-            description = "A mappings bot created by <@430615025066049538>."
-            addField("License", "Apache 2.0")
-            basicEmbed(ctx.user)
+            embed {
+                title("About Linkie")
+                gateway.self.map(User::getAvatarUrl).block()?.also { url -> thumbnail(url) }
+                description = "A mappings bot created by <@430615025066049538>."
+                addField("License", "Apache 2.0")
+                basicEmbed(ctx.user)
+            }
         }
     }
 }

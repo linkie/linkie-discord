@@ -16,8 +16,8 @@
 
 package me.shedaniel.linkie.discord
 
-import com.soywiz.korio.async.runBlockingNoJs
 import discord4j.core.`object`.entity.Message
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.discord.scommands.ArgReader
 import me.shedaniel.linkie.discord.scommands.ExecuteResult
 import me.shedaniel.linkie.discord.scommands.NestedSlashCommandOption
@@ -49,7 +49,7 @@ interface Command {
         executor: CommandExecutorOptionLess,
     ) {
         execute { _, ctx, options ->
-            runBlockingNoJs {
+            runBlocking {
                 executor(ctx)
             }
             return@execute true
@@ -60,7 +60,7 @@ interface Command {
         executor: CommandExecutorOptionGetter,
     ) {
         execute { _, ctx, options ->
-            runBlockingNoJs {
+            runBlocking {
                 executor(ctx, options)
             }
             return@execute true
@@ -88,7 +88,7 @@ interface SimpleCommand<T> : Command {
     ) {
         execute { _, ctx, optionsGetter ->
             val options = optionSpec.invoke(optionsGetter)
-            runBlockingNoJs {
+            runBlocking {
                 executor(ctx, options)
             }
             return@execute true
@@ -98,15 +98,15 @@ interface SimpleCommand<T> : Command {
     suspend fun execute(ctx: CommandContext, options: T)
 }
 
-suspend fun Command.build(
+fun Command.build(
     regular: List<String>,
     slashAlias: List<String>,
     slash: Boolean,
     description: (cmd: String) -> String,
 ): BuiltCommand = BuiltCommand(
     command = this,
-    regularCommand = SlashCommandBuilder(description).cmd(*regular.toTypedArray()).also { buildCommandPrivate(it, false) },
-    slashCommand = if (slash) SlashCommandBuilder(description).cmd(*slashAlias.toTypedArray()).also { buildCommandPrivate(it, true) } else null,
+    regularCommand = asSlashCommand(description, regular, false),
+    slashCommand = if (slash) asSlashCommand(description, slashAlias, true) else null,
 )
 
 interface OptionlessCommand : Command {
@@ -149,3 +149,19 @@ open class SubCommandHolder : Command {
 }
 
 data class SubCommandEntry<T : Command>(val command: T)
+
+fun Command.asSlashCommand(
+    description: (cmd: String) -> String,
+    aliases: List<String>,
+    slash: Boolean = true,
+): SlashCommand {
+    return runBlocking { SlashCommandBuilder(description).cmd(*aliases.toTypedArray()).also { buildCommandPrivate(it, slash) } }
+}
+
+fun Command.asSlashCommand(
+    description: String,
+    aliases: List<String>,
+    slash: Boolean = true,
+): SlashCommand {
+    return runBlocking { SlashCommandBuilder(description).cmd(*aliases.toTypedArray()).also { buildCommandPrivate(it, slash) } }
+}

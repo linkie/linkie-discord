@@ -18,6 +18,8 @@ import discord4j.core.DiscordClient
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.GatewayDiscordClient
 import me.shedaniel.linkie.discord.Command
+import me.shedaniel.linkie.discord.OptionlessCommand
+import me.shedaniel.linkie.discord.asSlashCommand
 import me.shedaniel.linkie.discord.handler.CommandHandler
 import me.shedaniel.linkie.discord.handler.CommandManager
 import me.shedaniel.linkie.discord.handler.SimpleThrowableHandler
@@ -25,6 +27,11 @@ import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.dangerButton
+import me.shedaniel.linkie.discord.utils.dismissButton
+import me.shedaniel.linkie.discord.utils.primaryButton
+import me.shedaniel.linkie.discord.utils.use
 import kotlin.test.Test
 
 fun client(): DiscordClient = DiscordClientBuilder.create(System.getenv("TOKEN") ?: throw NullPointerException("Invalid Token: null")).build()
@@ -42,6 +49,7 @@ fun testBot() {
     commandManager.registerCommand(HelloCommand(), "hello")
 
     commandManager.registerToSlashCommands(slashCommands)
+    slashCommands.globalCommand(ButtonCommand().asSlashCommand("Description", listOf("button")))
 }
 
 class HelloCommand : Command {
@@ -50,6 +58,33 @@ class HelloCommand : Command {
         executeCommandWithGetter { ctx, options ->
             val name = options.optNullable(nameOption) ?: ctx.user.username
             ctx.message.reply("Hello, $name!")
+        }
+    }
+}
+
+class ButtonCommand : OptionlessCommand {
+    override suspend fun execute(ctx: CommandContext) = ctx.use {
+        var count = 0
+        message.replyComplex {
+            layout {
+                row {
+                    primaryButton("yes") {
+                        count++
+                        reply("This message is now edited $count times lol")
+                    }
+                    dangerButton("no") {
+                        replyComplex {
+                            layout {
+                                // once again override the widgets
+                                dismissButton()
+                            }
+                        }
+                    }
+                }
+            }
+            embed {
+                description("hello")
+            }
         }
     }
 }

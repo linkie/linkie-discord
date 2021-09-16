@@ -41,6 +41,9 @@ fun (InteractionApplicationCommandCallbackSpec.Builder.() -> Unit).build(): Inte
 fun (ImmutableWebhookMessageEditRequest.Builder.() -> Unit).build(): WebhookMessageEditRequest =
     WebhookMessageEditRequest.builder().also(this).build()
 
+fun (MessageCreatorComplex.() -> Unit).build(): MessageCreatorComplex =
+    MessageCreatorComplex().also { this(it) }
+
 @JvmName("buildLayoutComponentsBuilderUnit")
 fun (LayoutComponentsBuilder.() -> Unit).build(): LayoutComponentsBuilder =
     LayoutComponentsBuilder().also(this)

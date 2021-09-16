@@ -66,14 +66,17 @@ object RandomClassCommand : Command {
             val version = provider.version!!
             val mappingsContainer by valueKeeper { build(namespace.getProvider(version), user, message) }.initiate()
             val embedCreator = embedCreator { buildMessage(mappingsContainer, count, user) }
-            message.reply(ctx, {
-                row {
-                    dismissButton()
-                    secondaryButton("🔁".discordEmote) {
-                        reply(embedCreator)
+            message.replyComplex {
+                layout {
+                    row {
+                        dismissButton()
+                        secondaryButton("🔁".discordEmote) {
+                            reply(embedCreator)
+                        }
                     }
                 }
-            }, embedCreator)
+                embed(embedCreator)
+            }
         }
     }
 

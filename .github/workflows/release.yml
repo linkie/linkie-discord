@@ -13,7 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build project
-        run: ./gradlew build
+        run: ./gradlew build publish
+        env:
+          MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1

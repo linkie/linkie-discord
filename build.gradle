@@ -2,6 +2,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version("1.5.21")
     id("org.jetbrains.kotlin.plugin.serialization") version("1.5.0")
     id("java")
+    id("maven-publish")
     id("com.github.johnrengelman.shadow") version("7.0.0")
     id("org.cadixdev.licenser") version("0.6.0")
 }
@@ -58,24 +59,24 @@ dependencies {
     implementation("me.shedaniel:linkie-core:1.0.88") {
         exclude module: "korio"
     }
-    discord_apiImplementation("com.discord4j.discord4j:discord4j-core:bab624fb5e") {
+    discord_apiImplementation("com.discord4j:discord4j-core:3.2.0-RC3") {
         force = true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {
 //        force = true
 //    }
-    discord_apiImplementation('com.soywiz.korlibs.korio:korio-jvm:2.3.1') {
+    implementation('com.soywiz.korlibs.korio:korio-jvm:2.3.1') {
         exclude module: "kds"
         exclude module: "klock"
         exclude module: "klogger"
         exclude module: "krypto"
         exclude module: "kmem"
     }
-    discord_apiImplementation('com.soywiz.korlibs.kds:kds-jvm:2.3.1')
-    discord_apiImplementation('com.soywiz.korlibs.klock:klock-jvm:2.3.1')
-    discord_apiImplementation('com.soywiz.korlibs.klogger:klogger-jvm:2.3.1')
-    discord_apiImplementation('com.soywiz.korlibs.krypto:krypto-jvm:2.3.1')
-    discord_apiImplementation('com.soywiz.korlibs.kmem:kmem-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.kds:kds-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.klock:klock-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.klogger:klogger-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.krypto:krypto-jvm:2.3.1')
+    implementation('com.soywiz.korlibs.kmem:kmem-jvm:2.3.1')
     implementation 'org.graalvm.js:js-scriptengine:21.2.0'
     implementation 'org.graalvm.js:js:21.2.0'
     discord_apiImplementation "io.ktor:ktor-server-core:$ktor_version"
@@ -113,6 +114,12 @@ task mainJar(type: Jar, dependsOn: [shadowJar, tasks.tricksZip]) {
     }
 }
 
+task discordApiJar(type: Jar, dependsOn: [compileDiscord_apiKotlin]) {
+    from tasks.compileDiscord_apiKotlin.outputs
+    archiveBaseName = "linkie-discord-api"
+    archiveVersion = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") == null ? "9999" : System.getenv("GITHUB_RUN_NUMBER"))
+}
+
 build.finalizedBy mainJar
 
 compileKotlin {
@@ -126,3 +133,26 @@ compileKotlin {
 
 task stage(dependsOn: ['build', 'clean'])
 build.mustRunAfter clean
+
+publishing {
+    publications {
+        publication(MavenPublication) {
+            group = "me.shedaniel"
+            artifactId = "linkie-discord-api"
+            version = discordApiJar.archiveVersion.get()
+            artifact(discordApiJar)
+        }
+    }
+
+    repositories {
+        if (System.getenv("MAVEN_PASS") != null) {
+            maven {
+                url = "https://deploy.shedaniel.me/"
+                credentials {
+                    username = "shedaniel"
+                    password = System.getenv("MAVEN_PASS")
+                }
+            }
+        }
+    }
+}
