@@ -16,6 +16,7 @@
 
 package me.shedaniel.linkie.discord.utils
 
+import discord4j.core.`object`.component.SelectMenu
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
 import discord4j.core.spec.MessageCreateSpec
@@ -43,6 +44,9 @@ fun (ImmutableWebhookMessageEditRequest.Builder.() -> Unit).build(): WebhookMess
 
 fun (MessageCreatorComplex.() -> Unit).build(): MessageCreatorComplex =
     MessageCreatorComplex().also { this(it) }
+
+fun (SelectMenuBuilder.() -> Unit).build(customId: String): Pair<SelectMenu, ComponentAction> =
+    SelectMenuBuilder().also { this(it) }.let { it.build(customId) to it.action }
 
 @JvmName("buildLayoutComponentsBuilderUnit")
 fun (LayoutComponentsBuilder.() -> Unit).build(): LayoutComponentsBuilder =

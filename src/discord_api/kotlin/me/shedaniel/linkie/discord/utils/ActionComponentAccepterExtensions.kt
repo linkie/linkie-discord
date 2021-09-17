@@ -17,7 +17,10 @@
 package me.shedaniel.linkie.discord.utils
 
 import discord4j.core.`object`.component.Button
+import discord4j.core.`object`.component.SelectMenu
 import discord4j.core.`object`.reaction.ReactionEmoji
+import discord4j.core.event.domain.interaction.SelectMenuInteractEvent
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 
 fun ActionComponentAccepter.primaryButton(label: String, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
     add(Button.primary(id, label).disabled(disabled), id.componentFilter, action)
@@ -78,5 +81,80 @@ fun ActionComponentAccepter.linkButton(label: String, emoji: ReactionEmoji, url:
     add(Button.link(url, emoji, label).disabled(disabled))
 
 fun ActionComponentAccepter.dismissButton() = secondaryButton("Dismiss", "❌".discordEmote) {
-    it?.delete()?.subscribe()
+    it.message.getOrNull()?.delete()?.subscribe()
+}
+
+fun ActionComponentAccepter.selectMenu(spec: SelectMenuBuilder.() -> Unit) = customId().also { id ->
+    val (menu, action) = spec.build(id)
+    add(menu, id.componentFilter, action)
+}
+
+class SelectMenuBuilder(
+    var options: MutableList<SelectMenu.Option> = mutableListOf(),
+    var disabled: Boolean = false,
+    var placeholder: String? = null,
+    var minValues: Int? = null,
+    var maxValues: Int? = null,
+    var action: ComponentAction = {},
+) {
+    fun build(customId: String): SelectMenu {
+        var menu = SelectMenu.of(customId, options).disabled(disabled)
+        if (placeholder != null) menu = menu.withPlaceholder(placeholder!!)
+        if (minValues != null) menu = menu.withMinValues(minValues!!)
+        if (maxValues != null) menu = menu.withMaxValues(maxValues!!)
+        return menu
+    }
+
+    fun addOptions(options: Collection<SelectMenu.Option>) {
+        this.options.addAll(options)
+    }
+
+    fun addOptions(vararg options: SelectMenu.Option) {
+        this.options.addAll(options)
+    }
+
+    fun addDefaultOption(
+        label: String,
+        value: String,
+        description: String? = null,
+        emoji: ReactionEmoji? = null,
+    ) {
+        addOption(label, value, description, emoji, default = true)
+    }
+
+    fun addOption(
+        label: String,
+        value: String,
+        description: String? = null,
+        emoji: ReactionEmoji? = null,
+        default: Boolean = false,
+    ) {
+        var option = if (default) SelectMenu.Option.ofDefault(label, value) else SelectMenu.Option.of(label, value)
+        if (description != null) option = option.withDescription(description)
+        if (emoji != null) option = option.withEmoji(emoji)
+        this.options.add(option)
+    }
+
+    fun disabled(disabled: Boolean = true) {
+        this.disabled = disabled
+    }
+
+    fun placeholder(placeholder: String?) {
+        this.placeholder = placeholder
+    }
+
+    fun minValues(minValues: Int?) {
+        this.minValues = minValues
+    }
+
+    fun maxValues(maxValues: Int?) {
+        this.maxValues = maxValues
+    }
+
+    fun action(action: MessageCreator.(SelectMenuInteractEvent, List<String>) -> Unit) {
+        this.action = {
+            it as SelectMenuInteractEvent
+            action(it, it.values)
+        }
+    }
 }

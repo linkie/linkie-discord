@@ -120,6 +120,13 @@ task discordApiJar(type: Jar, dependsOn: [compileDiscord_apiKotlin]) {
     archiveVersion = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") == null ? "9999" : System.getenv("GITHUB_RUN_NUMBER"))
 }
 
+task sourcesDiscordApiJar(type: Jar, dependsOn: discord_apiClasses) {
+    archiveBaseName = "linkie-discord-api"
+    archiveVersion = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") == null ? "9999" : System.getenv("GITHUB_RUN_NUMBER"))
+    archiveClassifier = "sources"
+    from sourceSets.discord_api.allSource
+}
+
 build.finalizedBy mainJar
 
 compileKotlin {
@@ -141,6 +148,7 @@ publishing {
             artifactId = "linkie-discord-api"
             version = discordApiJar.archiveVersion.get()
             artifact(discordApiJar)
+            artifact(sourcesDiscordApiJar)
         }
     }
 

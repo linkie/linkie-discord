@@ -85,7 +85,7 @@ fun (LayoutComponentsBuilder.() -> Unit).compile(client: GatewayDiscordClient, u
                     }, {
                         sentAny = true
                     })
-                    action.invoke(msgCreator, event.message.getOrNull())
+                    action.invoke(msgCreator, event)
                     if (!sentAny) {
                         event.acknowledge().subscribe()
                     }

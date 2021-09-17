@@ -24,7 +24,7 @@ import discord4j.core.event.domain.interaction.ComponentInteractEvent
 import java.util.*
 
 typealias ComponentFilter = (ComponentInteractEvent) -> Boolean
-typealias ComponentAction = MessageCreator.(Message?) -> Unit
+typealias ComponentAction = MessageCreator.(ComponentInteractEvent) -> Unit
 
 fun customId(): String = UUID.randomUUID().toString()
 
