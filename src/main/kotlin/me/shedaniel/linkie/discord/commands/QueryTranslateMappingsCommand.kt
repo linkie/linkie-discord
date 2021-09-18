@@ -33,9 +33,11 @@ import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.scommands.subGroup
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.buildString
+import me.shedaniel.linkie.discord.utils.ephemeral
 import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.namespace
@@ -138,7 +140,7 @@ class QueryTranslateMappingsCommand(
         val result by valueKeeper {
             translate(QueryMappingsExtensions.query(searchTerm, src.getProvider(version), user, message, maxPage, fuzzy, types), dst.getProvider(version))
         }.initiate()
-        message.sendPages(ctx, 0, maxPage.get()) { page ->
+        message.sendPages(0, maxPage.get()) { page ->
             basicEmbed(user)
             if (maxPage.get() > 1) title("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
             else title("List of ${result.source.name}->${result.target.name} Mappings")

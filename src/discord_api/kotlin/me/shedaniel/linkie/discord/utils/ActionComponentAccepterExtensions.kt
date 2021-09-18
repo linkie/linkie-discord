@@ -93,6 +93,7 @@ fun ActionComponentAccepter.linkButton(label: String, emoji: ReactionEmoji, url:
 
 fun ActionComponentAccepter.dismissButton() = secondaryButton("Dismiss", "❌".discordEmote) {
     it.message.getOrNull()?.delete()?.subscribe()
+    markDeleted()
 }
 
 fun ActionComponentAccepter.selectMenu(spec: SelectMenuBuilder.() -> Unit) = customId().also { id ->

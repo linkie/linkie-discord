@@ -38,7 +38,7 @@ object ValueListCommand : OptionlessCommand {
             val config = ConfigManager[guildId.asLong()]
             val properties = ConfigManager.getProperties().toMutableList()
             val maxPage = ceil(properties.size / 5.0).toInt()
-            message.sendPages(ctx, 0, maxPage) { page ->
+            message.sendPages(0, maxPage) { page ->
                 buildMessage(config, properties, user, page, maxPage)
             }
         }

@@ -29,6 +29,7 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.validateInGuild
 import me.shedaniel.linkie.discord.utils.validateUsage
 import java.util.*

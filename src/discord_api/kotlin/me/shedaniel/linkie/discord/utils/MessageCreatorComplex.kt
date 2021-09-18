@@ -27,12 +27,11 @@ data class TextContent(val content: String) : MessageContent()
 data class EmbedContent(val content: EmbedCreator) : MessageContent()
 
 class MessageCreatorComplex() {
-    constructor(content: TextContent) : this() {
-        this.text = content
-    }
-
-    constructor(content: EmbedContent) : this() {
-        this.embed = content
+    constructor(content: MessageContent) : this() {
+        when (content) {
+            is TextContent -> this.text = content
+            is EmbedContent -> this.embed = content
+        }
     }
 
     var layout: (LayoutComponentsBuilder.() -> Unit)? = null

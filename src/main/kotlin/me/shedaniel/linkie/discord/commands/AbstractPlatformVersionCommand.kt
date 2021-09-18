@@ -24,10 +24,12 @@ import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.prefixedCmd
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.setSafeDescription
 import me.shedaniel.linkie.discord.utils.use
@@ -67,7 +69,7 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
         ctx.use {
             sendNotInitializedYet()
             val maxPage = ceil(data.versions.size / 20.0).toInt()
-            message.sendPages(ctx, 0, maxPage) { page ->
+            message.sendPages(0, maxPage) { page ->
                 title("Available Versions (Page ${page + 1}/$maxPage)")
                 buildSafeDescription {
                     data.versions.asSequence().drop(page * 20).take(20).forEach { versionString ->

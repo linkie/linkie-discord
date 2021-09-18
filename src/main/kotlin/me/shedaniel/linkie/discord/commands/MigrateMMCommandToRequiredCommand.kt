@@ -21,6 +21,7 @@ import me.shedaniel.linkie.discord.OptionlessCommand
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.dismissButton
+import me.shedaniel.linkie.discord.utils.replyComplex
 
 class MigrateMMCommandToRequiredCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {

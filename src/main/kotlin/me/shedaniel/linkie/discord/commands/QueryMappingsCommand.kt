@@ -35,6 +35,7 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageCreator
 import me.shedaniel.linkie.discord.utils.QueryMessageBuilder
 import me.shedaniel.linkie.discord.utils.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.getCatching
@@ -105,7 +106,7 @@ open class QueryMappingsCommand(
         val query by valueKeeper {
             QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, fuzzy, types)
         }.initiate()
-        message.sendPages(ctx, 0, maxPage.get()) { page ->
+        message.sendPages(0, maxPage.get()) { page ->
             QueryMessageBuilder.buildMessage(this, searchTerm, namespace, query.value, query.mappings, page, user, maxPage.get(), fuzzy.get())
         }
     }

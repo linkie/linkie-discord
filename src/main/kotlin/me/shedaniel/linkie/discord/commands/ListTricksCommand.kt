@@ -52,7 +52,7 @@ object ListTricksCommand : SimpleCommand<User> {
                 val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() && it.author == member.id.asLong() }.sortedBy { it.name }
                 list to ceil(list.size / 5.0).toInt()
             }.initiate()
-            message.sendPages(ctx, 0, tricks.second) { page ->
+            message.sendPages(0, tricks.second) { page ->
                 buildMessage(tricks.first, page, user, member, tricks.second)
             }
         }

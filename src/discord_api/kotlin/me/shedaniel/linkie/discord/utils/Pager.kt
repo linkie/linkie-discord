@@ -19,7 +19,6 @@ package me.shedaniel.linkie.discord.utils
 import discord4j.core.spec.EmbedCreateSpec
 
 fun MessageCreator.sendPages(
-    ctx: CommandContext,
     initialPage: Int,
     maxPages: Int,
     creator: suspend EmbedCreateSpec.Builder.(page: Int) -> Unit,

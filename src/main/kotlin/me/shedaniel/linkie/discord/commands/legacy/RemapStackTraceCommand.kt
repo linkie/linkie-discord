@@ -30,6 +30,7 @@ import me.shedaniel.linkie.discord.utils.PasteGGUploader
 import me.shedaniel.linkie.discord.utils.VersionNamespaceConfig
 import me.shedaniel.linkie.discord.utils.attachmentMessage
 import me.shedaniel.linkie.discord.utils.property
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.version
 import java.net.URL
 

@@ -26,7 +26,7 @@ import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import java.util.*
 
 typealias ComponentFilter = (componentId: String, ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
-typealias ComponentAction = MessageCreator.(ComponentInteractEvent) -> Unit
+typealias ComponentAction = InteractionMessageCreator.(ComponentInteractEvent) -> Unit
 private typealias InternalComponentFilter = (ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
 
 fun customId(): String = UUID.randomUUID().toString()

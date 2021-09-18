@@ -28,6 +28,7 @@ import discord4j.discordjson.json.ImmutableWebhookMessageEditRequest
 import discord4j.discordjson.possible.Possible
 import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
+import me.shedaniel.linkie.discord.utils.extensions.possible
 import reactor.core.publisher.Mono
 
 interface FuturePossible<T> {
@@ -43,19 +44,24 @@ interface FuturePossible<T> {
 }
 
 interface MessageCreator {
-    fun acknowledge()
-    fun acknowledge(content: EmbedCreator)
-    fun acknowledge(content: String)
-
-    //    fun _reply(blockIfPossible: Boolean, content: String, components: List<LayoutComponent>): FuturePossible<Message>
-//    fun _reply(blockIfPossible: Boolean, content: EmbedCreator, components: List<LayoutComponent>): FuturePossible<Message>
-    fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message>
-
-    fun reply(content: String): FuturePossible<Message> = _reply(false, MessageCreatorComplex(TextContent(content)))
-    fun reply(content: EmbedCreator): FuturePossible<Message> = _reply(false, MessageCreatorComplex(EmbedContent(content)))
-
-    fun replyComplex(spec: MessageCreatorComplex.() -> Unit) = _reply(false, spec.build())
+    fun _acknowledge(ephemeral: Boolean?, content: MessageContent?)
+    fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message>
 }
+
+fun MessageCreator.ephemeral(ephemeral: Boolean = true): MessageCreator = object : MessageCreator {
+    override fun _acknowledge(_ephemeral: Boolean?, content: MessageContent?) =
+        this@ephemeral._acknowledge(ephemeral, content)
+
+    override fun _reply(blockIfPossible: Boolean, _ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> =
+        this@ephemeral._reply(blockIfPossible, ephemeral, spec)
+}
+
+fun MessageCreator.acknowledge() = _acknowledge(null, null)
+fun MessageCreator.acknowledge(content: String) = _acknowledge(null, TextContent(content))
+fun MessageCreator.acknowledge(content: EmbedCreator) = _acknowledge(null, EmbedContent(content))
+fun MessageCreator.reply(content: String): FuturePossible<Message> = _reply(false, null, MessageCreatorComplex(TextContent(content)))
+fun MessageCreator.reply(content: EmbedCreator): FuturePossible<Message> = _reply(false, null, MessageCreatorComplex(EmbedContent(content)))
+fun MessageCreator.replyComplex(spec: MessageCreatorComplex.() -> Unit): FuturePossible<Message> = _reply(false, null, spec.build())
 
 interface InteractionMessageCreator : MessageCreator {
     fun markDeleted()
@@ -82,18 +88,13 @@ data class MessageCreatorImpl(
     val executorMessageId: Snowflake?,
     var message: Message?,
 ) : MessageCreator {
-    override fun acknowledge() {
+    override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
+        if (content != null) {
+            _reply(true, ephemeral, MessageCreatorComplex(content))
+        }
     }
 
-    override fun acknowledge(content: EmbedCreator) {
-        _reply(true, MessageCreatorComplex(EmbedContent(content)))
-    }
-
-    override fun acknowledge(content: String) {
-        _reply(true, MessageCreatorComplex(TextContent(content)))
-    }
-
-    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> {
         return if (message == null) {
             channel.sendMessage {
                 it.embeds(listOf())
@@ -106,7 +107,7 @@ data class MessageCreatorImpl(
                     }
                 }
                 executorMessageId?.also(it::messageReference)
-                spec.layout?.compile(client, user)?.also(it::components)
+                spec.compile(client, user)?.also(it::components)
             }
         } else {
             message!!.sendEdit {
@@ -116,7 +117,7 @@ data class MessageCreatorImpl(
                 spec.embed?.content?.also { creator ->
                     addEmbed(runBlocking { creator.build() })
                 }
-                spec.layout?.compile(client, user)?.also(this::components)
+                spec.compile(client, user)?.also(this::components)
             }
         }.doOnSuccess { message = it }.cache().apply {
             if (blockIfPossible) block()
@@ -136,20 +137,18 @@ class SlashCommandMessageCreator(
     val send: (Mono<*>) -> Unit,
 ) : MessageCreator {
     var sent: Boolean = false
-    override fun acknowledge() {
+    override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
         if (!sent) {
             sent = true
-            send(event.acknowledge())
+            send(if (ephemeral == true) event.acknowledgeEphemeral() else event.acknowledge())
         }
     }
 
-    override fun acknowledge(content: EmbedCreator) = acknowledge()
-    override fun acknowledge(content: String) = acknowledge()
-
-    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> {
         if (!sent) {
             sent = true
             send(event.replyMessage {
+                ephemeral(ephemeral.possible())
                 embeds(listOf())
                 content(Possible.absent())
                 spec.text?.content?.also(this::content)
@@ -159,7 +158,7 @@ class SlashCommandMessageCreator(
                         runBlocking { creator(builder) }
                     }
                 }
-                spec.layout?.compile(ctx)?.also(this::components)
+                spec.compile(ctx)?.also(this::components)
             })
         } else {
             send(event.sendOriginalEdit {
@@ -169,7 +168,7 @@ class SlashCommandMessageCreator(
                 spec.embed?.content?.also { creator ->
                     addEmbed(runBlocking { creator.build() }.asRequest())
                 }
-                spec.layout?.compile(ctx)?.map { it.data }?.also(this::components)
+                spec.compile(ctx)?.map { it.data }?.also(this::components)
             })
         }
         return FuturePossible.notPossible()
@@ -186,20 +185,18 @@ class ComponentInteractMessageCreator(
     val markDeleted: () -> Unit,
 ) : InteractionMessageCreator {
     var sent: Boolean = false
-    override fun acknowledge() {
+    override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
         if (!sent) {
             sent = true
-            send(event.acknowledge())
+            send(if (ephemeral == true) event.acknowledgeEphemeral() else event.acknowledge())
         }
     }
 
-    override fun acknowledge(content: EmbedCreator) = acknowledge()
-    override fun acknowledge(content: String) = acknowledge()
-
-    override fun _reply(blockIfPossible: Boolean, spec: MessageCreatorComplex): FuturePossible<Message> {
+    override fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> {
         if (!sent) {
             sent = true
             send(event.sendEdit {
+                ephemeral(ephemeral.possible())
                 if (spec.text != null || spec.embed != null) {
                     content(Possible.absent())
                     embeds(listOf())
@@ -211,7 +208,7 @@ class ComponentInteractMessageCreator(
                         runBlocking { creator(builder) }
                     }
                 }
-                spec.layout?.compile(client, user)?.also(this::components)
+                spec.compile(client, user)?.also(this::components)
                 extraConfig(spec)
             })
         } else {
@@ -224,7 +221,7 @@ class ComponentInteractMessageCreator(
                 spec.embed?.content?.also { creator ->
                     addEmbed(runBlocking { creator.build() }.asRequest())
                 }
-                spec.layout?.compile(client, user)?.map { it.data }?.also(this::components)
+                spec.compile(client, user)?.map { it.data }?.also(this::components)
                 extraConfigEdit(spec)
             })
         }
@@ -232,6 +229,6 @@ class ComponentInteractMessageCreator(
     }
 
     override fun markDeleted() {
-        markDeleted()
+        markDeleted.invoke()
     }
 }

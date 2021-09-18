@@ -26,6 +26,6 @@ fun OptionalDouble.getOrNull(): Double? = if (isPresent) asDouble else null
 
 fun <T> Possible<T>.getOrNull(): T? = if (isAbsent) null else get()
 
-private fun <T> T?.possible(): Possible<T> =
+fun <T> T?.possible(): Possible<T> =
     if (this == null) Possible.absent()
     else Possible.of(this)

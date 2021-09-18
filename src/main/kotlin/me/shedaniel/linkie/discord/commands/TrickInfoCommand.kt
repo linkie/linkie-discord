@@ -27,6 +27,7 @@ import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.addInlineField
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.validateInGuild
 import java.time.Instant
 

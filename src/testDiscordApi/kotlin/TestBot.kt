@@ -32,6 +32,8 @@ import me.shedaniel.linkie.discord.utils.dangerButton
 import me.shedaniel.linkie.discord.utils.discordEmote
 import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.primaryButton
+import me.shedaniel.linkie.discord.utils.reply
+import me.shedaniel.linkie.discord.utils.replyComplex
 import me.shedaniel.linkie.discord.utils.selectMenu
 import me.shedaniel.linkie.discord.utils.use
 import kotlin.test.Test

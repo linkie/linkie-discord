@@ -30,6 +30,7 @@ import me.shedaniel.linkie.discord.utils.attachmentMessage
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.optimumName
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.getClassByObfName

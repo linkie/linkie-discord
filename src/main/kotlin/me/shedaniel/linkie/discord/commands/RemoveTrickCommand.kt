@@ -26,6 +26,7 @@ import me.shedaniel.linkie.discord.tricks.canManageTrick
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
 object RemoveTrickCommand : SimpleCommand<String> {

@@ -27,6 +27,7 @@ import me.shedaniel.linkie.discord.tricks.TrickBase
 import me.shedaniel.linkie.discord.tricks.TrickFlags
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageCreator
+import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.validateInGuild
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.EnvironmentAccess

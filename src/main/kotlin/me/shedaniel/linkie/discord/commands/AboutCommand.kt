@@ -24,6 +24,7 @@ import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.linkButton
+import me.shedaniel.linkie.discord.utils.replyComplex
 
 object AboutCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {

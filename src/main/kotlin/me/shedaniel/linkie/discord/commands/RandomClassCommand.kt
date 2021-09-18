@@ -30,6 +30,7 @@ import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.MessageCreator
 import me.shedaniel.linkie.discord.utils.VersionNamespaceConfig
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.discordEmote
@@ -37,6 +38,8 @@ import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.embedCreator
 import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.namespace
+import me.shedaniel.linkie.discord.utils.reply
+import me.shedaniel.linkie.discord.utils.replyComplex
 import me.shedaniel.linkie.discord.utils.secondaryButton
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateGuild
