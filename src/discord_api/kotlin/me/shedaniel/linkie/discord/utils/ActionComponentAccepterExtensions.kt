@@ -22,52 +22,63 @@ import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.interaction.SelectMenuInteractEvent
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 
-fun ActionComponentAccepter.primaryButton(label: String, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.primary(id, label).disabled(disabled), id.componentFilter, action)
+data class ComponentFilterProvider(val filter: ComponentFilter)
+
+fun ComponentFilterProvider?.fillDefault(): ComponentFilter =
+    this?.filter ?: { id, event, _, user ->
+        when {
+            event.customId != id -> ComponentActionType.NOT_APPLICABLE
+            event.user.id != user.id -> ComponentActionType.ACKNOWLEDGE
+            else -> ComponentActionType.HANDLE
+        }
+    }
+
+fun ActionComponentAccepter.primaryButton(label: String, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.primary(id, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.primaryButton(emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.primary(id, emoji).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.primaryButton(emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.primary(id, emoji).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.primaryButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.primary(id, emoji, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.primaryButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.primary(id, emoji, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.secondaryButton(label: String, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.secondary(id, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.secondaryButton(label: String, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.secondary(id, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.secondaryButton(emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.secondary(id, emoji).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.secondaryButton(emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.secondary(id, emoji).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.secondaryButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.secondary(id, emoji, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.secondaryButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.secondary(id, emoji, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.successButton(label: String, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.success(id, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.successButton(label: String, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.success(id, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.successButton(emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.success(id, emoji).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.successButton(emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.success(id, emoji).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.successButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.success(id, emoji, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.successButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.success(id, emoji, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.dangerButton(label: String, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.danger(id, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.dangerButton(label: String, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.danger(id, label).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.dangerButton(emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.danger(id, emoji).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.dangerButton(emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.danger(id, emoji).disabled(disabled), filter.fillDefault(), action)
 }
 
-fun ActionComponentAccepter.dangerButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, action: ComponentAction = {}) = customId().also { id ->
-    add(Button.danger(id, emoji, label).disabled(disabled), id.componentFilter, action)
+fun ActionComponentAccepter.dangerButton(label: String, emoji: ReactionEmoji, disabled: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    add(Button.danger(id, emoji, label).disabled(disabled), filter.fillDefault(), action)
 }
 
 fun ActionComponentAccepter.linkButton(label: String, url: String, disabled: Boolean = false) =
@@ -85,8 +96,8 @@ fun ActionComponentAccepter.dismissButton() = secondaryButton("Dismiss", "❌".d
 }
 
 fun ActionComponentAccepter.selectMenu(spec: SelectMenuBuilder.() -> Unit) = customId().also { id ->
-    val (menu, action) = spec.build(id)
-    add(menu, id.componentFilter, action)
+    val (menu, builder) = spec.build(id)
+    add(menu, builder.filter.fillDefault(), builder.action)
 }
 
 class SelectMenuBuilder(
@@ -96,6 +107,7 @@ class SelectMenuBuilder(
     var minValues: Int? = null,
     var maxValues: Int? = null,
     var action: ComponentAction = {},
+    var filter: ComponentFilterProvider? = null,
 ) {
     fun build(customId: String): SelectMenu {
         var menu = SelectMenu.of(customId, options).disabled(disabled)
@@ -156,5 +168,9 @@ class SelectMenuBuilder(
             it as SelectMenuInteractEvent
             action(it, it.values)
         }
+    }
+
+    fun filter(filter: ComponentFilterProvider?) {
+        this.filter = filter
     }
 }

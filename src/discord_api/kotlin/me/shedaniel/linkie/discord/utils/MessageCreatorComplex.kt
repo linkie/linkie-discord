@@ -20,7 +20,6 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.component.LayoutComponent
 import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.interaction.ComponentInteractEvent
-import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import java.time.Duration
 
 sealed class MessageContent
@@ -53,29 +52,35 @@ class MessageCreatorComplex() {
     }
 }
 
-fun (LayoutComponentsBuilder.() -> Unit).compile(ctx: CommandContext): List<LayoutComponent> {
+fun MessageCreatorComplex.compile(ctx: CommandContext): List<LayoutComponent>? {
     return compile(ctx.client, ctx.user)
 }
 
-fun (LayoutComponentsBuilder.() -> Unit).compile(client: GatewayDiscordClient, user: User): List<LayoutComponent> {
-    val builder = build()
+fun MessageCreatorComplex.compile(client: GatewayDiscordClient, user: User): List<LayoutComponent>? {
+    if (layout == null) return null
+    val builder = layout!!.build()
     var actions = builder.actions
     var reacted = false
     client.event<ComponentInteractEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
         if (reacted) return@subscribe
         actions.any { (filter, action) ->
-            if (filter(event)) {
-                if (event.user.id == user.id) {
+            when (filter(event, client, user)) {
+                ComponentActionType.NOT_APPLICABLE -> return@any false
+                ComponentActionType.ACKNOWLEDGE -> {
+                    event.acknowledge().subscribe()
+                    return@any true
+                }
+                ComponentActionType.HANDLE -> {
                     var sentAny = false
                     val msgCreator = ComponentInteractMessageCreator(event, client, user, extraConfig = { new ->
                         if (new.layout == null) {
-                            val newBuilder = this@compile.build()
+                            val newBuilder = layout!!.build()
                             actions = newBuilder.actions
                             components(newBuilder.components.toList())
                         } else reacted = true
                     }, { new ->
                         if (new.layout == null) {
-                            val newBuilder = this@compile.build()
+                            val newBuilder = layout!!.build()
                             actions = newBuilder.actions
                             components(newBuilder.components.toList().map { it.data })
                         } else reacted = true
@@ -89,12 +94,8 @@ fun (LayoutComponentsBuilder.() -> Unit).compile(client: GatewayDiscordClient, u
                     if (!sentAny) {
                         event.acknowledge().subscribe()
                     }
-                } else {
-                    event.acknowledge().subscribe()
+                    return@any true
                 }
-                return@any true
-            } else {
-                return@any false
             }
         }
     }

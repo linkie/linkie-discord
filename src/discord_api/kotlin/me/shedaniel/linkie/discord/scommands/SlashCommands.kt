@@ -26,16 +26,12 @@ import discord4j.core.event.domain.interaction.SlashCommandEvent
 import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4j.rest.util.ApplicationCommandOptionType.*
-import discord4j.rest.util.Color
 import me.shedaniel.linkie.discord.handler.ThrowableHandler
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
-import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
-import me.shedaniel.linkie.discord.utils.replyEmbed
-import me.shedaniel.linkie.discord.utils.user
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -185,6 +181,9 @@ class SlashCommands(
         runCatching {
             if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
             }
+            if (!sentAny) {
+                throw IllegalStateException("Command was not resolved!")
+            }
         }.exceptionOrNull()?.also { throwable ->
             if (throwableHandler.shouldError(throwable)) {
                 try {
@@ -197,14 +196,6 @@ class SlashCommands(
                     throwable2.printStackTrace()
                 }
             }
-        }
-        if (!sentAny) {
-            event.replyEmbed {
-                title("Linkie Error")
-                color(Color.RED)
-                basicEmbed(event.user)
-                addField("Error occurred while processing the command", "```Command was not resolved!```", false)
-            }.subscribe()
         }
     }
 

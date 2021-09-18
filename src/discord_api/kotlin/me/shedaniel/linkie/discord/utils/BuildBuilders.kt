@@ -45,8 +45,8 @@ fun (ImmutableWebhookMessageEditRequest.Builder.() -> Unit).build(): WebhookMess
 fun (MessageCreatorComplex.() -> Unit).build(): MessageCreatorComplex =
     MessageCreatorComplex().also { this(it) }
 
-fun (SelectMenuBuilder.() -> Unit).build(customId: String): Pair<SelectMenu, ComponentAction> =
-    SelectMenuBuilder().also { this(it) }.let { it.build(customId) to it.action }
+fun (SelectMenuBuilder.() -> Unit).build(customId: String): Pair<SelectMenu, SelectMenuBuilder> =
+    SelectMenuBuilder().also { this(it) }.let { it.build(customId) to it }
 
 @JvmName("buildLayoutComponentsBuilderUnit")
 fun (LayoutComponentsBuilder.() -> Unit).build(): LayoutComponentsBuilder =

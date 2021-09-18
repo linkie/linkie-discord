@@ -16,20 +16,29 @@
 
 package me.shedaniel.linkie.discord.utils
 
+import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.component.ActionComponent
 import discord4j.core.`object`.component.ActionRow
 import discord4j.core.`object`.component.LayoutComponent
-import discord4j.core.`object`.entity.Message
+import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.interaction.ComponentInteractEvent
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import java.util.*
 
-typealias ComponentFilter = (ComponentInteractEvent) -> Boolean
+typealias ComponentFilter = (componentId: String, ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
 typealias ComponentAction = MessageCreator.(ComponentInteractEvent) -> Unit
+private typealias InternalComponentFilter = (ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
 
 fun customId(): String = UUID.randomUUID().toString()
 
-val String.componentFilter: ComponentFilter
-    get() = { it.customId == this }
+fun ComponentFilter(filter: ComponentFilter) = filter
+private fun InternalComponentFilter(filter: InternalComponentFilter) = filter
+
+enum class ComponentActionType {
+    NOT_APPLICABLE,
+    ACKNOWLEDGE,
+    HANDLE
+}
 
 interface ActionComponentAccepter {
     fun add(component: ActionComponent, filter: ComponentFilter, action: ComponentAction)
@@ -38,7 +47,7 @@ interface ActionComponentAccepter {
 
 class LayoutComponentsBuilder(
     val components: MutableList<LayoutComponent> = mutableListOf(),
-    val actions: MutableMap<ComponentFilter, ComponentAction> = mutableMapOf(),
+    val actions: MutableMap<InternalComponentFilter, ComponentAction> = mutableMapOf(),
 ) : ActionComponentAccepter {
     fun row(spec: RowBuilder.() -> Unit) {
         val row = spec.build()
@@ -57,11 +66,14 @@ class LayoutComponentsBuilder(
 
 class RowBuilder(
     val components: MutableList<ActionComponent> = mutableListOf(),
-    val actions: MutableMap<ComponentFilter, ComponentAction> = mutableMapOf(),
+    val actions: MutableMap<InternalComponentFilter, ComponentAction> = mutableMapOf(),
 ) : ActionComponentAccepter {
     override fun add(component: ActionComponent, filter: ComponentFilter, action: ComponentAction) {
         components.add(component)
-        actions[filter] = action
+        component.data.customId().toOptional().getOrNull()?.also { id ->
+            val internalFilter = InternalComponentFilter { event, client, user -> filter(id, event, client, user) }
+            actions[internalFilter] = action
+        }
     }
 
     override fun add(component: ActionComponent) {

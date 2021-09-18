@@ -117,7 +117,7 @@ open class SimpleThrowableHandler : ThrowableHandler {
 
     override fun generateThrowable(builder: EmbedCreateSpec.Builder, throwable: Throwable, user: User) {
         builder.apply {
-            title("Linkie Error")
+            title("Error Occurred")
             color(Color.RED)
             basicEmbed(user)
             addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)
