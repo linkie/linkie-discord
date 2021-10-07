@@ -45,6 +45,7 @@ import me.shedaniel.linkie.discord.commands.GetValueCommand
 import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
 import me.shedaniel.linkie.discord.commands.MigrateMMCommandToRequiredCommand
+import me.shedaniel.linkie.discord.commands.MojWarningCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
 import me.shedaniel.linkie.discord.commands.RandomClassCommand
@@ -255,15 +256,15 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.METHOD), "mmym", "mmyim", "mmsym")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.FIELD), "mmyf", "mmyif", "mmsyf")
 
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm", "mcpmim")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc", "mcpmmic")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm", "mcpmmim")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf", "mcpmmif")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp", "mmimcp")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc", "mmimcpc")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm", "mmimcpm")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf", "mmimcpf")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang_srg"], *MappingsEntryType.values()), "mcpmsm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm", "mcpmmi", "mcpmms")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc", "mcpmmic", "mcpmmsc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm", "mcpmmim", "mcpmmsm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf", "mcpmmif", "mcpmmsf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp", "mmimcp", "mmsmcp")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc", "mmimcpc", "mmsmcpc")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm", "mmimcpm", "mmsmcpm")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf", "mmimcpf", "mmsmcpf")
+    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang_srg"], *MappingsEntryType.values()), "mcpmms")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mcpmmsc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mcpmmsm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mcpmmsf")
@@ -274,6 +275,7 @@ fun registerCommands(commands: CommandManager) {
 
 //    commands.registerCommand(RemapStackTraceCommand(MojangNamespace), "fabriccrash")
 //    commands.registerCommand(RemapStackTraceCommand(MojangSrgNamespace), "forgecrash")
+    commands.registerCommand(false, MojWarningCommand, "moj", "mojc", "mojf", "mojm", "mojy", "mojyc", "mojyf", "mojym", "mojmcp", "mojmcpc", "mojmcpf", "mojmcpm")
     commands.registerCommand(RemapAWATCommand, "remapaccess")
 
     commands.registerCommand(FabricDramaCommand, listOf("fabricdrama", "fdrama"), listOf("fabricdrama"))
