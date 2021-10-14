@@ -36,7 +36,7 @@ import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.utils.valueKeeper
 import kotlin.math.ceil
 
-abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformData<R>> : SimpleCommand<String> {
+abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformData<R>> : SimpleCommand<() -> String> {
     private val dataKeeper = valueKeeper(10.minutes) { updateData() }
     protected val data by dataKeeper
 
@@ -45,22 +45,22 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
             executeCommandWithNothing(this@AbstractPlatformVersionCommand::executeList)
         }
         sub("first", "Returns the data for the first version") {
-            executeCommandWith { data.versions.first() }
+            executeCommandWith { { data.versions.first() } }
         }
         sub("latest", "Returns the data for the latest version") {
-            executeCommandWith { latestVersion }
+            executeCommandWith { { latestVersion } }
         }
         if (slash) {
             sub("get", "Returns the data for a selected version") {
                 val version = string("version", "The version to return for", required = false) {}
                 executeCommandWith {
-                    optNullable(version) ?: latestVersion
+                    optNullable(version)?.let { { it } } ?: { latestVersion }
                 }
             }
         } else {
             val version = string("version", "The version to return for", required = false) {}
             executeCommandWith {
-                optNullable(version) ?: latestVersion
+                optNullable(version)?.let { { it } } ?: { latestVersion }
             }
         }
     }
@@ -87,11 +87,12 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
         }
     }
 
-    override suspend fun execute(ctx: CommandContext, options: String) {
+    override suspend fun execute(ctx: CommandContext, options: () -> String) {
         ctx.use {
             sendNotInitializedYet()
-            require(data.versions.contains(options)) { "Invalid Version Specified: $options\nYou may list the versions available by using `$prefixedCmd list`" }
-            val version = data[options]
+            val optionsValue = options()
+            require(data.versions.contains(optionsValue)) { "Invalid Version Specified: $optionsValue\nYou may list the versions available by using `$prefixedCmd list`" }
+            val version = data[optionsValue]
             message.reply {
                 title(getTitle(version.version))
                 buildString {

@@ -36,6 +36,7 @@ import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.AboutCommand
 import me.shedaniel.linkie.discord.commands.AddTrickCommand
+import me.shedaniel.linkie.discord.commands.ArchitecturyCommand
 import me.shedaniel.linkie.discord.commands.EvaluateCommand
 import me.shedaniel.linkie.discord.commands.FTBDramaCommand
 import me.shedaniel.linkie.discord.commands.FabricCommand
@@ -296,6 +297,7 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
+    commands.registerCommand(ArchitecturyCommand, listOf("arch", "architectury"), listOf("architectury"))
 }
 
 fun registerSlashCommands(commands: SlashCommands) {
