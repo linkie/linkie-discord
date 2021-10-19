@@ -19,7 +19,7 @@ package me.shedaniel.linkie.discord.utils
 import discord4j.core.`object`.component.Button
 import discord4j.core.`object`.component.SelectMenu
 import discord4j.core.`object`.reaction.ReactionEmoji
-import discord4j.core.event.domain.interaction.SelectMenuInteractEvent
+import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 
 data class ComponentFilterProvider(val filter: ComponentFilter)
@@ -164,9 +164,9 @@ class SelectMenuBuilder(
         this.maxValues = maxValues
     }
 
-    fun action(action: MessageCreator.(SelectMenuInteractEvent, List<String>) -> Unit) {
+    fun action(action: MessageCreator.(SelectMenuInteractionEvent, List<String>) -> Unit) {
         this.action = {
-            it as SelectMenuInteractEvent
+            it as SelectMenuInteractionEvent
             action(it, it.values)
         }
     }

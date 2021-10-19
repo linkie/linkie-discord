@@ -25,7 +25,7 @@ import discord4j.core.`object`.entity.channel.Channel
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.Event
-import discord4j.core.event.domain.interaction.ComponentInteractEvent
+import discord4j.core.event.domain.interaction.ComponentInteractionEvent
 import discord4j.core.event.domain.interaction.InteractionCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
@@ -91,7 +91,7 @@ fun InteractionCreateEvent.replyEmbed(spec: EmbedCreateSpec.Builder.() -> Unit):
     addEmbed(spec)
 }
 
-fun ComponentInteractEvent.sendEdit(spec: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit): Mono<Void> {
+fun ComponentInteractionEvent.sendEdit(spec: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit): Mono<Void> {
     val protected: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit = {
         allowedMentions(AllowedMentions.suppressAll())
         spec(this)
@@ -99,7 +99,7 @@ fun ComponentInteractEvent.sendEdit(spec: InteractionApplicationCommandCallbackS
     return edit(protected.build())
 }
 
-fun ComponentInteractEvent.sendEditEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<Void> = sendEdit {
+fun ComponentInteractionEvent.sendEditEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<Void> = sendEdit {
     addEmbed(spec.build())
 }
 

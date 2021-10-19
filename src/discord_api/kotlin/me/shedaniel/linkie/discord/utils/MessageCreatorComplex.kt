@@ -19,7 +19,7 @@ package me.shedaniel.linkie.discord.utils
 import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.component.LayoutComponent
 import discord4j.core.`object`.entity.User
-import discord4j.core.event.domain.interaction.ComponentInteractEvent
+import discord4j.core.event.domain.interaction.ComponentInteractionEvent
 import java.time.Duration
 
 sealed class MessageContent
@@ -60,7 +60,7 @@ fun MessageCreatorComplex.compile(client: GatewayDiscordClient, user: User): Lis
     val builder = layout!!.build()
     var actions = builder.actions
     var reacted = false
-    client.event<ComponentInteractEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
+    client.event<ComponentInteractionEvent>().take(Duration.ofMinutes(10)).subscribe { event ->
         if (reacted) return@subscribe
         actions.any { (filter, action) ->
             when (filter(event, client, user)) {

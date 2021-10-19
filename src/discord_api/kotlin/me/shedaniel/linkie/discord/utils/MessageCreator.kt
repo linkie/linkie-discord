@@ -21,8 +21,8 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.interaction.ComponentInteractEvent
-import discord4j.core.event.domain.interaction.SlashCommandEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
+import discord4j.core.event.domain.interaction.ComponentInteractionEvent
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
 import discord4j.discordjson.json.ImmutableWebhookMessageEditRequest
 import discord4j.discordjson.possible.Possible
@@ -132,7 +132,7 @@ private fun <T> Mono<T>.toFuturePossible(): FuturePossible<T> = object : FutureP
 }
 
 class SlashCommandMessageCreator(
-    val event: SlashCommandEvent,
+    val event: ChatInputInteractionEvent,
     val ctx: CommandContext,
     val send: (Mono<*>) -> Unit,
 ) : MessageCreator {
@@ -176,7 +176,7 @@ class SlashCommandMessageCreator(
 }
 
 class ComponentInteractMessageCreator(
-    val event: ComponentInteractEvent,
+    val event: ComponentInteractionEvent,
     val client: GatewayDiscordClient,
     val user: User,
     val extraConfig: InteractionApplicationCommandCallbackSpec.Builder.(MessageCreatorComplex) -> Unit,

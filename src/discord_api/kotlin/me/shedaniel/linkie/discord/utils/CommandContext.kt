@@ -22,7 +22,7 @@ import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
-import discord4j.core.event.domain.interaction.SlashCommandEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import me.shedaniel.linkie.discord.scommands.SlashCommand
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
@@ -83,7 +83,7 @@ val CommandContext.inGuild: InGuildCommandContext
 class SlashCommandBasedContext(
     val command: SlashCommand,
     override val cmd: String,
-    val event: SlashCommandEvent,
+    val event: ChatInputInteractionEvent,
     val send: (Mono<*>) -> Unit,
 ) : CommandContext {
     override val message: MessageCreator by lazy { SlashCommandMessageCreator(event, this, send) }

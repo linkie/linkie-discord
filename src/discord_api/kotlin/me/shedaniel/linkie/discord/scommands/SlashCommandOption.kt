@@ -17,13 +17,13 @@
 package me.shedaniel.linkie.discord.scommands
 
 import discord4j.common.util.Snowflake
+import discord4j.core.`object`.command.ApplicationCommandOption
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandOptionData
 import discord4j.discordjson.json.ImmutableApplicationCommandOptionData
-import discord4j.rest.util.ApplicationCommandOptionType
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.Property
 import me.shedaniel.linkie.discord.utils.blockNotNull
@@ -140,7 +140,7 @@ class SubCommandOption(
     override var required: Boolean = false,
 ) : AbstractNestedSlashCommandOption<Map<String, Any>>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.SUB_COMMAND.value
+        get() = ApplicationCommandOption.Type.SUB_COMMAND.value
 
     override fun execute(ctx: CommandContext, command: SlashCommand, reader: Property<ArgReader>, builder: OptionsGetterBuilder): ExecuteResult {
         if (name == reader.get().next()) {
@@ -168,7 +168,7 @@ class SubGroupCommandOption(
     override var required: Boolean = false,
 ) : AbstractNestedSlashCommandOption<Pair<String, Any>>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.SUB_COMMAND_GROUP.value
+        get() = ApplicationCommandOption.Type.SUB_COMMAND_GROUP.value
 
     override fun execute(ctx: CommandContext, command: SlashCommand, reader: Property<ArgReader>, builder: OptionsGetterBuilder): ExecuteResult {
         for (option in options) {
@@ -212,7 +212,7 @@ class StringCommandOption(
     private val unlimited: Boolean,
 ) : AbstractSingleChoicesSlashCommandOption<String>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.STRING.value
+        get() = ApplicationCommandOption.Type.STRING.value
 
     fun choice(value: String) = choice(value, value)
 
@@ -234,7 +234,7 @@ class IntegerCommandOption(
     parents: List<CommandOptionProperties>,
 ) : AbstractSingleChoicesSlashCommandOption<Long>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.INTEGER.value
+        get() = ApplicationCommandOption.Type.INTEGER.value
 
     fun choice(value: Int) = choice(value.toString(), value)
 
@@ -254,7 +254,7 @@ class BooleanCommandOption(
     parents: List<CommandOptionProperties>,
 ) : AbstractSingleSlashCommandOption<Boolean>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.BOOLEAN.value
+        get() = ApplicationCommandOption.Type.BOOLEAN.value
 
     override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Boolean> =
         reader.next().let {
@@ -272,7 +272,7 @@ class UserCommandOption(
     parents: List<CommandOptionProperties>,
 ) : AbstractSingleSlashCommandOption<User>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.USER.value
+        get() = ApplicationCommandOption.Type.USER.value
 
     override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<User> =
         reader.next()?.let {
@@ -288,7 +288,7 @@ class ChannelCommandOption(
     parents: List<CommandOptionProperties>,
 ) : AbstractSingleSlashCommandOption<Channel>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.CHANNEL.value
+        get() = ApplicationCommandOption.Type.CHANNEL.value
 
     override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Channel> =
         reader.next()?.let {
@@ -304,7 +304,7 @@ class RoleCommandOption(
     parents: List<CommandOptionProperties>,
 ) : AbstractSingleSlashCommandOption<Role>(name, description, parents) {
     override val type: Int
-        get() = ApplicationCommandOptionType.ROLE.value
+        get() = ApplicationCommandOption.Type.ROLE.value
 
     override fun read(ctx: CommandContext, reader: ArgReader): ReadResult<Role> =
         TODO()
@@ -316,5 +316,5 @@ class RoleCommandOption(
 //        parents: List<CommandOptionProperties>,
 //    ) : AbstractSingleSlashCommandOption(name, description, parents) {
 //        override val type: Int
-//            get() = ApplicationCommandOptionType.MENTIONABLE.value
+//            get() = ApplicationCommandOption.Type.MENTIONABLE.value
 //    }

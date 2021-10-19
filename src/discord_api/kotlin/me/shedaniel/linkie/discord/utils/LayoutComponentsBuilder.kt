@@ -21,13 +21,13 @@ import discord4j.core.`object`.component.ActionComponent
 import discord4j.core.`object`.component.ActionRow
 import discord4j.core.`object`.component.LayoutComponent
 import discord4j.core.`object`.entity.User
-import discord4j.core.event.domain.interaction.ComponentInteractEvent
+import discord4j.core.event.domain.interaction.ComponentInteractionEvent
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import java.util.*
 
-typealias ComponentFilter = (componentId: String, ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
-typealias ComponentAction = InteractionMessageCreator.(ComponentInteractEvent) -> Unit
-private typealias InternalComponentFilter = (ComponentInteractEvent, GatewayDiscordClient, User) -> ComponentActionType
+typealias ComponentFilter = (componentId: String, ComponentInteractionEvent, GatewayDiscordClient, User) -> ComponentActionType
+typealias ComponentAction = InteractionMessageCreator.(ComponentInteractionEvent) -> Unit
+private typealias InternalComponentFilter = (ComponentInteractionEvent, GatewayDiscordClient, User) -> ComponentActionType
 
 fun customId(): String = UUID.randomUUID().toString()
 

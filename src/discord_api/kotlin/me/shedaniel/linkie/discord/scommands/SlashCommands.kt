@@ -19,13 +19,13 @@ package me.shedaniel.linkie.discord.scommands
 import discord4j.common.util.Snowflake
 import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.command.ApplicationCommandInteractionOption
+import discord4j.core.`object`.command.ApplicationCommandOption.Type.*
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
-import discord4j.core.event.domain.interaction.SlashCommandEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandRequest
-import discord4j.rest.util.ApplicationCommandOptionType.*
 import me.shedaniel.linkie.discord.handler.ThrowableHandler
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
@@ -42,8 +42,8 @@ class SlashCommands(
     private val errorHandler: (String) -> Unit = { println("Error: $it") },
 ) {
     val applicationId: Long by lazy { client.restClient.applicationId.block() }
-    val handlers = mutableMapOf<String, (event: SlashCommandEvent) -> Unit>()
-    val guildHandlers = mutableMapOf<GuildCommandKey, (event: SlashCommandEvent) -> Unit>()
+    val handlers = mutableMapOf<String, (event: ChatInputInteractionEvent) -> Unit>()
+    val guildHandlers = mutableMapOf<GuildCommandKey, (event: ChatInputInteractionEvent) -> Unit>()
     val globalCommands: Flux<ApplicationCommandData> by lazy {
         client.restClient.applicationService
             .getGlobalApplicationCommands(applicationId)
@@ -71,7 +71,7 @@ class SlashCommands(
     }
 
     init {
-        client.event<SlashCommandEvent> { event ->
+        client.event<ChatInputInteractionEvent> { event ->
             val handler = when {
                 handlers.containsKey(event.commandName) -> handlers[event.commandName]!!
                 event.interaction.guildId.isPresent && guildHandlers.containsKey(GuildCommandKey(event.interaction.guildId.get(), event.commandName)) ->
@@ -172,7 +172,7 @@ class SlashCommands(
         }
     }
 
-    private fun buildHandler(command: SlashCommand, cmd: String): (event: SlashCommandEvent) -> Unit = { event ->
+    private fun buildHandler(command: SlashCommand, cmd: String): (event: ChatInputInteractionEvent) -> Unit = { event ->
         var sentAny = false
         val ctx = SlashCommandBasedContext(command, cmd, event) {
             it.subscribe()
@@ -387,7 +387,7 @@ interface OptionsGetter {
     fun asChannel(): Channel = value as Channel
 
     companion object {
-        fun of(slashCommand: SlashCommand, ctx: CommandContext, event: SlashCommandEvent): OptionsGetter = object : OptionsGetter {
+        fun of(slashCommand: SlashCommand, ctx: CommandContext, event: ChatInputInteractionEvent): OptionsGetter = object : OptionsGetter {
             override val slashCommand: SlashCommand
                 get() = slashCommand
             override val ctx: CommandContext
