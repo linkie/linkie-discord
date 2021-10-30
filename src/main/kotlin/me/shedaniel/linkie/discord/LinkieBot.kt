@@ -19,7 +19,12 @@
 package me.shedaniel.linkie.discord
 
 import com.soywiz.klock.TimeSpan
+import discord4j.core.`object`.entity.channel.TextChannel
+import discord4j.core.`object`.entity.channel.ThreadChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import discord4j.core.event.domain.thread.ThreadMembersUpdateEvent
+import discord4j.core.spec.EmbedCreateSpec
+import discord4j.discordjson.json.gateway.ThreadMembersUpdate
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
@@ -69,15 +74,11 @@ import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
-import me.shedaniel.linkie.discord.utils.dangerButton
-import me.shedaniel.linkie.discord.utils.discordEmote
 import me.shedaniel.linkie.discord.utils.discriminatedName
-import me.shedaniel.linkie.discord.utils.dismissButton
-import me.shedaniel.linkie.discord.utils.primaryButton
+import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.reply
-import me.shedaniel.linkie.discord.utils.selectMenu
+import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
-import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.namespaces.LegacyYarnNamespace
 import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangHashedNamespace
@@ -164,6 +165,22 @@ fun main() {
         CommandHandler(this, commandManager, LinkieThrowableHandler).register()
         CommandHandler(this, trickHandler, LinkieThrowableHandler).register()
         commandManager.registerToSlashCommands(slashCommands)
+        gateway.event<ThreadMembersUpdateEvent> { event ->
+            val dispatch: ThreadMembersUpdate = ThreadMembersUpdateEvent::class.java.getDeclaredField("dispatch").also { 
+                it.isAccessible = true
+            }.get(event) as ThreadMembersUpdate
+            if (dispatch.addedMembers().any { it.userId().asLong() == this.selfId.asLong() }) {
+                gateway.getChannelById(event.threadId).subscribe { channel ->
+                    if (channel is ThreadChannel) {
+                        channel.sendMessage {
+                            it.embeds(EmbedCreateSpec.create()
+                                .withTitle("Linked has entered the thread")
+                                .withDescription("Thanks for having me here! This message is sent when Linkie is brought into a thread.\nThread support in Linkie is still experimental, please report any issues found on our issue tracker! ٭(•﹏•)٭"))
+                        }.subscribe()
+                    }
+                }
+            }
+        }
     }
 }
 
