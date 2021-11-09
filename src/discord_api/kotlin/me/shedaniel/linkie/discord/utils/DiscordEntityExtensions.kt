@@ -155,8 +155,14 @@ val Message.attachmentMessage: Attachment
         it.attachments.first()
     }
 
-inline fun <reified T : Event> GatewayDiscordClient.event(): Flux<T> = eventDispatcher.on(T::class.java)
+inline fun <reified T : Event> GatewayDiscordClient.event(): Flux<T> = eventDispatcher.on(T::class.java).onErrorResume { defaultErrorHandler(it) }
 
 inline fun <reified T : Event> GatewayDiscordClient.event(noinline listener: (T) -> Unit) {
     event<T>().subscribe(listener)
+}
+
+fun <T : Event?> defaultErrorHandler(exception: Throwable): Mono<T> {
+    println("Failed to handle event: $exception")
+    exception.printStackTrace()
+    return Mono.empty()
 }

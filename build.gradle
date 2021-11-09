@@ -59,7 +59,7 @@ dependencies {
     implementation("me.shedaniel:linkie-core:1.0.88") {
         exclude module: "korio"
     }
-    discord_apiImplementation("com.github.Discord4J.Discord4J:discord4j-core:bfaba7b") {
+    discord_apiImplementation("com.github.Discord4J.Discord4J:discord4j-core:c25f7e1") {
         force = true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {

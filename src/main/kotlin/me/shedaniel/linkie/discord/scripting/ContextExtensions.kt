@@ -28,7 +28,6 @@ import discord4j.core.`object`.presence.Presence
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.api
 import me.shedaniel.linkie.discord.gateway
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext

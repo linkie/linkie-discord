@@ -26,10 +26,12 @@ import discord4j.core.GatewayDiscordClient
 import discord4j.core.`object`.presence.ClientActivity
 import discord4j.core.`object`.presence.ClientPresence
 import discord4j.core.event.domain.lifecycle.ReadyEvent
+import discord4j.core.shard.MemberRequestFilter
+import discord4j.gateway.intent.Intent
+import discord4j.gateway.intent.IntentSet
 import me.shedaniel.linkie.LinkieConfig
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
-import me.shedaniel.linkie.discord.handler.CommandManager
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.utils.info
 import java.time.Duration
@@ -37,13 +39,13 @@ import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.properties.Delegates
 
-val api: DiscordClient by lazy {
+private fun api(): DiscordClient =
     DiscordClientBuilder.create(System.getenv("TOKEN") ?: System.getProperty("linkie.token") ?: throw NullPointerException("Invalid Token: null")).build()
-}
+
 val isDebug: Boolean = System.getProperty("linkie-debug") == "true"
 var gateway by Delegates.notNull<GatewayDiscordClient>()
 
-inline fun start(
+fun start(
     config: LinkieConfig,
     setup: GatewayDiscordClient.() -> Unit,
 ) {
@@ -53,16 +55,26 @@ inline fun start(
     Timer().schedule(0, Duration.ofMinutes(1).toMillis()) {
         System.gc()
     }
-    gateway = api.login().doOnSuccess {
-        it.eventDispatcher.on(ReadyEvent::class.java).subscribe {
-            cycle(5.minutes, delay = 5.seconds) {
-                gateway.guilds.count().subscribe { size ->
-                    info("Serving on $size servers")
-                    gateway.updatePresence(ClientPresence.online(ClientActivity.watching("Serving on $size servers"))).subscribe()
+    gateway = api().gateway()
+        .setEnabledIntents(IntentSet.of(
+            Intent.GUILDS,
+            Intent.GUILD_MESSAGES,
+            Intent.GUILD_MESSAGE_REACTIONS,
+            Intent.DIRECT_MESSAGES,
+            Intent.DIRECT_MESSAGE_REACTIONS
+        ))
+        .setMemberRequestFilter(MemberRequestFilter.none())
+        .login()
+        .doOnSuccess {
+            it.event<ReadyEvent> {
+                cycle(5.minutes, delay = 5.seconds) {
+                    gateway.guilds.count().subscribe { size ->
+                        info("Serving on $size servers")
+                        gateway.updatePresence(ClientPresence.online(ClientActivity.watching("Serving on $size servers"))).subscribe()
+                    }
                 }
             }
-        }
-    }.block()!!
+        }.block()!!
     Namespaces.init(config)
     // pretendInit(config)
     setup(gateway)
