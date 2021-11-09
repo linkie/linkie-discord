@@ -26,6 +26,7 @@ import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.interaction.ComponentInteractionEvent
+import discord4j.core.event.domain.interaction.DeferrableInteractionEvent
 import discord4j.core.event.domain.interaction.InteractionCreateEvent
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
@@ -79,7 +80,7 @@ fun Message.tryRemoveAllReactions(): Mono<Void> {
     return channel.filter { it.type != Channel.Type.DM }.flatMap { removeAllReactions() }.doOnError { }
 }
 
-fun InteractionCreateEvent.replyMessage(spec: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit): Mono<Void> {
+fun DeferrableInteractionEvent.replyMessage(spec: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit): Mono<Void> {
     val protected: InteractionApplicationCommandCallbackSpec.Builder.() -> Unit = {
         allowedMentions(AllowedMentions.suppressAll())
         spec(this)
@@ -87,7 +88,7 @@ fun InteractionCreateEvent.replyMessage(spec: InteractionApplicationCommandCallb
     return reply(protected.build())
 }
 
-fun InteractionCreateEvent.replyEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<Void> = replyMessage {
+fun DeferrableInteractionEvent.replyEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<Void> = replyMessage {
     addEmbed(spec)
 }
 
@@ -103,7 +104,7 @@ fun ComponentInteractionEvent.sendEditEmbed(spec: EmbedCreateSpec.Builder.() -> 
     addEmbed(spec.build())
 }
 
-fun InteractionCreateEvent.sendOriginalEdit(spec: ImmutableWebhookMessageEditRequest.Builder.() -> Unit): Mono<MessageData> {
+fun DeferrableInteractionEvent.sendOriginalEdit(spec: ImmutableWebhookMessageEditRequest.Builder.() -> Unit): Mono<MessageData> {
     val protected: ImmutableWebhookMessageEditRequest.Builder.() -> Unit = {
         allowedMentionsOrNull(AllowedMentions.suppressAll().toData())
         spec(this)
@@ -111,7 +112,7 @@ fun InteractionCreateEvent.sendOriginalEdit(spec: ImmutableWebhookMessageEditReq
     return interactionResponse.editInitialResponse(protected.build())
 }
 
-fun InteractionCreateEvent.sendOriginalEditEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<MessageData> = sendOriginalEdit {
+fun DeferrableInteractionEvent.sendOriginalEditEmbed(spec: EmbedCreateSpec.Builder.() -> Unit): Mono<MessageData> = sendOriginalEdit {
     addEmbed(spec.build().asRequest())
 }
 
