@@ -37,7 +37,7 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
 
     override fun updateData(): ForgeData {
         val data = ForgeData()
-        SAXReader().read(URL("https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml")).rootElement
+        SAXReader().read(URL("https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml")).rootElement
             .element("versioning")
             .element("versions")
             .elementIterator("version")
@@ -51,7 +51,7 @@ object ForgeCommand : AbstractPlatformVersionCommand<ForgeCommand.ForgeVersion, 
                     version.forgeVersion.add(forgeVersion)
                 }
             }
-        json.parseToJsonElement(URL("http://export.mcpbot.bspk.rs/versions.json").readText()).jsonObject.forEach { mcVersion, mcpVersionsObj ->
+        json.parseToJsonElement(URL("https://maven.minecraftforge.net/de/oceanlabs/mcp/versions.json").readText()).jsonObject.forEach { mcVersion, mcpVersionsObj ->
             mcpVersionsObj.jsonObject["snapshot"]?.jsonArray
                 ?.map { it.jsonPrimitive.content }
                 ?.maxByOrNull { it.toInt() }
