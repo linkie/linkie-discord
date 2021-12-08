@@ -44,6 +44,7 @@ inline fun SlashCommandOptionAcceptor.namespace(
 
 data class VersionNamespaceConfig(
     val namespace: Namespace,
+    val defaultVersion: String = namespace.defaultVersion,
     val availableVersions: (Namespace) -> List<String> = Namespace::getAllSortedVersions,
 )
 
@@ -66,8 +67,8 @@ fun SlashCommandOptionAcceptor.version(
     }
     provider.injectDefaultVersion {
         runBlockingNoJs {
-            val defaultProvider = namespace.getDefaultProvider()
-            if (versions.contains(defaultProvider.version)) {
+            val defaultProvider = namespace.getProvider(config.defaultVersion)
+            if (!defaultProvider.isEmpty() && versions.contains(defaultProvider.version)) {
                 defaultProvider
             } else {
                 namespace.getProvider(versions.firstOrNull() ?: throw IllegalStateException("No available versions found!"))

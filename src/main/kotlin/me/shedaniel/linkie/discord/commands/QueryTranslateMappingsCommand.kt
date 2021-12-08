@@ -37,7 +37,6 @@ import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.basicEmbed
 import me.shedaniel.linkie.discord.utils.buildSafeDescription
 import me.shedaniel.linkie.discord.utils.buildString
-import me.shedaniel.linkie.discord.utils.ephemeral
 import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.namespace
@@ -104,7 +103,7 @@ class QueryTranslateMappingsCommand(
     suspend fun SlashCommandBuilderInterface.buildExecutor(
         srcNamespaceGetter: (OptionsGetter) -> Namespace,
         dstNamespaceGetter: (OptionsGetter) -> Namespace,
-        types: Array<out MappingsEntryType>
+        types: Array<out MappingsEntryType>,
     ) {
 
         val searchTerm = string("search_term", "The search term to filter with")
@@ -122,8 +121,10 @@ class QueryTranslateMappingsCommand(
             val allVersions = src.getAllSortedVersions().toMutableList()
             allVersions.retainAll(dst.getAllSortedVersions())
 
-            val srcVersion = options.opt(version, VersionNamespaceConfig(src) { allVersions })
-            val dstVersion = options.opt(version, VersionNamespaceConfig(dst) { allVersions })
+            val defaultVersion = src.defaultVersion.takeIf { it in allVersions } ?: dst.defaultVersion.takeIf { it in allVersions } ?: allVersions.first()
+
+            val srcVersion = options.opt(version, VersionNamespaceConfig(src, defaultVersion) { allVersions })
+            val dstVersion = options.opt(version, VersionNamespaceConfig(dst, defaultVersion) { allVersions })
 
             require(srcVersion.version == dstVersion.version) {
                 "Unmatched versions: ${srcVersion.version}, ${dstVersion.version}! Please report this!"

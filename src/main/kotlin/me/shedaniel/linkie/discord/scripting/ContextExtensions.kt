@@ -143,7 +143,7 @@ object ContextExtensions {
     fun namespaceObj(namespace: Namespace) = context("Namespace") {
         this["id"] = namespace.id
         this["reloading"] = namespace.reloading
-        this["defaultVersion"] = namespace.getDefaultVersion()
+        this["defaultVersion"] = namespace.defaultVersion
         this["versions"] = ProxyArray.fromList(namespace.getAllSortedVersions())
         this["supportsAT"] = namespace.supportsAT()
         this["supportsAW"] = namespace.supportsAW()
