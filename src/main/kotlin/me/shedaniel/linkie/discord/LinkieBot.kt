@@ -209,7 +209,7 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.METHOD), "m", "method")
     commands.registerCommand(false, QueryMappingsCommand(null, MappingsEntryType.FIELD), "f", "field")
 
-    commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), "y", "yarn")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["yarn"], *MappingsEntryType.values()), listOf("y", "yarn"), listOf("yarn"))
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.CLASS), "yc", "yarnc")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.METHOD), "ym", "yarnm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarn"], MappingsEntryType.FIELD), "yf", "yarnf")
@@ -224,7 +224,7 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.METHOD), "yrm", "yarrnm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["yarrn"], MappingsEntryType.FIELD), "yrf", "yarnrf")
 
-    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], *MappingsEntryType.values()), "mcp")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mcp"], *MappingsEntryType.values()), "mcp")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.CLASS), "mcpc")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.METHOD), "mcpm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mcp"], MappingsEntryType.FIELD), "mcpf")
@@ -236,12 +236,12 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.METHOD), "plasmam", "plm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["plasma"], MappingsEntryType.FIELD), "plasmaf", "plf")
 
-    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], *MappingsEntryType.values()), "mmi", "mojmapi")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang"], *MappingsEntryType.values()), listOf("mmi", "mojmapi"), listOf("mmi"))
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.CLASS), "mmic", "mojmapic")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.METHOD), "mmim", "mojmapim")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang"], MappingsEntryType.FIELD), "mmif", "mojmapim")
 
-    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), "mms", "mojmaps")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_srg"], *MappingsEntryType.values()), listOf("mms", "mojmaps"), listOf("mms"))
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.CLASS), "mmsc", "mojmapsc")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")

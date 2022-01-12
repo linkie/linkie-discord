@@ -20,6 +20,7 @@ import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.args
 import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scripting.ContextExtensions
 import me.shedaniel.linkie.discord.scripting.EvalContext
@@ -33,7 +34,7 @@ object RunTrickCommand : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val trickName = string("trick_name", "Name of the trick")
         val args = args(required = false)
-        executeCommandWithGetter { ctx, options -> execute(ctx, options.opt(trickName), options.opt(args)) }
+        executeCommandWithGetter { ctx, options -> execute(ctx, options.opt(trickName), options.optNullable(args) ?: mutableListOf()) }
     }
 
     suspend fun execute(ctx: CommandContext, trickName: String, args: MutableList<String>) {

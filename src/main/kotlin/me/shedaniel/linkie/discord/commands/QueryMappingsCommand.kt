@@ -63,10 +63,14 @@ open class QueryMappingsCommand(
 ) : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         if (slash) {
-            (sequenceOf("all") + MappingsEntryType.values().asSequence().map { it.name.toLowerCase() }).forEach { type ->
-                subGroup(type, "Queries mappings for the '$type' type") {
-                    buildNamespaces(slash, if (type == "all") MappingsEntryType.values() else arrayOf(MappingsEntryType.valueOf(type.toUpperCase())))
+            if (namespace == null) {
+                (sequenceOf("all") + MappingsEntryType.values().asSequence().map { it.name.toLowerCase() }).forEach { type ->
+                    subGroup(type, "Queries mappings for the '$type' type") {
+                        buildNamespaces(slash, if (type == "all") MappingsEntryType.values() else arrayOf(MappingsEntryType.valueOf(type.toUpperCase())))
+                    }
                 }
+            } else {
+                buildNamespaces(false, types)
             }
         } else {
             buildNamespaces(slash, types)
