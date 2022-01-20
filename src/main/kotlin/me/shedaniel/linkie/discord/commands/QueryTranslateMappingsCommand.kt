@@ -130,7 +130,8 @@ class QueryTranslateMappingsCommand(
         val searchTerm = string("search_term", "The search term to filter with") {
             suggest { _, options, sink ->
                 runBlocking {
-                    val value = options.optNullable(this@string)?.replace('.', '/')?.replace('#', '/') ?: ""
+                    val rawValue = options.optNullable(this@string) ?: ""
+                    val value = rawValue.replace('.', '/').replace('#', '/')
                     val src = weakSrcNamespaceGetter(options.cmd, options) ?: return@runBlocking
                     val dst = weakDstNamespaceGetter(options.cmd, options) ?: return@runBlocking
 
@@ -155,7 +156,7 @@ class QueryTranslateMappingsCommand(
                             else -> throw IllegalStateException("Unknown type: $value")
                         }
                     }.toList()
-                    sink.suggest(suggestions)
+                    sink.suggest(listOf(sink.choice(rawValue)) + suggestions)
                 }
             }
         }

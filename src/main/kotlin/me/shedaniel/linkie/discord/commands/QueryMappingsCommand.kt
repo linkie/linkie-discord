@@ -105,7 +105,8 @@ open class QueryMappingsCommand(
         val searchTerm = string("search_term", "The search term to filter with") {
             suggest { _, options, sink ->
                 runBlocking {
-                    val value = options.optNullable(this@string)?.replace('.', '/')?.replace('#', '/') ?: ""
+                    val rawValue = options.optNullable(this@string) ?: ""
+                    val value = rawValue.replace('.', '/').replace('#', '/')
                     val namespace = weakNamespaceGetter(options.cmd, options) ?: return@runBlocking
                     val provider = options.optNullable(version, VersionNamespaceConfig(namespace)) ?: namespace.getDefaultProvider()
                     val mappings = provider.get()
@@ -134,7 +135,7 @@ open class QueryMappingsCommand(
                             else -> throw IllegalStateException("Unknown type: $value")
                         }
                     }.toList()
-                    sink.suggest(suggestions)
+                    sink.suggest(listOf(sink.choice(rawValue)) + suggestions)
                 }
             }
         }

@@ -71,7 +71,7 @@ fun StringCommandOption.suggestStrings(versionsGetter: (SuggestionOptionsGetter)
                 .take(25)
                 .map { sink.choice(it, it) }
                 .toList()
-            sink.suggest(suggestions)
+            sink.suggest(listOf(sink.choice(value)) + suggestions)
         }
     }
 }
