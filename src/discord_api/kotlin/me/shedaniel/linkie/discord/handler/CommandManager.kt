@@ -28,8 +28,8 @@ import me.shedaniel.linkie.discord.utils.CommandContext
 open class CommandManager(
     private val prefix: String,
 ) : CommandAcceptor {
-    private val slashCommandMap: MutableMap<String, BuiltCommand> = mutableMapOf()
-    private val regularCommandMap: MutableMap<String, Any> = mutableMapOf()
+    protected val slashCommandMap: MutableMap<String, BuiltCommand> = mutableMapOf()
+    protected val regularCommandMap: MutableMap<String, Any> = mutableMapOf()
     val slashCommands: MutableCollection<BuiltCommand>
         get() = slashCommandMap.values
 
@@ -91,6 +91,11 @@ open class CommandManager(
     }
 
     fun registerToSlashCommands(slashCommands: SlashCommands) {
+        val slashCommandsList = this.slashCommands.flatMap { it.slashCommand?.cmds ?: listOf() }
+        if (slashCommandsList.size >= 100) {
+            throw IllegalArgumentException("Too many slash commands registered!")
+        }
+        println("Registered ${slashCommandsList.count()} slash commands")
         this.slashCommands.forEach { cmd ->
             if (cmd.slashCommand != null) {
                 slashCommands.globalCommand(cmd.slashCommand)

@@ -17,6 +17,7 @@
 package me.shedaniel.linkie.discord.utils
 
 import com.soywiz.korio.async.runBlockingNoJs
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
@@ -24,9 +25,12 @@ import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.SimpleCommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.SlashCommandOptionAcceptor
 import me.shedaniel.linkie.discord.scommands.StringCommandOption
+import me.shedaniel.linkie.discord.scommands.SuggestionOptionsGetter
 import me.shedaniel.linkie.discord.scommands.map
 import me.shedaniel.linkie.discord.scommands.mapCompound
+import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.utils.similarity
 
 inline fun SlashCommandOptionAcceptor.namespace(
     name: String,
@@ -47,6 +51,28 @@ data class VersionNamespaceConfig(
     val defaultVersion: String = namespace.defaultVersion,
     val availableVersions: (Namespace) -> List<String> = Namespace::getAllSortedVersions,
 )
+
+fun StringCommandOption.suggestVersionsWithNs(namespaceGetter: (SuggestionOptionsGetter) -> Namespace?) {
+    suggestVersions { 
+        namespaceGetter(it)?.getAllSortedVersions()
+    }
+}
+
+fun StringCommandOption.suggestVersions(versionsGetter: (SuggestionOptionsGetter) -> List<String>?) {
+    suggest { _, options, sink ->
+        runBlocking {
+            val value = options.optNullable(this@suggestVersions) ?: ""
+            val versions = versionsGetter(options) ?: return@runBlocking
+            val suggestions = versions.asSequence()
+                .filter { it.startsWith(value) }
+                .sortedBy { it.similarity(value) }
+                .take(25)
+                .map { sink.choice(it, it) }
+                .toList()
+            sink.suggest(suggestions)
+        }
+    }
+}
 
 fun SlashCommandOptionAcceptor.version(
     name: String,

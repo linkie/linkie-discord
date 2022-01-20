@@ -84,9 +84,13 @@ class SlashCommandBasedContext(
     val command: SlashCommand,
     override val cmd: String,
     val event: ChatInputInteractionEvent,
+    val defaultEphemeral: Boolean = false,
     val send: (Mono<*>) -> Unit,
 ) : CommandContext {
-    override val message: MessageCreator by lazy { SlashCommandMessageCreator(event, this, send) }
+    override val message: MessageCreator by lazy { SlashCommandMessageCreator(event, this, send).let { 
+        if (defaultEphemeral) it.ephemeral(true)
+        else it
+    } }
 
     override val prefix: String
         get() = "/"

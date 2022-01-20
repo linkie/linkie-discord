@@ -41,6 +41,7 @@ import me.shedaniel.linkie.discord.utils.namespace
 import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.replyComplex
 import me.shedaniel.linkie.discord.utils.secondaryButton
+import me.shedaniel.linkie.discord.utils.suggestVersionsWithNs
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateGuild
 import me.shedaniel.linkie.discord.utils.validateNamespace
@@ -50,7 +51,11 @@ import me.shedaniel.linkie.utils.valueKeeper
 object RandomClassCommand : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val namespace = namespace("namespace", "The namespace to query in")
-        val version = version("version", "The version to query for", required = false)
+        val version = version("version", "The version to query for", required = false) {
+            suggestVersionsWithNs {
+                it.optNullable(it.cmd, namespace)
+            }
+        }
         val count = int("count", "The number of classes to generate", required = false)
         executeCommandWithGetter { ctx, options ->
             val ns = options.opt(namespace)

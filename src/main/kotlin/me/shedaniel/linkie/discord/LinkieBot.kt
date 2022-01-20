@@ -132,13 +132,19 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn)
+        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, defaultEphemeral = true)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
             override fun getPrefix(event: MessageCreateEvent): String {
                 return event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix } ?: super.getPrefix(event)
             }
 
             override suspend fun execute(event: MessageCreateEvent, ctx: CommandContext, args: MutableList<String>): Boolean {
+                if (ctx.cmd in regularCommandMap) {
+                    ctx.message.reply("Linkie now only supports slash commands! Please use them instead!")
+                    return true
+                } else if (true) {
+                    return true
+                }
                 if (super.execute(event, ctx, args)) {
                     return true
                 }
@@ -256,29 +262,29 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.METHOD), "translatem", "tm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.FIELD), "translatef", "tf")
 
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), "voldefy", "volde", "v", "ymcp")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], *MappingsEntryType.values()), listOf("voldefy", "volde", "v", "ymcp"), listOf("ymcp"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.CLASS), "voldefyc", "voldec", "vc", "ymcpc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.METHOD), "voldefym", "voldem", "vm", "ymcpm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mcp"], MappingsEntryType.FIELD), "voldefyf", "voldef", "vf", "ymcpf")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], *MappingsEntryType.values()), "devoldefy", "devolde", "dv", "mcpy")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], *MappingsEntryType.values()), listOf("devoldefy", "devolde", "dv", "mcpy"), listOf("mcpy"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.CLASS), "devoldefyc", "devoldec", "dvc", "mcpyc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.METHOD), "devoldefym", "devoldem", "dvm", "mcpym")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["yarn"], MappingsEntryType.FIELD), "devoldefyf", "devoldef", "dvf", "mcpyf")
 
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], *MappingsEntryType.values()), "ymm", "ymim", "ymsm")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], *MappingsEntryType.values()), listOf("ymm", "ymmi", "ymms"), listOf("ymm"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.CLASS), "ymmc", "ymmic", "ymmsc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.METHOD), "ymmm", "ymmim", "ymmsm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["yarn"], Namespaces["mojang"], MappingsEntryType.FIELD), "ymmf", "ymmif", "ymmsf")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], *MappingsEntryType.values()), "mmy", "mmiy", "mmsy")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], *MappingsEntryType.values()), listOf("mmy", "mmiy", "mmsy"), listOf("mmy"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.CLASS), "mmyc", "mmyic", "mmsyc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.METHOD), "mmym", "mmyim", "mmsym")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["yarn"], MappingsEntryType.FIELD), "mmyf", "mmyif", "mmsyf")
 
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), "mcpmm", "mcpmmi", "mcpmms")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], *MappingsEntryType.values()), listOf("mcpmm", "mcpmmi", "mcpmms"), listOf("mcpmm"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.CLASS), "mcpmmc", "mcpmmic", "mcpmmsc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.METHOD), "mcpmmm", "mcpmmim", "mcpmmsm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mcp"], Namespaces["mojang"], MappingsEntryType.FIELD), "mcpmmf", "mcpmmif", "mcpmmsf")
-    commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), "mmmcp", "mmimcp", "mmsmcp")
+    commands.registerCommand(QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], *MappingsEntryType.values()), listOf("mmmcp", "mmimcp", "mmsmcp"), listOf("mmmcp"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.CLASS), "mmmcpc", "mmimcpc", "mmsmcpc")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.METHOD), "mmmcpm", "mmimcpm", "mmsmcpm")
     commands.registerCommand(false, QueryTranslateMappingsCommand(Namespaces["mojang"], Namespaces["mcp"], MappingsEntryType.FIELD), "mmmcpf", "mmimcpf", "mmsmcpf")

@@ -56,7 +56,7 @@ enum class ExecuteResult {
     NONE,
 }
 
-interface SlashCommandOption<T> : SimpleCommandOptionMeta<T>, SlashCommandExecutor, SlashCommandExecutorAcceptor {
+interface SlashCommandOption<T> : SimpleCommandOptionMeta<T>, SlashCommandExecutor, SlashCommandExecutorAcceptor, SlashCommandSuggester, SlashCommandSuggesterAcceptor {
     fun toData(): ApplicationCommandOptionData
     fun execute(ctx: CommandContext, command: SlashCommand, reader: Property<ArgReader>, builder: OptionsGetterBuilder): ExecuteResult
 }
@@ -65,8 +65,9 @@ abstract class AbstractSlashCommandOption<T>(
     var name: String,
     override var description: String,
     var executor: SlashCommandExecutor? = null,
+    var suggester: SlashCommandSuggester? = null,
 ) : SlashCommandOption<T> {
-    override fun name(ctx: CommandContext): String = name
+    override fun name(cmd: String): String = name
     abstract override var required: Boolean
 
     abstract val type: Int
@@ -78,6 +79,9 @@ abstract class AbstractSlashCommandOption<T>(
             if (required) {
                 required(required)
             }
+            if (suggester != null) {
+                autocomplete(true)
+            }
         }
         .also(::addExtra)
         .build()
@@ -88,12 +92,20 @@ abstract class AbstractSlashCommandOption<T>(
         this.executor = executor
     }
 
+    override fun suggest(suggester: SlashCommandSuggester) {
+        this.suggester = suggester
+    }
+
     fun required(required: Boolean) {
         this.required = required
     }
 
     override fun execute(command: SlashCommand, ctx: CommandContext, optionsGetter: OptionsGetter): Boolean {
         return executor?.execute(command, ctx, optionsGetter) == true
+    }
+
+    override fun suggest(command: SlashCommand, optionsGetter: SuggestionOptionsGetter, sink: SlashCommandOptionSuggestionSink) {
+        suggester?.suggest(command, optionsGetter, sink)
     }
 }
 
@@ -190,6 +202,7 @@ abstract class AbstractSingleChoicesSlashCommandOption<T>(
     val choices: MutableList<ApplicationCommandOptionChoiceData> = mutableListOf(),
 ) : AbstractSingleSlashCommandOption<T>(name, description, parents) {
     override fun addExtra(data: ImmutableApplicationCommandOptionData.Builder) {
+        super.addExtra(data)
         if (choices.isNotEmpty()) {
             data.choices(choices)
         }

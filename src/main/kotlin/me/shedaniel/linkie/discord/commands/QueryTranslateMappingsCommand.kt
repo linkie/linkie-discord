@@ -27,7 +27,9 @@ import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.WeakOptionsGetter
 import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.scommands.subGroup
@@ -42,6 +44,7 @@ import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.namespace
 import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.discord.utils.sendPages
+import me.shedaniel.linkie.discord.utils.suggestVersions
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateGuild
 import me.shedaniel.linkie.discord.utils.validateNamespace
@@ -87,27 +90,43 @@ class QueryTranslateMappingsCommand(
                 val srcId = src.id.substringBeforeLast("_srg")
                 val dstId = dst.id.substringBeforeLast("_srg")
                 sub(srcId + "_to_" + dstId, "Translates from $srcId to $dstId") {
-                    buildExecutor({ src }, { dst }, types)
+                    buildExecutor({ src }, { _, _ -> src }, { dst }, { _, _ -> dst }, types)
                 }
                 sub(dstId + "_to_" + srcId, "Translates from $dstId to $srcId") {
-                    buildExecutor({ dst }, { src }, types)
+                    buildExecutor({ dst }, { _, _ -> src }, { src }, { _, _ -> dst }, types)
                 }
             }
         } else {
             val srcNamespaceOpt = if (source == null) namespace("source", "The source namespace to query in") else null
             val dstNamespaceOpt = if (target == null) namespace("target", "The target namespace to query in") else null
-            buildExecutor({ source ?: it.opt(srcNamespaceOpt!!) }, { target ?: it.opt(dstNamespaceOpt!!) }, types)
+            buildExecutor(
+                { source ?: it.opt(srcNamespaceOpt!!) },
+                { cmd, getter -> source ?: getter.optNullable(cmd, srcNamespaceOpt!!) },
+                { target ?: it.opt(dstNamespaceOpt!!) },
+                { cmd, getter -> target ?: getter.optNullable(cmd, dstNamespaceOpt!!) },
+                types
+            )
         }
     }
 
     suspend fun SlashCommandBuilderInterface.buildExecutor(
         srcNamespaceGetter: (OptionsGetter) -> Namespace,
+        weakSrcNamespaceGetter: (String, WeakOptionsGetter) -> Namespace?,
         dstNamespaceGetter: (OptionsGetter) -> Namespace,
+        weakDstNamespaceGetter: (String, WeakOptionsGetter) -> Namespace?,
         types: Array<out MappingsEntryType>,
     ) {
 
         val searchTerm = string("search_term", "The search term to filter with")
-        val version = version("version", "The version to query for", required = false)
+        val version = version("version", "The version to query for", required = false) {
+            suggestVersions {
+                val src = weakSrcNamespaceGetter(it.cmd, it) ?: return@suggestVersions emptyList()
+                val dst = weakDstNamespaceGetter(it.cmd, it) ?: return@suggestVersions emptyList()
+                val allVersions = src.getAllSortedVersions().toMutableList()
+                allVersions.retainAll(dst.getAllSortedVersions())
+                allVersions
+            }
+        }
         executeCommandWithGetter { ctx, options ->
             ctx.message.acknowledge()
             val src = srcNamespaceGetter(options)

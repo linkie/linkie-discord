@@ -26,8 +26,8 @@ fun <T, R> SimpleCommandOptionMeta<T>.map(mapper: (T?) -> R?): SimpleCommandOpti
     override val required: Boolean
         get() = this@map.required
 
-    override fun name(ctx: CommandContext): String =
-        this@map.name(ctx)
+    override fun name(cmd: String): String =
+        this@map.name(cmd)
 
     override fun mapValue(value: Any?): R? =
         mapper(this@map.mapValue(value))
@@ -41,8 +41,8 @@ fun <T, E, R> SimpleCommandOptionMeta<T>.mapCompound(mapper: (T?, E) -> R?): Com
     override val required: Boolean
         get() = this@mapCompound.required
 
-    override fun name(ctx: CommandContext): String =
-        this@mapCompound.name(ctx)
+    override fun name(cmd: String): String =
+        this@mapCompound.name(cmd)
 
     override fun mapValue(value: Any?, extra: E): R? =
         mapper(this@mapCompound.mapValue(value), extra)

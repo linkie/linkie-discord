@@ -18,16 +18,22 @@ package me.shedaniel.linkie.discord.commands
 
 import discord4j.core.`object`.entity.User
 import kotlinx.coroutines.runBlocking
+import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsEntryType
+import me.shedaniel.linkie.MappingsMember
 import me.shedaniel.linkie.MappingsProvider
+import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.MappingsQueryUtils.query
+import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
+import me.shedaniel.linkie.discord.scommands.WeakOptionsGetter
 import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.scommands.subGroup
@@ -41,13 +47,16 @@ import me.shedaniel.linkie.discord.utils.description
 import me.shedaniel.linkie.discord.utils.getCatching
 import me.shedaniel.linkie.discord.utils.initiate
 import me.shedaniel.linkie.discord.utils.namespace
+import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.discord.utils.sendPages
+import me.shedaniel.linkie.discord.utils.suggestVersionsWithNs
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateDefaultVersionNotEmpty
 import me.shedaniel.linkie.discord.utils.validateGuild
 import me.shedaniel.linkie.discord.utils.validateNamespace
 import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.discord.utils.version
+import me.shedaniel.linkie.optimumName
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.onlyClass
@@ -56,6 +65,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
+import kotlin.properties.Delegates
 
 open class QueryMappingsCommand(
     private val namespace: Namespace?,
@@ -81,18 +91,58 @@ open class QueryMappingsCommand(
         if (slash) {
             Namespaces.namespaces.values.forEach { namespace ->
                 sub(namespace.id, "Searches $namespace") {
-                    buildExecutor({ namespace }, types)
+                    buildExecutor({ namespace }, { _, _ -> namespace }, types)
                 }
             }
         } else {
             val namespaceOpt = if (namespace == null) namespace("namespace", "The namespace to query in") else null
-            buildExecutor({ namespace ?: it.opt(namespaceOpt!!) }, types)
+            buildExecutor({ namespace ?: it.opt(namespaceOpt!!) }, { cmd, getter -> namespace ?: getter.optNullable(cmd, namespaceOpt!!) }, types)
         }
     }
 
-    suspend fun SlashCommandBuilderInterface.buildExecutor(namespaceGetter: (OptionsGetter) -> Namespace, types: Array<out MappingsEntryType>) {
-        val searchTerm = string("search_term", "The search term to filter with")
-        val version = version("version", "The version to query for", required = false)
+    suspend fun SlashCommandBuilderInterface.buildExecutor(namespaceGetter: (OptionsGetter) -> Namespace, weakNamespaceGetter: (String, WeakOptionsGetter) -> Namespace?, types: Array<out MappingsEntryType>) {
+        var version by Delegates.notNull<CommandOptionMeta<MappingsProvider, VersionNamespaceConfig>>()
+        val searchTerm = string("search_term", "The search term to filter with") {
+            suggest { _, options, sink ->
+                runBlocking {
+                    val value = options.optNullable(this@string)?.replace('.', '/')?.replace('#', '/') ?: ""
+                    val namespace = weakNamespaceGetter(options.cmd, options) ?: return@runBlocking
+                    val provider = options.optNullable(version, VersionNamespaceConfig(namespace)) ?: namespace.getDefaultProvider()
+                    val mappings = provider.get()
+                    val result = query(mappings, value, *types)
+                    val suggestions = result.results.asSequence().take(25).map { (value, _) ->
+                        when {
+                            value is Class -> {
+//                                if (value.mappedName != null) {
+//                                    sink.choice("Class: ${value.optimumSimpleName} (${value.intermediaryName})", value.intermediaryName)
+//                                } else {
+//                                    sink.choice("Class: ${value.intermediaryName}", value.intermediaryName)
+//                                }
+                                sink.choice(value.optimumName)
+                            }
+                            value is Pair<*, *> && value.second is MappingsMember -> {
+                                val parent = value.first as Class
+                                val member = value.second as MappingsMember
+                                val type = if (member is Method) "Method" else "Field"
+//                                if (member.mappedName != null) {
+//                                    sink.choice("$type: ${parent.optimumSimpleName}.${member.optimumName} (${member.intermediaryName})", "${parent.intermediaryName}.${member.intermediaryName}")
+//                                } else {
+//                                    sink.choice("$type: ${parent.optimumSimpleName}.${member.intermediaryName}", "${parent.intermediaryName}.${member.intermediaryName}")
+//                                }
+                                sink.choice("${parent.optimumName}.${member.optimumName}")
+                            }
+                            else -> throw IllegalStateException("Unknown type: $value")
+                        }
+                    }.toList()
+                    sink.suggest(suggestions)
+                }
+            }
+        }
+        version = version("version", "The version to query for", required = false) {
+            suggestVersionsWithNs {
+                weakNamespaceGetter(it.cmd, it)
+            }
+        }
         executeCommandWithGetter { ctx, options ->
             ctx.message.acknowledge()
             val ns = namespaceGetter(options)
