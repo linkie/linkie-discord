@@ -132,7 +132,7 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, defaultEphemeral = true)
+        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
             override fun getPrefix(event: MessageCreateEvent): String {
                 return event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix } ?: super.getPrefix(event)
