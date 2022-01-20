@@ -223,7 +223,7 @@ class SlashCommands(
                 get() = options != null
 
             override fun suggest(it: Iterable<ApplicationCommandOptionChoiceData>) {
-                options = it.toList()
+                options = it.toList().take(25)
             }
         }
         runCatching {

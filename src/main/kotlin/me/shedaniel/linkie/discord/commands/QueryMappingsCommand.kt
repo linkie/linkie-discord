@@ -111,7 +111,7 @@ open class QueryMappingsCommand(
                     val provider = options.optNullable(version, VersionNamespaceConfig(namespace)) ?: namespace.getDefaultProvider()
                     val mappings = provider.get()
                     val result = query(mappings, value, *types)
-                    val suggestions = result.results.asSequence().take(25).map { (value, _) ->
+                    val suggestions = result.results.asSequence().take(24).map { (value, _) ->
                         when {
                             value is Class -> {
 //                                if (value.mappedName != null) {
