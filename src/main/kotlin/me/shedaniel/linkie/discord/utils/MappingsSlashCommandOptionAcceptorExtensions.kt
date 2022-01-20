@@ -53,19 +53,21 @@ data class VersionNamespaceConfig(
 )
 
 fun StringCommandOption.suggestVersionsWithNs(namespaceGetter: (SuggestionOptionsGetter) -> Namespace?) {
-    suggestVersions { 
+    suggestStrings {
         namespaceGetter(it)?.getAllSortedVersions()
     }
 }
 
-fun StringCommandOption.suggestVersions(versionsGetter: (SuggestionOptionsGetter) -> List<String>?) {
+fun StringCommandOption.suggestStrings(versionsGetter: (SuggestionOptionsGetter) -> List<String>?) {
     suggest { _, options, sink ->
         runBlocking {
-            val value = options.optNullable(this@suggestVersions) ?: ""
+            val value = options.optNullable(this@suggestStrings) ?: ""
             val versions = versionsGetter(options) ?: return@runBlocking
             val suggestions = versions.asSequence()
-                .filter { it.startsWith(value) }
-                .sortedBy { it.similarity(value) }
+                .sortedWith(
+                    compareByDescending<String> { if (it.startsWith(value)) 1 else 0 }
+                        .thenByDescending { it.similarity(value) }
+                )
                 .take(25)
                 .map { sink.choice(it, it) }
                 .toList()

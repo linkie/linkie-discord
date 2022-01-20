@@ -16,15 +16,19 @@
 
 package me.shedaniel.linkie.discord.commands
 
+import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.Field
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsEntryType
+import me.shedaniel.linkie.MappingsMember
 import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
+import me.shedaniel.linkie.discord.MappingsQueryUtils
+import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.WeakOptionsGetter
@@ -44,7 +48,7 @@ import me.shedaniel.linkie.discord.utils.mapIfNotNullOrNotEquals
 import me.shedaniel.linkie.discord.utils.namespace
 import me.shedaniel.linkie.discord.utils.optimumName
 import me.shedaniel.linkie.discord.utils.sendPages
-import me.shedaniel.linkie.discord.utils.suggestVersions
+import me.shedaniel.linkie.discord.utils.suggestStrings
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.discord.utils.validateGuild
 import me.shedaniel.linkie.discord.utils.validateNamespace
@@ -55,12 +59,14 @@ import me.shedaniel.linkie.namespaces.MCPNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.obfMergedName
+import me.shedaniel.linkie.optimumName
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.valueKeeper
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.properties.Delegates
 
 class QueryTranslateMappingsCommand(
     private val source: Namespace?,
@@ -120,12 +126,43 @@ class QueryTranslateMappingsCommand(
         weakDstNamespaceGetter: (String, WeakOptionsGetter) -> Namespace?,
         types: Array<out MappingsEntryType>,
     ) {
+        var version by Delegates.notNull<CommandOptionMeta<MappingsProvider, VersionNamespaceConfig>>()
+        val searchTerm = string("search_term", "The search term to filter with") {
+            suggest { _, options, sink ->
+                runBlocking {
+                    val value = options.optNullable(this@string)?.replace('.', '/')?.replace('#', '/') ?: ""
+                    val src = weakSrcNamespaceGetter(options.cmd, options) ?: return@runBlocking
+                    val dst = weakDstNamespaceGetter(options.cmd, options) ?: return@runBlocking
 
-        val searchTerm = string("search_term", "The search term to filter with")
-        val version = version("version", "The version to query for", required = false) {
-            suggestVersions {
-                val src = weakSrcNamespaceGetter(it.cmd, it) ?: return@suggestVersions emptyList()
-                val dst = weakDstNamespaceGetter(it.cmd, it) ?: return@suggestVersions emptyList()
+                    val allVersions = src.getAllSortedVersions().toMutableList()
+                    allVersions.retainAll(dst.getAllSortedVersions())
+
+                    val defaultVersion = src.defaultVersion.takeIf { it in allVersions } ?: dst.defaultVersion.takeIf { it in allVersions } ?: allVersions.first()
+
+                    val provider = options.optNullable(version, VersionNamespaceConfig(src, defaultVersion) { allVersions }) ?: src.getProvider(defaultVersion)
+                    val mappings = provider.get()
+                    val result = MappingsQueryUtils.query(mappings, value, *types)
+                    val suggestions = result.results.asSequence().take(25).map { (value, _) ->
+                        when {
+                            value is Class -> {
+                                sink.choice(value.optimumName)
+                            }
+                            value is Pair<*, *> && value.second is MappingsMember -> {
+                                val parent = value.first as Class
+                                val member = value.second as MappingsMember
+                                sink.choice("${parent.optimumName}.${member.optimumName}")
+                            }
+                            else -> throw IllegalStateException("Unknown type: $value")
+                        }
+                    }.toList()
+                    sink.suggest(suggestions)
+                }
+            }
+        }
+        version = version("version", "The version to query for", required = false) {
+            suggestStrings {
+                val src = weakSrcNamespaceGetter(it.cmd, it) ?: return@suggestStrings emptyList()
+                val dst = weakDstNamespaceGetter(it.cmd, it) ?: return@suggestStrings emptyList()
                 val allVersions = src.getAllSortedVersions().toMutableList()
                 allVersions.retainAll(dst.getAllSortedVersions())
                 allVersions

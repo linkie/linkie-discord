@@ -32,6 +32,7 @@ import me.shedaniel.linkie.discord.utils.prefixedCmd
 import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.sendPages
 import me.shedaniel.linkie.discord.utils.setSafeDescription
+import me.shedaniel.linkie.discord.utils.suggestStrings
 import me.shedaniel.linkie.discord.utils.use
 import me.shedaniel.linkie.utils.valueKeeper
 import kotlin.math.ceil
@@ -52,7 +53,11 @@ abstract class AbstractPlatformVersionCommand<R : PlatformVersion, T : PlatformD
         }
         if (slash) {
             sub("get", "Returns the data for a selected version") {
-                val version = string("version", "The version to return for", required = false) {}
+                val version = string("version", "The version to return for", required = false) {
+                    suggestStrings { 
+                        data.versions.toList()
+                    }
+                }
                 executeCommandWith {
                     optNullable(version)?.let { { it } } ?: { latestVersion }
                 }
