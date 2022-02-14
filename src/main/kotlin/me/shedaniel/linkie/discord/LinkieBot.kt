@@ -76,6 +76,7 @@ import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.discriminatedName
 import me.shedaniel.linkie.discord.utils.event
+import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import me.shedaniel.linkie.discord.utils.reply
 import me.shedaniel.linkie.discord.utils.sendMessage
 import me.shedaniel.linkie.discord.utils.setTimestampToNow
@@ -133,6 +134,7 @@ fun main() {
         )
     ) {
         val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn)
+        TricksManager.listen(slashCommands)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
             override fun getPrefix(event: MessageCreateEvent): String {
                 return event.guildId.orElse(null)?.let { ConfigManager[it.asLong()].prefix } ?: super.getPrefix(event)
@@ -175,7 +177,7 @@ fun main() {
             val dispatch: ThreadMembersUpdate = ThreadMembersUpdateEvent::class.java.getDeclaredField("dispatch").also { 
                 it.isAccessible = true
             }.get(event) as ThreadMembersUpdate
-            if (dispatch.addedMembers().any { it.userId().asLong() == this.selfId.asLong() }) {
+            if (dispatch.addedMembers().any { it.userId().getOrNull()?.asLong() == this.selfId.asLong() }) {
                 gateway.getChannelById(event.threadId).subscribe { channel ->
                     if (channel is ThreadChannel) {
                         channel.sendMessage {

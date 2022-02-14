@@ -45,7 +45,7 @@ object RemoveTrickCommand : SimpleCommand<String> {
             message.reply {
                 basicEmbed(user)
                 title("Removed Trick")
-                description = "Successfully removed trick: $trickName"
+                description = "Successfully removed trick: $trickName\nSlash commands of this trick may take a few minutes / hours to update (Discord Caching)"
             }
         }
     }

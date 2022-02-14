@@ -24,17 +24,18 @@ import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsMetadata
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
+import me.shedaniel.linkie.discord.lang.i18n
 import me.shedaniel.linkie.getMappedDesc
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.localiseFieldDesc
 
 object QueryMessageBuilder {
-    fun buildMessage(spec: EmbedCreateSpec.Builder, searchTerm: String, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int, fuzzy: Boolean) {
-        buildHeader(spec, mappings, page, author, maxPage)
+    fun buildMessage(spec: EmbedCreateSpec.Builder, locale: String?, searchTerm: String, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int, fuzzy: Boolean) {
+        buildHeader(spec, locale, mappings, page, author, maxPage)
         spec.buildSafeDescription {
             if (fuzzy) {
-                append("**No results found for __${searchTerm}__. Displaying related results.**").appendLine().appendLine()
+                append("text.mappings.query.fuzzy_matched".i18n(locale, searchTerm)).appendLine().appendLine()
             }
 
             var isFirst = true
@@ -45,25 +46,25 @@ object QueryMessageBuilder {
                     appendLine().appendLine()
                 }
                 when {
-                    value is Class -> buildClass(this, namespace, value)
+                    value is Class -> buildClass(this, locale, namespace, value)
                     value is Pair<*, *> && value.second is Field ->
-                        buildField(this, namespace, value.second as Field, value.first as Class, mappings as? MappingsContainer)
+                        buildField(this, locale, namespace, value.second as Field, value.first as Class, mappings as? MappingsContainer)
                     value is Pair<*, *> && value.second is Method ->
-                        buildMethod(this, namespace, value.second as Method, value.first as Class, mappings as? MappingsContainer)
+                        buildMethod(this, locale, namespace, value.second as Method, value.first as Class, mappings as? MappingsContainer)
                 }
             }
         }
     }
 
-    fun buildHeader(spec: EmbedCreateSpec.Builder, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
+    fun buildHeader(spec: EmbedCreateSpec.Builder, locale: String?, metadata: MappingsMetadata, page: Int, author: User, maxPage: Int) = spec.apply {
         basicEmbed(author, metadata.mappingsSource?.toString())
-        if (maxPage > 1) title("List of ${metadata.name} Mappings for ${metadata.version} (Page ${page + 1}/$maxPage)")
-        else title("List of ${metadata.name} Mappings for ${metadata.version}")
+        if (maxPage > 1) title("text.mappings.query.title.paged".i18n(locale, metadata.name, metadata.version, page + 1, maxPage))
+        else title("text.mappings.query.title".i18n(locale, metadata.name, metadata.version))
     }
 
-    fun buildClass(builder: StringBuilder, namespace: Namespace, classEntry: Class) = builder.apply {
-        appendLine("**Class: __${classEntry.optimumName}__**")
-        append("__Name__: ")
+    fun buildClass(builder: StringBuilder, locale: String?, namespace: Namespace, classEntry: Class) = builder.apply {
+        appendLine("text.mappings.query.class".i18n(locale, classEntry.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(classEntry.obfName.buildString(nonEmptySuffix = " => "))
         append("`${classEntry.intermediaryName}`")
         append(classEntry.mappedName.mapIfNotNullOrNotEquals(classEntry.intermediaryName) { " => `$it`" } ?: "")
@@ -76,21 +77,23 @@ object QueryMessageBuilder {
 
     fun buildField(
         builder: StringBuilder,
+        locale: String?,
         namespace: Namespace,
         field: Field,
         parent: Class,
         mappings: MappingsContainer?,
-    ) = buildField(builder, namespace, field, parent.optimumName, mappings)
+    ) = buildField(builder, locale, namespace, field, parent.optimumName, mappings)
 
     fun buildField(
         builder: StringBuilder,
+        locale: String?,
         namespace: Namespace,
         field: Field,
         parent: String,
         mappings: MappingsContainer?,
     ) = builder.apply {
-        appendLine("**Field: $parent#__${field.optimumName}__**")
-        append("__Name__: ")
+        appendLine("text.mappings.query.field".i18n(locale, parent, field.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(field.obfName.buildString(nonEmptySuffix = " => "))
         append("`${field.intermediaryName}`")
         append(field.mappedName.mapIfNotNullOrNotEquals(field.intermediaryName) { " => `$it`" } ?: "")
@@ -98,11 +101,11 @@ object QueryMessageBuilder {
         if (mappings == null) return@apply
         val mappedDesc = field.getMappedDesc(mappings)
         if (namespace.supportsFieldDescription()) {
-            appendLine().append("__Type__: ")
+            appendLine().append("text.mappings.query.type".i18n(locale))
             append(mappedDesc.localiseFieldDesc())
         }
         if (namespace.supportsMixin()) {
-            appendLine().append("__Mixin Target__: `")
+            appendLine().append("text.mappings.query.mixin".i18n(locale))
             append("L$parent;")
             append(field.optimumName)
             append(':')
@@ -128,21 +131,23 @@ object QueryMessageBuilder {
 
     fun buildMethod(
         builder: StringBuilder,
+        locale: String?,
         namespace: Namespace,
         method: Method,
         parent: Class,
         mappings: MappingsContainer?,
-    ) = buildMethod(builder, namespace, method, parent.optimumName, mappings)
+    ) = buildMethod(builder, locale, namespace, method, parent.optimumName, mappings)
 
     fun buildMethod(
         builder: StringBuilder,
+        locale: String?,
         namespace: Namespace,
         method: Method,
         parent: String,
         mappings: MappingsContainer?,
     ) = builder.apply {
-        appendLine("**Method: $parent#__${method.optimumName}__**")
-        append("__Name__: ")
+        appendLine("text.mappings.query.method".i18n(locale, parent, method.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(method.obfName.buildString(nonEmptySuffix = " => "))
         append("`${method.intermediaryName}`")
         append(method.mappedName.mapIfNotNullOrNotEquals(method.intermediaryName) { " => `$it`" } ?: "")
@@ -150,7 +155,7 @@ object QueryMessageBuilder {
         if (mappings == null) return@apply
         val mappedDesc = method.getMappedDesc(mappings)
         if (namespace.supportsMixin()) {
-            appendLine().append("__Mixin Target__: `")
+            appendLine().append("text.mappings.query.mixin".i18n(locale))
             append("L$parent;")
             append(method.optimumName)
             append(mappedDesc)

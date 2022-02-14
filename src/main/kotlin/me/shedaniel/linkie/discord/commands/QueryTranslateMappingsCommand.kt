@@ -28,6 +28,7 @@ import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.MappingsQueryUtils
+import me.shedaniel.linkie.discord.lang.i18n
 import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
@@ -208,7 +209,7 @@ class QueryTranslateMappingsCommand(
             else title("List of ${result.source.name}->${result.target.name} Mappings")
             buildSafeDescription {
                 if (fuzzy.get()) {
-                    append("**No results found for __${searchTerm}__. Displaying related results.**").appendLine().appendLine()
+                    append("text.mappings.query.fuzzy_matched".i18n(ctx, searchTerm)).appendLine()
                 }
 
                 var isFirst = true
@@ -219,18 +220,18 @@ class QueryTranslateMappingsCommand(
                         appendLine().appendLine()
                     }
                     when (original) {
-                        is Class -> buildClass(original, translated as Class)
-                        is FieldResult -> buildField(original, translated as FieldResult)
-                        is MethodResult -> buildMethod(original, translated as MethodResult)
+                        is Class -> buildClass(ctx.locale, original, translated as Class)
+                        is FieldResult -> buildField(ctx.locale, original, translated as FieldResult)
+                        is MethodResult -> buildMethod(ctx.locale, original, translated as MethodResult)
                     }
                 }
             }
         }
     }
 
-    private fun StringBuilder.buildClass(original: Class, translated: Class) {
-        appendLine("**Class: ${original.optimumName} => __${translated.optimumName}__**")
-        append("__Name__: ")
+    private fun StringBuilder.buildClass(locale: String?, original: Class, translated: Class) {
+        appendLine("text.mappings.query.class.translate".i18n(locale, original.optimumName, translated.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(original.mappedName.mapIfNotNullOrNotEquals(original.intermediaryName) { "`$it` => " } ?: "")
         append("`${original.intermediaryName}`")
         if (original.intermediaryName != translated.intermediaryName) {
@@ -241,9 +242,9 @@ class QueryTranslateMappingsCommand(
         append(translated.mappedName.mapIfNotNullOrNotEquals(translated.intermediaryName) { " => `$it`" } ?: "")
     }
 
-    private fun StringBuilder.buildField(original: FieldResult, translated: FieldResult) {
-        appendLine("**Field: ${original.parent}#${original.field.optimumName} => __${translated.parent}#${translated.field.optimumName}__**")
-        append("__Name__: ")
+    private fun StringBuilder.buildField(locale: String?, original: FieldResult, translated: FieldResult) {
+        appendLine("text.mappings.query.field.translate".i18n(locale, original.parent, original.field.optimumName, translated.parent, translated.field.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(original.field.mappedName.mapIfNotNullOrNotEquals(original.field.intermediaryName) { "`$it` => " } ?: "")
         append("`${original.field.intermediaryName}`")
         if (original.field.intermediaryName != translated.field.intermediaryName) {
@@ -254,9 +255,9 @@ class QueryTranslateMappingsCommand(
         append(translated.field.mappedName.mapIfNotNullOrNotEquals(translated.field.intermediaryName) { " => `$it`" } ?: "")
     }
 
-    private fun StringBuilder.buildMethod(original: MethodResult, translated: MethodResult) {
-        appendLine("**Method: ${original.parent}#${original.method.optimumName} => __${translated.parent}#${translated.method.optimumName}__**")
-        append("__Name__: ")
+    private fun StringBuilder.buildMethod(locale: String?, original: MethodResult, translated: MethodResult) {
+        appendLine("text.mappings.query.method.translate".i18n(locale, original.parent, original.method.optimumName, translated.parent, translated.method.optimumName))
+        append("text.mappings.query.name".i18n(locale))
         append(original.method.mappedName.mapIfNotNullOrNotEquals(original.method.intermediaryName) { "`$it` => " } ?: "")
         append("`${original.method.intermediaryName}`")
         if (original.method.intermediaryName != translated.method.intermediaryName) {

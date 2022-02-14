@@ -21,6 +21,7 @@ import me.shedaniel.linkie.discord.Command
 import me.shedaniel.linkie.discord.scommands.SlashCommandBuilderInterface
 import me.shedaniel.linkie.discord.scommands.args
 import me.shedaniel.linkie.discord.scommands.opt
+import me.shedaniel.linkie.discord.scommands.string
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.Trick
@@ -36,18 +37,17 @@ import java.util.*
 
 object AddTrickCommand : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
+        val name = string("name", "The name of the trick")
         val args = args()
         executeCommandWithGetter { ctx, options ->
-            execute(ctx, options.opt(args))
+            execute(ctx, options.opt(name), options.opt(args))
         }
     }
 
-    fun execute(ctx: CommandContext, args: MutableList<String>) {
+    fun execute(ctx: CommandContext, name: String, args: MutableList<String>) {
         ctx.validateInGuild {
-            args.validateUsage(prefix, 2..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
-            val name = args.first()
+            args.validateUsage(prefix, 1..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
             LinkieScripting.validateTrickName(name)
-            args.removeAt(0)
             var type = ContentType.TEXT
             val flags = mutableListOf<Char>()
             val iterator = args.iterator()
@@ -104,7 +104,7 @@ object AddTrickCommand : Command {
             message.reply {
                 basicEmbed(user)
                 title("Added Trick")
-                description = "Successfully added trick: $name"
+                description = "Successfully added trick: $name\nSlash commands of this trick may take a few minutes / hours to update (Discord Caching)"
             }
         }
     }

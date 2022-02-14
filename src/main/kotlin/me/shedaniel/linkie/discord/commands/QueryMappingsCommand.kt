@@ -162,7 +162,7 @@ open class QueryMappingsCommand(
             QueryMappingsExtensions.query(searchTerm, namespace.getProvider(version), user, message, maxPage, fuzzy, types)
         }.initiate()
         message.sendPages(0, maxPage.get()) { page ->
-            QueryMessageBuilder.buildMessage(this, searchTerm, namespace, query.value, query.mappings, page, user, maxPage.get(), fuzzy.get())
+            QueryMessageBuilder.buildMessage(this, ctx.locale, searchTerm, namespace, query.value, query.mappings, page, user, maxPage.get(), fuzzy.get())
         }
     }
 

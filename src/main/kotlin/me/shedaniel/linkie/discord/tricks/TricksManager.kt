@@ -19,6 +19,8 @@ package me.shedaniel.linkie.discord.tricks
 import discord4j.common.util.Snowflake
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import me.shedaniel.linkie.discord.asSlashCommand
+import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.utils.ZipFile
 import me.shedaniel.linkie.utils.error
 import me.shedaniel.linkie.utils.info
@@ -28,6 +30,8 @@ import java.util.*
 object TricksManager {
     val globalTricks = mutableMapOf<String, GlobalTrick>()
     val tricks = mutableMapOf<UUID, Trick>()
+    var slashCommands: SlashCommands? = null
+
     private val tricksFolder get() = File(File(System.getProperty("user.dir")), "tricks").also { it.mkdirs() }
     private val json = Json {
         ignoreUnknownKeys = true
@@ -63,6 +67,24 @@ object TricksManager {
         globalTricks.clear()
         globalTricks.putAll(tempGlobalTricks)
         save()
+        checkCommands(listOf())
+    }
+
+    fun checkCommands(extraChecks: List<Trick>) {
+        val slashCommands = this.slashCommands ?: return
+        val tricks = (tricks.values.asSequence() + extraChecks.asSequence()).toMutableList()
+        TricksManager.tricks.values.forEach { trick ->
+            slashCommands.guildCommand(trick.guildId, TrickBasedCommand(trick)
+                .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
+        }
+        val availableTricks = TricksManager.tricks.values.map { it.name }
+        tricks.groupBy { it.guildId }.mapValues { it.value.map { it.name }.toSet() }.forEach { (guildId, tricks) ->
+            ArrayList(slashCommands.getGuildCommands(Snowflake.of(guildId)) + slashCommands.registeredGuildCommands.filterKeys { it.guildId.asLong() == guildId }.values).distinctBy { it.name() }.forEach { commands ->
+                if (commands.description().startsWith("Run trick ") && commands.name() !in availableTricks) {
+                    slashCommands.removeGuildCommand(Snowflake.of(guildId), commands.name())
+                }
+            }
+        }
     }
 
     private suspend fun readGlobalTrick(function: (trick: GlobalTrick) -> Unit) {
@@ -101,6 +123,7 @@ object TricksManager {
         require(tricks.none { it.value.name == trick.name && it.value.guildId == trick.guildId }) { "Trick with name \"${trick.name}\" already exists!" }
         tricks[trick.id] = trick
         save()
+        checkCommands(listOf())
     }
 
     fun removeTrick(trick: Trick) {
@@ -108,7 +131,13 @@ object TricksManager {
         val trickFile = File(tricksFolder, "${trick.id}.json")
         trickFile.delete()
         save()
+        checkCommands(listOf(trick))
     }
 
     operator fun get(pair: Pair<String, Long>): Trick? = tricks.values.firstOrNull { it.name == pair.first && it.guildId == pair.second }
+
+    fun listen(slashCommands: SlashCommands) {
+        this.slashCommands = slashCommands
+        checkCommands(listOf())
+    }
 }

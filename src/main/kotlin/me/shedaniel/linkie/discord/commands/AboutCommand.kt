@@ -19,6 +19,7 @@ package me.shedaniel.linkie.discord.commands
 import discord4j.core.`object`.entity.User
 import me.shedaniel.linkie.discord.OptionlessCommand
 import me.shedaniel.linkie.discord.gateway
+import me.shedaniel.linkie.discord.lang.i18n
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.addField
 import me.shedaniel.linkie.discord.utils.basicEmbed
@@ -29,19 +30,19 @@ import me.shedaniel.linkie.discord.utils.replyComplex
 object AboutCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {
         ctx.message.replyComplex {
+            embed {
+                title("text.about.title".i18n(ctx))
+                gateway.self.map(User::getAvatarUrl).block()?.also { url -> thumbnail(url) }
+                description = "text.about.description".i18n(ctx)
+                addField("text.about.license".i18n(ctx), "Apache 2.0")
+                basicEmbed(ctx.user)
+            }
             layout {
                 row {
-                    linkButton("Library Source", "https://github.com/linkie/linkie-core/")
-                    linkButton("Bot Source", "https://github.com/linkie/linkie-discord/")
-                    linkButton("Bot Invite", "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
+                    linkButton("text.about.links.core".i18n(ctx), "https://github.com/linkie/linkie-core/")
+                    linkButton("text.about.links.bot".i18n(ctx), "https://github.com/linkie/linkie-discord/")
+                    linkButton("text.about.links.invite".i18n(ctx), "https://discord.com/api/oauth2/authorize?client_id=472081983925780490&permissions=339008&scope=bot%20applications.commands")
                 }
-            }
-            embed {
-                title("About Linkie")
-                gateway.self.map(User::getAvatarUrl).block()?.also { url -> thumbnail(url) }
-                description = "A mappings bot created by <@430615025066049538>."
-                addField("License", "Apache 2.0")
-                basicEmbed(ctx.user)
             }
         }
     }

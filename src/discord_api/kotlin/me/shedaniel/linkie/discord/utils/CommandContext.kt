@@ -30,6 +30,7 @@ import reactor.core.publisher.Mono
 
 interface CommandContext {
     val prefix: String
+    val locale: String?
     val message: MessageCreator
     val interactionId: Snowflake
     val messageId: Snowflake?
@@ -68,6 +69,8 @@ val CommandContext.inGuild: InGuildCommandContext
             get() = this@inGuild.user
         override val prefix: String
             get() = this@inGuild.prefix
+        override val locale: String?
+            get() = this@inGuild.locale
         override val message: MessageCreator
             get() = this@inGuild.message
         override val guild: Guild
@@ -94,6 +97,8 @@ class SlashCommandBasedContext(
 
     override val prefix: String
         get() = "/"
+    override val locale: String?
+        get() = event.interaction.data.locale().getOrNull()
     override val interactionId: Snowflake
         get() = event.interaction.id
     override val messageId: Snowflake?
@@ -120,6 +125,8 @@ class MessageBasedCommandContext(
 ) : CommandContext {
     override val message: MessageCreator by lazy { channel.msgCreator(this, event.message) }
 
+    override val locale: String?
+        get() = null
     override val interactionId: Snowflake
         get() = messageId
     override val messageId: Snowflake

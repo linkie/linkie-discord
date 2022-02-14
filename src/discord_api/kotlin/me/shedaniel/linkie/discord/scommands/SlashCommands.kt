@@ -28,6 +28,7 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandRequest
+import discord4j.discordjson.possible.Possible
 import me.shedaniel.linkie.discord.handler.ThrowableHandler
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
@@ -35,8 +36,8 @@ import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import me.shedaniel.linkie.discord.utils.replyComplex
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.stream.Collectors
 
 data class SlashCommandHandler(
     val responder: (event: ChatInputInteractionEvent) -> Unit,
@@ -52,30 +53,27 @@ class SlashCommands(
     val applicationId: Long by lazy { client.restClient.applicationId.block() }
     val handlers = mutableMapOf<String, SlashCommandHandler>()
     val guildHandlers = mutableMapOf<GuildCommandKey, SlashCommandHandler>()
-    val globalCommands: Flux<ApplicationCommandData> by lazy {
+    val registeredCommands = mutableMapOf<String, ApplicationCommandData>()
+    val registeredGuildCommands = mutableMapOf<GuildCommandKey, ApplicationCommandData>()
+    val globalCommands: MutableList<ApplicationCommandData> by lazy {
         client.restClient.applicationService
             .getGlobalApplicationCommands(applicationId)
             .cache()
+            .toStream()
+            .collect(Collectors.toList())
     }
-    val guildCommands = mutableMapOf<Snowflake, Flux<ApplicationCommandData>>()
+    val guildCommands = mutableMapOf<Snowflake, MutableList<ApplicationCommandData>>()
 
     data class GuildCommandKey(val guildId: Snowflake, val commandName: String)
 
-    fun getGuildCommands(id: Snowflake): Flux<ApplicationCommandData> {
+    fun getGuildCommands(id: Snowflake): MutableList<ApplicationCommandData> {
         return guildCommands.getOrPut(id) {
             client.restClient.applicationService
                 .getGuildApplicationCommands(applicationId, id.asLong())
                 .cache()
+                .toStream()
+                .collect(Collectors.toList())
         }
-    }
-
-    init {
-        /*gateway.restClient.applicationService.getGuildApplicationCommands(applicationId, testingGuild).parallel().flatMap { data ->
-            gateway.restClient.applicationService.deleteGuildApplicationCommand(applicationId, testingGuild, data.id().toLong())
-                .doOnSuccess {
-                    println(data.id())
-                }
-        }.then().block()*/
     }
 
     init {
@@ -117,26 +115,37 @@ class SlashCommands(
 
     fun guildCommand(guild: Snowflake, command: SlashCommand) {
         for (cmd in command.cmds) {
-            var registered = false
-            getGuildCommands(guild)
-                .flatMap { data ->
-                    if (data.name() == cmd) {
-                        registered = true
-                        val commandData = buildData(command, cmd, data.id(), data.applicationId())
-                        if (data.toString() != commandData.toString()) {
-                            println("not same $cmd guild ${guild.asString()}")
-                            return@flatMap modifyGuildCommand(guild, command, data.id().toLong(), cmd)
+            guildHandlers[GuildCommandKey(guild, cmd)] = buildHandler(command, cmd)
+
+            val existingCommand = registeredGuildCommands[GuildCommandKey(guild, cmd)]
+
+            if (existingCommand != null) {
+                if (!equals(existingCommand, existingCommand.derive(command))) {
+                    println("Updating guild (${guild.asString()}) command /$cmd")
+                    modifyGuildCommand(guild, command, existingCommand.id().toLong(), cmd).subscribe { newData ->
+                        registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
+                    }
+                }
+                return
+            }
+
+            for (data in getGuildCommands(guild)) {
+                if (data.name() == cmd) {
+                    val commandData = data.derive(command)
+                    if (!equals(data, commandData)) {
+                        println("Updating guild (${guild.asString()}) command /$cmd")
+                        modifyGuildCommand(guild, command, data.id().toLong(), cmd).subscribe { newData ->
+                            registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
                         }
                     }
-                    return@flatMap Mono.empty()
-                }.doOnComplete {
-                    if (!registered) {
-                        println("yes $cmd")
-                        registered = true
-                        createGuildCommand(guild, command, cmd).subscribe()
-                    }
-                }.subscribe()
-            guildHandlers[GuildCommandKey(guild, cmd)] = buildHandler(command, cmd)
+                    return
+                }
+            }
+
+            println("Registering guild (${guild.asString()}) command /$cmd")
+            createGuildCommand(guild, command, cmd).subscribe { newData ->
+                registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
+            }
         }
     }
 
@@ -164,28 +173,49 @@ class SlashCommands(
             .doOnError { errorHandler("Unable to create guild command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
+    private fun equals(data1: ApplicationCommandData, data2: ApplicationCommandData): Boolean {
+        return data1.name() == data2.name() &&
+                data1.description() == data2.description() &&
+                data1.applicationId() == data2.applicationId() &&
+                data1.type() == data2.type() &&
+                data1.options() == data2.options() &&
+                data1.defaultPermission() == data2.defaultPermission() &&
+                data1.id() == data2.id()
+    }
+
     fun globalCommand(command: SlashCommand) {
         for (cmd in command.cmds) {
-            var registered = false
-            globalCommands
-                .flatMap { data ->
-                    if (data.name() == cmd) {
-                        registered = true
-                        val commandData = buildData(command, cmd, data.id(), data.applicationId())
-                        if (data.toString() != commandData.toString()) {
-                            println("not same $cmd global")
-                            return@flatMap modifyGlobalCommand(command, data.id().toLong(), cmd)
+            handlers[cmd] = buildHandler(command, cmd)
+
+            val existingCommand = registeredCommands[cmd]
+
+            if (existingCommand != null) {
+                if (!equals(existingCommand, existingCommand.derive(command))) {
+                    println("Updating global command /$cmd")
+                    modifyGlobalCommand(command, existingCommand.id().toLong(), cmd).subscribe { newData ->
+                        registeredCommands[cmd] = newData
+                    }
+                }
+                return
+            }
+
+            for (data in globalCommands) {
+                if (data.name() == cmd) {
+                    val commandData = data.derive(command)
+                    if (!equals(data, commandData)) {
+                        println("Updating global command /$cmd")
+                        modifyGlobalCommand(command, data.id().toLong(), cmd).subscribe { newData ->
+                            registeredCommands[cmd] = newData
                         }
                     }
-                    return@flatMap Mono.empty()
-                }.doOnComplete {
-                    if (!registered) {
-                        println("yes $cmd")
-                        registered = true
-                        createGlobalCommand(command, cmd).subscribe()
-                    }
-                }.subscribe()
-            handlers[cmd] = buildHandler(command, cmd)
+                    return
+                }
+            }
+
+            println("Registering global command /$cmd")
+            createGlobalCommand(command, cmd).subscribe { newData ->
+                registeredCommands[cmd] = newData
+            }
         }
     }
 
@@ -242,9 +272,13 @@ class SlashCommands(
             .addAllOptions(command.options.map(SlashCommandOption<*>::toData))
             .build()
 
-    private fun buildData(command: SlashCommand, cmd: String, id: String, applicationId: String): ApplicationCommandData =
+    private fun ApplicationCommandData.derive(command: SlashCommand): ApplicationCommandData =
+        buildData(command, name(), id(), type(), applicationId())
+
+    private fun buildData(command: SlashCommand, cmd: String, id: String, type: Possible<Int>, applicationId: String): ApplicationCommandData =
         ApplicationCommandData.builder()
             .id(id)
+            .type(type)
             .applicationId(applicationId)
             .name(cmd.also { require(it.toLowerCase() == it && "^[\\w-_]+\$".toRegex().matchEntire(it) != null) { "$it is not a valid name" } })
             .description(command.description(cmd))
@@ -303,6 +337,36 @@ class SlashCommands(
             sink.suggested
         }
         return sink.suggested
+    }
+
+    fun removeGlobalCommand(name: String) {
+        val cmd = globalCommands.firstOrNull { it.name() == name.toLowerCase() }
+            ?: registeredCommands[name.toLowerCase()]
+            ?: return
+        println("Deleting global command /${cmd.name()}")
+        client.restClient.applicationService
+            .deleteGlobalApplicationCommand(applicationId, cmd.id().toLong())
+            .doOnError { errorHandler("Unable to remove global command: " + it.message) }
+            .onErrorResume { Mono.empty() }
+            .subscribe()
+        globalCommands.removeIf { name.toLowerCase() == it.name() }
+        registeredCommands.remove(name.toLowerCase())
+        handlers.remove(name.toLowerCase())
+    }
+
+    fun removeGuildCommand(guildId: Snowflake, name: String) {
+        val cmd = guildCommands[guildId]?.firstOrNull { it.name() == name.toLowerCase() }
+            ?: registeredGuildCommands[GuildCommandKey(guildId, name.toLowerCase())]
+            ?: return
+        println("Deleting guild (${guildId.asString()}) command /${cmd.name()}")
+        client.restClient.applicationService
+            .deleteGuildApplicationCommand(applicationId, guildId.asLong(), cmd.id().toLong())
+            .doOnError { errorHandler("Unable to remove guild command: " + it.message) }
+            .onErrorResume { Mono.empty() }
+            .subscribe()
+        guildCommands[guildId]?.removeIf { name.toLowerCase() == it.name() }
+        registeredGuildCommands.remove(GuildCommandKey(guildId, name.toLowerCase()))
+        guildHandlers.remove(GuildCommandKey(guildId, name.toLowerCase()))
     }
 }
 
@@ -589,6 +653,7 @@ interface OptionsGetter : SuggestionOptionsGetter, WeakOptionsGetter {
 
         fun of(slashCommand: SlashCommand, ctx: CommandContext, option: ApplicationCommandInteractionOption): OptionsGetter =
             WeakOptionsGetter.of(slashCommand, option).asStrong(ctx)
+
         fun of(slashCommand: SlashCommand, ctx: CommandContext, value: Any?): OptionsGetter =
             WeakOptionsGetter.of(slashCommand, value).asStrong(ctx)
     }
