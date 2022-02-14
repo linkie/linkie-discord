@@ -74,8 +74,10 @@ object TricksManager {
         val slashCommands = this.slashCommands ?: return
         val tricks = (tricks.values.asSequence() + extraChecks.asSequence()).toMutableList()
         TricksManager.tricks.values.forEach { trick ->
-            slashCommands.guildCommand(trick.guildId, TrickBasedCommand(trick)
-                .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
+            runCatching {
+                slashCommands.guildCommand(trick.guildId, TrickBasedCommand(trick)
+                    .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
+            }.exceptionOrNull()?.printStackTrace()
         }
         val availableTricks = TricksManager.tricks.values.map { it.name }
         tricks.groupBy { it.guildId }.mapValues { it.value.map { it.name }.toSet() }.forEach { (guildId, tricks) ->
