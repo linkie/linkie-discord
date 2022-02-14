@@ -52,7 +52,7 @@ repositories {
     }
     maven { url "https://maven.shedaniel.me/" }
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://maven.quiltmc.org/repository/snapshot" }
+    maven { url "https://maven.quiltmc.org/repository/release" }
 }
 
 dependencies {
