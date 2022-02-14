@@ -19,7 +19,8 @@
 package me.shedaniel.linkie.discord
 
 import com.soywiz.klock.TimeSpan
-import discord4j.core.`object`.entity.channel.TextChannel
+import com.soywiz.klock.minutes
+import com.soywiz.klock.seconds
 import discord4j.core.`object`.entity.channel.ThreadChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.thread.ThreadMembersUpdateEvent
@@ -68,10 +69,6 @@ import me.shedaniel.linkie.discord.handler.CommandHandler
 import me.shedaniel.linkie.discord.handler.CommandManager
 import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.sub
-import me.shedaniel.linkie.discord.scripting.ContextExtensions
-import me.shedaniel.linkie.discord.scripting.EvalContext
-import me.shedaniel.linkie.discord.scripting.LinkieScripting
-import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.discriminatedName
@@ -89,6 +86,7 @@ import me.shedaniel.linkie.namespaces.PlasmaNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
 import me.shedaniel.linkie.utils.getMillis
+import me.shedaniel.linkie.utils.info
 import me.shedaniel.linkie.utils.warn
 import java.io.File
 import java.util.*
@@ -133,7 +131,7 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn)
+        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, debug = isDebug)
         TricksManager.listen(slashCommands)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
             override fun getPrefix(event: MessageCreateEvent): String {
@@ -144,37 +142,17 @@ fun main() {
                 if (ctx.cmd in regularCommandMap) {
                     ctx.message.reply("Linkie now only supports slash commands! Please use them instead!")
                     return true
-                } else if (true) {
-                    return true
-                }
-                if (super.execute(event, ctx, args)) {
-                    return true
-                }
-                val trick = TricksManager.globalTricks[ctx.cmd] ?: return false
-                val evalContext = EvalContext(
-                    ctx,
-                    event.message,
-                    trick.flags,
-                    args,
-                    parent = true,
-                )
-                LinkieScripting.evalTrick(evalContext, ctx.message, trick) {
-                    LinkieScripting.simpleContext.push {
-                        ContextExtensions.commandContexts(evalContext, ctx.user, ctx.channel, ctx.message, this)
-                    }
                 }
                 return true
             }
         }
-        val trickHandler = TrickHandler(if (isDebug) "@@" else "!!")
         // register the commands
         registerCommands(commandManager)
         registerSlashCommands(slashCommands)
         CommandHandler(this, commandManager, LinkieThrowableHandler).register()
-        CommandHandler(this, trickHandler, LinkieThrowableHandler).register()
         commandManager.registerToSlashCommands(slashCommands)
         gateway.event<ThreadMembersUpdateEvent> { event ->
-            val dispatch: ThreadMembersUpdate = ThreadMembersUpdateEvent::class.java.getDeclaredField("dispatch").also { 
+            val dispatch: ThreadMembersUpdate = ThreadMembersUpdateEvent::class.java.getDeclaredField("dispatch").also {
                 it.isAccessible = true
             }.get(event) as ThreadMembersUpdate
             if (dispatch.addedMembers().any { it.userId().getOrNull()?.asLong() == this.selfId.asLong() }) {
@@ -188,6 +166,11 @@ fun main() {
                     }
                 }
             }
+        }
+        cycle(5.minutes, delay = 5.seconds) {
+            val slashCommandsCount = slashCommands.registeredCommands.size
+            val guildSlashCommandsList = slashCommands.registeredGuildCommands.size
+            info("Registered $slashCommandsCount slash commands, $guildSlashCommandsList guild slash commands")
         }
     }
 }

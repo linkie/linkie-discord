@@ -45,8 +45,8 @@ object ListTricksCommand : SimpleCommand<User> {
     }
 
     override suspend fun execute(ctx: CommandContext, options: User) {
-        LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             val member = guild.getMemberById(options.id).block() ?: throw NullPointerException("Failed to find member in guild: ${options.discriminatedName}")
             val tricks by valueKeeper {
                 val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() && it.author == member.id.asLong() }.sortedBy { it.name }

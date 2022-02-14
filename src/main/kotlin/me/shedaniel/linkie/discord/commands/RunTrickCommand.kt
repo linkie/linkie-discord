@@ -28,6 +28,7 @@ import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.tricks.TricksManager
 import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
 object RunTrickCommand : Command {
@@ -39,6 +40,7 @@ object RunTrickCommand : Command {
 
     suspend fun execute(ctx: CommandContext, trickName: String, args: MutableList<String>) {
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
             val evalContext = EvalContext(
                 ctx,
@@ -47,6 +49,7 @@ object RunTrickCommand : Command {
                 args,
                 parent = false,
             )
+            message.acknowledge()
             LinkieScripting.evalTrick(evalContext, message, trick) {
                 LinkieScripting.simpleContext.push {
                     ContextExtensions.commandContexts(evalContext, user, channel, message, this)

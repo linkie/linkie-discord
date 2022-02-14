@@ -36,8 +36,8 @@ object RemoveTrickCommand : SimpleCommand<String> {
     }
 
     override suspend fun execute(ctx: CommandContext, trickName: String) {
-        LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             LinkieScripting.validateTrickName(trickName)
             val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
             require(member.canManageTrick(trick)) { "You don't have permission to manage this trick!" }

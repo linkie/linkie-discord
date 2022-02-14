@@ -49,6 +49,7 @@ class SlashCommands(
     private val throwableHandler: ThrowableHandler,
     private val errorHandler: (String) -> Unit = { println("Error: $it") },
     private val defaultEphemeral: Boolean = false,
+    private val debug: Boolean = false,
 ) {
     val applicationId: Long by lazy { client.restClient.applicationId.block() }
     val handlers = mutableMapOf<String, SlashCommandHandler>()
@@ -127,6 +128,8 @@ class SlashCommands(
                     modifyGuildCommand(guild, command, existingCommand.id().toLong(), cmd).subscribe { newData ->
                         registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
                     }
+                } else if (debug) {
+                    println("Guild (${guild.asString()}) command /$cmd is up to date")
                 }
                 return
             }
@@ -139,6 +142,12 @@ class SlashCommands(
                         modifyGuildCommand(guild, command, data.id().toLong(), cmd).subscribe { newData ->
                             registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
                         }
+                    } else {
+                        if (debug) {
+                            println("Guild (${guild.asString()}) command /$cmd is up to date")
+                        }
+
+                        registeredGuildCommands[GuildCommandKey(guild, cmd)] = data
                     }
                     return
                 }
@@ -197,6 +206,8 @@ class SlashCommands(
                     modifyGlobalCommand(command, existingCommand.id().toLong(), cmd).subscribe { newData ->
                         registeredCommands[cmd] = newData
                     }
+                } else if (debug) {
+                    println("Global command /$cmd is up to date")
                 }
                 return
             }
@@ -209,6 +220,12 @@ class SlashCommands(
                         modifyGlobalCommand(command, data.id().toLong(), cmd).subscribe { newData ->
                             registeredCommands[cmd] = newData
                         }
+                    } else {
+                        if (debug) {
+                            println("Global command /$cmd is up to date")
+                        }
+
+                        registeredCommands[cmd] = data
                     }
                     return
                 }

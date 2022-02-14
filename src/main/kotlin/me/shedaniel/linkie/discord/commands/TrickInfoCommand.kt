@@ -38,8 +38,8 @@ object TrickInfoCommand : SimpleCommand<String> {
     }
 
     override suspend fun execute(ctx: CommandContext, trickName: String) {
-        LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             val trick = TricksManager[trickName to guildId.asLong()] ?: throw NullPointerException("Cannot find trick named `$trickName`")
             message.reply {
                 basicEmbed(user)

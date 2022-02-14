@@ -95,7 +95,6 @@ open class CommandManager(
         if (slashCommandsList.size >= 100) {
             throw IllegalArgumentException("Too many slash commands registered!")
         }
-        println("Registered ${slashCommandsList.count()} slash commands")
         this.slashCommands.forEach { cmd ->
             if (cmd.slashCommand != null) {
                 slashCommands.globalCommand(cmd.slashCommand)

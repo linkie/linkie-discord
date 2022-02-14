@@ -30,7 +30,7 @@ import java.util.*
 object TricksManager {
     val globalTricks = mutableMapOf<String, GlobalTrick>()
     val tricks = mutableMapOf<UUID, Trick>()
-    var slashCommands: SlashCommands? = null
+    private var slashCommands: SlashCommands? = null
 
     private val tricksFolder get() = File(File(System.getProperty("user.dir")), "tricks").also { it.mkdirs() }
     private val json = Json {
@@ -73,11 +73,22 @@ object TricksManager {
     fun checkCommands(extraChecks: List<Trick>) {
         val slashCommands = this.slashCommands ?: return
         val tricks = (tricks.values.asSequence() + extraChecks.asSequence()).toMutableList()
+        globalTricks.values.forEach { trick ->
+            runCatching {
+                slashCommands.globalCommand(TrickBasedCommand(trick)
+                    .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
+            }.exceptionOrNull()?.printStackTrace()
+        }
         TricksManager.tricks.values.forEach { trick ->
             runCatching {
                 slashCommands.guildCommand(trick.guildId, TrickBasedCommand(trick)
                     .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
             }.exceptionOrNull()?.printStackTrace()
+        }
+        ArrayList(slashCommands.globalCommands + slashCommands.registeredCommands.values).distinctBy { it.name() }.forEach { commands ->
+            if (commands.description().startsWith("Run trick ") && commands.name() !in globalTricks.keys) {
+                slashCommands.removeGlobalCommand(commands.name())
+            }
         }
         val availableTricks = TricksManager.tricks.values.map { it.name }
         tricks.groupBy { it.guildId }.mapValues { it.value.map { it.name }.toSet() }.forEach { (guildId, tricks) ->

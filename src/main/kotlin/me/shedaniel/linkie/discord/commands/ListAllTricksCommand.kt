@@ -35,8 +35,8 @@ import kotlin.math.ceil
 
 object ListAllTricksCommand : OptionlessCommand {
     override suspend fun execute(ctx: CommandContext) {
-        LinkieScripting.validateGuild(ctx)
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             val tricks by valueKeeper {
                 val list = TricksManager.tricks.values.filter { it.guildId == guild.id.asLong() }.sortedBy { it.name }
                 list to ceil(list.size / 5.0).toInt()

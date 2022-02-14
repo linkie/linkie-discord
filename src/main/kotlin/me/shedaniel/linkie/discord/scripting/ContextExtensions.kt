@@ -25,6 +25,8 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.presence.Activity
 import discord4j.core.`object`.presence.Presence
+import discord4j.core.spec.EmbedCreateSpec
+import discord4j.rest.util.Color
 import discord4j.rest.util.Permission
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
@@ -69,52 +71,52 @@ object ContextExtensions {
         }
         this["sqrt"] = funObj {
             validateArgs(1)
-            sqrt(first().getAsDouble())
+            sqrt(first().getAsDouble("x"))
         }
         this["floor"] = funObj {
             validateArgs(1)
-            floor(first().getAsDouble())
+            floor(first().getAsDouble("x"))
         }
         this["pow"] = funObj {
             validateArgs(2)
-            first().getAsDouble().pow(last().getAsDouble())
+            first().getAsDouble("base").pow(last().getAsDouble("power"))
         }
         this["ceil"] = funObj {
             validateArgs(1)
-            ceil(first().getAsDouble())
+            ceil(first().getAsDouble("x"))
         }
         this["abs"] = funObj {
             validateArgs(1)
-            abs(first().getAsDouble())
+            abs(first().getAsDouble("x"))
         }
         this["sin"] = funObj {
             validateArgs(1)
-            sin(first().getAsDouble())
+            sin(first().getAsDouble("x"))
         }
         this["cos"] = funObj {
             validateArgs(1)
-            cos(first().getAsDouble())
+            cos(first().getAsDouble("x"))
         }
         this["tan"] = funObj {
             validateArgs(1)
-            tan(first().getAsDouble())
+            tan(first().getAsDouble("x"))
         }
         this["min"] = funObj {
-            map { it.getAsDouble() }.minOrNull()!!
+            mapIndexed { index, value -> value.getAsBoolean("[$index]") }.minOrNull()!!
         }
         this["max"] = funObj {
-            map { it.getAsDouble() }.maxOrNull()!!
+            mapIndexed { index, value -> value.getAsBoolean("[$index]") }.maxOrNull()!!
         }
         this["any"] = funObj {
-            map { it.getAsBoolean() }.any { it }
+            mapIndexed { index, value -> value.getAsBoolean("[$index]") }.any { it }
         }
         this["all"] = funObj {
-            map { it.getAsBoolean() }.all { it }
+            mapIndexed { index, value -> value.getAsBoolean("[$index]") }.all { it }
         }
     }
     val parseNumber = funObj {
         validateArgs(1)
-        first().getAsString().toDouble()
+        first().getAsString("number").toDouble()
     }
     val equals = funObj {
         validateArgs(1, 2)
@@ -122,8 +124,8 @@ object ContextExtensions {
     }
     val range = funObj {
         validateArgs(1, 2)
-        val min = if (size == 1) 0 else first().getAsDouble().toInt()
-        (min until last().getAsDouble().toInt()).toList()
+        val min = if (size == 1) 0 else first().getAsDouble("min").toInt()
+        (min until last().getAsDouble("max").toInt()).toList()
     }
     val system = context("System") {
         this["currentTimeMillis"] = funObj {
@@ -161,7 +163,7 @@ object ContextExtensions {
                     throw IllegalArgumentException("Invalid amount of arguments!")
                 if (!evalContext.parent)
                     throw IllegalStateException("Cannot invoke another trick without being a parent invoker or a global trick!")
-                val trickName = first().getAsString()
+                val trickName = first().getAsString("trick_name")
                 val trick = TricksManager.get(trickName, evalContext.ctx.guildId)
                 runBlockingNoJs {
                     LinkieScripting.evalTrick(evalContext.copy(parent = false), creator, trick) {
@@ -173,7 +175,7 @@ object ContextExtensions {
             }
             this["escapeUrl"] = funObj {
                 validateArgs(1)
-                URLEncoder.encode(first().getAsString(), "UTF-8")
+                URLEncoder.encode(first().getAsString("url"), "UTF-8")
             }
         }
         context["validateArgsEmpty"] = funObj {
@@ -182,7 +184,7 @@ object ContextExtensions {
         }
         context["validateArgsNotEmpty"] = funObj {
             validateArgs(1)
-            evalContext.args.validateNotEmpty(evalContext.ctx.prefix, evalContext.ctx.cmd + " " + first().getAsString())
+            evalContext.args.validateNotEmpty(evalContext.ctx.prefix, evalContext.ctx.cmd + " " + first().getAsString("usage"))
         }
     }
 
@@ -200,16 +202,40 @@ object ContextExtensions {
     }
 
     fun channelObj(evalContext: EvalContext, user: User, channel: MessageChannel, creator: MessageCreator): ScriptingContext {
-        val booleans = booleanArrayOf(false)
+        val sent = booleanArrayOf(false)
         return context("Channel") {
             this["sendEmbed"] = funObj {
                 validateArgs(1, 2)
-                if (!booleans[0]) {
-                    booleans[0] = true
-                    creator.reply {
-                        if (size == 2) title(first().getAsString())
-                        description = last().getAsString()
-                        basicEmbed(user)
+                if (!sent[0]) {
+                    sent[0] = true
+                    if (size == 1 && first().canExecute()) {
+                        val specObj = embedSpecObj().apply {
+                            first().execute(toProxyObject())
+                        }
+                        creator.reply {
+                            Value.asValue(specObj["title"]).getAsString("title").takeIf(String::isNotBlank)?.let(this::title)
+                            Value.asValue(specObj["description"]).getAsString("description").takeIf(String::isNotBlank)?.let(this::description)
+                            Value.asValue(specObj["url"]).getAsString("url").takeIf(String::isNotBlank)?.let(this::title)
+                            Value.asValue(specObj["color"]).getAsString("color").takeIf(String::isNotBlank)?.let {
+                                "#([0-9a-fA-F]{0,2})([0-9a-fA-F]{0,2})([0-9a-fA-F]{1,2})".toRegex().matchEntire(it).let {
+                                    if (it != null) {
+                                        val (r, g, b) = it.destructured
+                                        color(Color.of(r.ifEmpty { "0" }.toInt(16), g.ifEmpty { "0" }.toInt(16), b.ifEmpty { "0" }.toInt(16)))
+                                    } else {
+                                        throw IllegalArgumentException("Invalid color format! Expected #RRGGBB")
+                                    }
+                                }
+                            }
+                            Value.asValue(specObj["image"]).getAsString("image").takeIf(String::isNotBlank)?.let(this::image)
+                            Value.asValue(specObj["thumbnail"]).getAsString("thumbnail").takeIf(String::isNotBlank)?.let(this::thumbnail)
+                            basicEmbed(user)
+                        }
+                    } else {
+                        creator.reply {
+                            if (size == 2) title(first().getAsString("title"))
+                            description = last().getAsString("content")
+                            basicEmbed(user)
+                        }
                     }.block()?.let { message ->
                         messageObj(evalContext, message, user, false)
                     }
@@ -217,15 +243,26 @@ object ContextExtensions {
             }
             this["sendMessage"] = funObj {
                 validateArgs(1)
-                if (!booleans[0]) {
-                    booleans[0] = true
-                    creator.reply(first().getAsString().let { it.substring(0, min(1999, it.length)) }).block()?.let { message ->
+                if (!sent[0]) {
+                    sent[0] = true
+                    creator.reply(first().getAsString("content").let { it.substring(0, min(1999, it.length)) }).block()?.let { message ->
                         messageObj(evalContext, message, user, false)
                     }
                 } else throw IllegalStateException("Scripts can not send more than 1 message.")
             }
             this["id"] = channel.id.asString()
             this["mention"] = channel.mention
+        }
+    }
+    
+    fun embedSpecObj(): ScriptingContext {
+        return context("EmbedSpec") { 
+            this["title"] = ""
+            this["description"] = ""
+            this["url"] = ""
+            this["color"] = ""
+            this["image"] = ""
+            this["thumbnail"] = ""
         }
     }
 
@@ -253,7 +290,7 @@ object ContextExtensions {
                     booleans[1] = true
                     Thread.sleep(500)
                     messageObj(evalContext, message.sendEdit {
-                        contentOrNull(first().getAsString().let { it.substring(0, min(1999, it.length)) })
+                        contentOrNull(first().getAsString("content").let { it.substring(0, min(1999, it.length)) })
                     }.block()!!, user, false)
                 } else null
             }
@@ -263,8 +300,8 @@ object ContextExtensions {
                     booleans[1] = true
                     Thread.sleep(500)
                     messageObj(evalContext, message.sendEditEmbed {
-                        if (size == 2) title(first().getAsString())
-                        description = last().getAsString().let { it.substring(0, min(1999, it.length)) }
+                        if (size == 2) title(first().getAsString("title"))
+                        description = last().getAsString("content").let { it.substring(0, min(1999, it.length)) }
                         basicEmbed(user)
                     }.block()!!, user, false)
                 } else null
@@ -338,20 +375,20 @@ fun funObj(arguments: List<Value>.() -> Any?): ProxyExecutable {
     }
 }
 
-fun Value.getAsString(): String {
+fun Value.getAsString(field: String): String {
     if (isString) return asString()
     if (isNull) return "null"
-    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} (Field: $field) to string!")
 }
 
-fun Value.getAsDouble(): Double {
+fun Value.getAsDouble(field: String): Double {
     if (isNumber) return asDouble()
-    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to double!")
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} (Field: $field) to double!")
 }
 
-fun Value.getAsBoolean(): Boolean {
+fun Value.getAsBoolean(field: String): Boolean {
     if (isBoolean) return asBoolean()
-    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} to string!")
+    throw IllegalArgumentException("Cannot cast ${this.errorInferredName()} (Field: $field) to string!")
 }
 
 fun Value.errorInferredName(): String = toString()

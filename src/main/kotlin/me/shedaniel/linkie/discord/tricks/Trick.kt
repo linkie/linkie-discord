@@ -79,7 +79,7 @@ object TrickFlags {
         flags['g'] = buildFlag("get user from id", Permission.MANAGE_MESSAGES) {
             this["getUser"] = funObj {
                 validateArgs(1)
-                val id = first().getAsString()
+                val id = first().getAsString("id")
                 var user: User? = null
                 val guild = it.ctx.guild!!
                 runCatching {

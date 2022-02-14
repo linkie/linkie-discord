@@ -25,9 +25,10 @@ import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.validateInGuild
 
-class TrickBasedCommand(val trick: Trick) : Command {
+class TrickBasedCommand(val trick: TrickBase) : Command {
     override suspend fun SlashCommandBuilderInterface.buildCommand(slash: Boolean) {
         val args = args(required = false)
         executeCommandWithGetter { ctx, options -> execute(ctx, options.optNullable(args) ?: mutableListOf()) }
@@ -35,6 +36,7 @@ class TrickBasedCommand(val trick: Trick) : Command {
 
     suspend fun execute(ctx: CommandContext, args: MutableList<String>) {
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             val evalContext = EvalContext(
                 ctx,
                 null,
@@ -42,6 +44,7 @@ class TrickBasedCommand(val trick: Trick) : Command {
                 args,
                 parent = false,
             )
+            message.acknowledge()
             LinkieScripting.evalTrick(evalContext, message, trick) {
                 LinkieScripting.simpleContext.push {
                     ContextExtensions.commandContexts(evalContext, user, channel, message, this)

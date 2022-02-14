@@ -46,6 +46,7 @@ object AddTrickCommand : Command {
 
     fun execute(ctx: CommandContext, name: String, args: MutableList<String>) {
         ctx.validateInGuild {
+            LinkieScripting.validateGuild(ctx)
             args.validateUsage(prefix, 1..Int.MAX_VALUE, "$cmd <name> [--script] <trick>")
             LinkieScripting.validateTrickName(name)
             var type = ContentType.TEXT

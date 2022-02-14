@@ -1,2 +1,0 @@
-validateArgsEmpty()
-channel.sendMessage("Pong!")

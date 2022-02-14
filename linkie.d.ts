@@ -14,11 +14,20 @@ declare namespace Linkie {
     }
     
     interface Channel {
-        sendEmbed(content: string): void;
+        sendEmbed(content: string | ((spec: EmbedSpec) => void)): void;
         sendEmbed(title: string, content: string): void;
         sendMessage(content: string): void;
         id: string;
         mention: string;
+    }
+    
+    interface EmbedSpec {
+        title: string;
+        description: string;
+        url: string;
+        color: string;
+        image: string;
+        thumbnail: string;
     }
     
     interface User {
