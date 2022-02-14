@@ -58,6 +58,7 @@ class SlashCommands(
     val globalCommands: MutableList<ApplicationCommandData> by lazy {
         client.restClient.applicationService
             .getGlobalApplicationCommands(applicationId)
+            .onErrorResume { Mono.empty() }
             .cache()
             .toStream()
             .collect(Collectors.toList())
@@ -70,6 +71,7 @@ class SlashCommands(
         return guildCommands.getOrPut(id) {
             client.restClient.applicationService
                 .getGuildApplicationCommands(applicationId, id.asLong())
+                .onErrorResume { Mono.empty() }
                 .cache()
                 .toStream()
                 .collect(Collectors.toList())
