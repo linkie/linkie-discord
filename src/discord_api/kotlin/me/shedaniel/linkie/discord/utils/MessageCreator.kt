@@ -46,6 +46,7 @@ interface FuturePossible<T> {
 interface MessageCreator {
     fun _acknowledge(ephemeral: Boolean?, content: MessageContent?)
     fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message>
+    fun presentModal(spec: PresentableModalSpec)
 }
 
 fun MessageCreator.ephemeral(ephemeral: Boolean = true): MessageCreator = object : MessageCreator {
@@ -54,6 +55,9 @@ fun MessageCreator.ephemeral(ephemeral: Boolean = true): MessageCreator = object
 
     override fun _reply(blockIfPossible: Boolean, _ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> =
         this@ephemeral._reply(blockIfPossible, ephemeral, spec)
+
+    override fun presentModal(spec: PresentableModalSpec) =
+        this@ephemeral.presentModal(spec)
 }
 
 fun MessageCreator.acknowledge() = _acknowledge(null, null)
@@ -62,6 +66,7 @@ fun MessageCreator.acknowledge(content: EmbedCreator) = _acknowledge(null, Embed
 fun MessageCreator.reply(content: String): FuturePossible<Message> = _reply(false, null, MessageCreatorComplex(TextContent(content)))
 fun MessageCreator.reply(content: EmbedCreator): FuturePossible<Message> = _reply(false, null, MessageCreatorComplex(EmbedContent(content)))
 fun MessageCreator.replyComplex(spec: MessageCreatorComplex.() -> Unit): FuturePossible<Message> = _reply(false, null, spec.build())
+fun MessageCreator.presentModal(spec: PresentableModalSpec.() -> Unit) = presentModal(spec.build())
 
 interface InteractionMessageCreator : MessageCreator {
     fun markDeleted()
@@ -111,18 +116,21 @@ data class MessageCreatorImpl(
             }
         } else {
             message!!.sendEdit {
-                embeds(listOf())
+                embedsOrNull(listOf())
                 content(Possible.absent())
                 spec.text?.content?.also(this::contentOrNull)
                 spec.embed?.content?.also { creator ->
                     addEmbed(runBlocking { creator.build() })
                 }
-                spec.compile(client, user)?.also(this::components)
+                spec.compile(client, user)?.also(this::componentsOrNull)
             }
         }.doOnSuccess { message = it }.cache().apply {
             if (blockIfPossible) block()
             else subscribe()
         }.toFuturePossible()
+    }
+
+    override fun presentModal(spec: PresentableModalSpec) {
     }
 }
 
@@ -140,7 +148,7 @@ class SlashCommandMessageCreator(
     override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
         if (!sent) {
             sent = true
-            send(if (ephemeral == true) event.acknowledgeEphemeral() else event.acknowledge())
+            send(event.deferReply().withEphemeral(ephemeral ?: false))
         }
     }
 
@@ -162,7 +170,7 @@ class SlashCommandMessageCreator(
             })
         } else {
             send(event.sendOriginalEdit {
-                embeds(listOf())
+                embedsOrNull(listOf())
                 content(Possible.absent())
                 spec.text?.content?.also(this::contentOrNull)
                 spec.embed?.content?.also { creator ->
@@ -172,6 +180,10 @@ class SlashCommandMessageCreator(
             })
         }
         return FuturePossible.notPossible()
+    }
+
+    override fun presentModal(spec: PresentableModalSpec) {
+        send(event.presentModal(spec.compile(ctx.client, ctx.user)))
     }
 }
 
@@ -188,7 +200,7 @@ class ComponentInteractMessageCreator(
     override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
         if (!sent) {
             sent = true
-            send(if (ephemeral == true) event.acknowledgeEphemeral() else event.acknowledge())
+            send(event.deferReply().withEphemeral(ephemeral ?: false))
         }
     }
 
@@ -215,7 +227,7 @@ class ComponentInteractMessageCreator(
             send(event.sendOriginalEdit {
                 if (spec.text != null || spec.embed != null) {
                     content(Possible.absent())
-                    embeds(listOf())
+                    embedsOrNull(listOf())
                 }
                 spec.text?.content?.also(this::contentOrNull)
                 spec.embed?.content?.also { creator ->
@@ -226,6 +238,10 @@ class ComponentInteractMessageCreator(
             })
         }
         return FuturePossible.notPossible()
+    }
+
+    override fun presentModal(spec: PresentableModalSpec) {
+        send(event.presentModal(spec.compile(client, user)))
     }
 
     override fun markDeleted() {

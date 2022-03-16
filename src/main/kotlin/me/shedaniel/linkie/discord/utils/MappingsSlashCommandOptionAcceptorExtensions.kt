@@ -68,10 +68,9 @@ fun StringCommandOption.suggestStrings(versionsGetter: (SuggestionOptionsGetter)
                     compareByDescending<String> { if (it.startsWith(value)) 1 else 0 }
                         .thenByDescending { it.similarity(value) }
                 )
-                .take(24)
                 .map { sink.choice(it, it) }
                 .toList()
-            sink.suggest(listOf(sink.choice(value)) + suggestions)
+            sink.suggest(suggestions)
         }
     }
 }

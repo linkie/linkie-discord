@@ -57,6 +57,7 @@ import me.shedaniel.linkie.discord.utils.validateNamespace
 import me.shedaniel.linkie.discord.utils.validateUsage
 import me.shedaniel.linkie.discord.utils.version
 import me.shedaniel.linkie.optimumName
+import me.shedaniel.linkie.utils.MemberEntry
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.onlyClass
@@ -111,7 +112,7 @@ open class QueryMappingsCommand(
                     val provider = options.optNullable(version, VersionNamespaceConfig(namespace)) ?: namespace.getDefaultProvider()
                     val mappings = provider.get()
                     val result = query(mappings, value, *types)
-                    val suggestions = result.results.asSequence().take(24).map { (value, _) ->
+                    val suggestions = result.results.asSequence().sortedByDescending { it.score }.map { (value, _) ->
                         when {
                             value is Class -> {
 //                                if (value.mappedName != null) {
@@ -121,9 +122,8 @@ open class QueryMappingsCommand(
 //                                }
                                 sink.choice(value.optimumName)
                             }
-                            value is Pair<*, *> && value.second is MappingsMember -> {
-                                val parent = value.first as Class
-                                val member = value.second as MappingsMember
+                            value is MemberEntry<*> -> {
+                                val (parent, member) = value
                                 val type = if (member is Method) "Method" else "Field"
 //                                if (member.mappedName != null) {
 //                                    sink.choice("$type: ${parent.optimumSimpleName}.${member.optimumName} (${member.intermediaryName})", "${parent.intermediaryName}.${member.intermediaryName}")
@@ -135,7 +135,7 @@ open class QueryMappingsCommand(
                             else -> throw IllegalStateException("Unknown type: $value")
                         }
                     }.toList()
-                    sink.suggest(listOf(sink.choice(rawValue)) + suggestions)
+                    sink.suggest(suggestions)
                 }
             }
         }

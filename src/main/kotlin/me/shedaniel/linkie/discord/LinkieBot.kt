@@ -48,6 +48,7 @@ import me.shedaniel.linkie.discord.commands.FTBDramaCommand
 import me.shedaniel.linkie.discord.commands.FabricCommand
 import me.shedaniel.linkie.discord.commands.FabricDramaCommand
 import me.shedaniel.linkie.discord.commands.ForgeCommand
+import me.shedaniel.linkie.discord.commands.GenerateTemplateCommand
 import me.shedaniel.linkie.discord.commands.GetValueCommand
 import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
@@ -83,6 +84,7 @@ import me.shedaniel.linkie.namespaces.MojangHashedNamespace
 import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.MojangSrgNamespace
 import me.shedaniel.linkie.namespaces.PlasmaNamespace
+import me.shedaniel.linkie.namespaces.QuiltMappingsNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.namespaces.YarrnNamespace
 import me.shedaniel.linkie.utils.getMillis
@@ -124,6 +126,7 @@ fun main() {
                 MojangNamespace,
                 MojangSrgNamespace,
                 MojangHashedNamespace,
+                QuiltMappingsNamespace,
                 MCPNamespace,
                 LegacyYarnNamespace,
                 YarrnNamespace,
@@ -237,10 +240,12 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.METHOD), "mmsm", "mojmapsm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_srg"], MappingsEntryType.FIELD), "mmsf", "mojmapsm")
 
-    commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], *MappingsEntryType.values()), "qh")
+    commands.registerCommand(QueryMappingsCommand(Namespaces["mojang_hashed"], *MappingsEntryType.values()), listOf("qh"), listOf("mmh"))
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.CLASS), "qhc")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.METHOD), "qhm")
     commands.registerCommand(false, QueryMappingsCommand(Namespaces["mojang_hashed"], MappingsEntryType.FIELD), "qhf")
+
+    commands.registerCommand(QueryMappingsCommand(Namespaces["quilt-mappings"], *MappingsEntryType.values()), "qm")
 
     commands.registerCommand(QueryTranslateMappingsCommand(null, null, *MappingsEntryType.values()), listOf("translate", "t"), listOf("translate"))
     commands.registerCommand(false, QueryTranslateMappingsCommand(null, null, MappingsEntryType.CLASS), "translatec", "tc")
@@ -305,6 +310,7 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(ValueCommand, "value")
     commands.registerCommand(FabricCommand, "fabric")
     commands.registerCommand(ForgeCommand, "forge")
+    // commands.registerCommand(GenerateTemplateCommand, "template")
     commands.registerCommand(ArchitecturyCommand, listOf("arch", "architectury"), listOf("architectury"))
 }
 

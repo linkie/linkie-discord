@@ -54,3 +54,6 @@ fun (LayoutComponentsBuilder.() -> Unit).build(): LayoutComponentsBuilder =
 
 fun (RowBuilder.() -> Unit).build(): RowBuilder =
     RowBuilder().also(this)
+
+fun (PresentableModalSpec.() -> Unit).build(): PresentableModalSpec =
+    PresentableModalSpec().also { this(it) }

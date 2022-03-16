@@ -93,7 +93,32 @@ abstract class AbstractSlashCommandOption<T>(
     }
 
     override fun suggest(suggester: SlashCommandSuggester) {
-        this.suggester = suggester
+        this.suggester = SlashCommandSuggester { command, optionsGetter, sink ->
+            val result = mutableListOf<ApplicationCommandOptionChoiceData>()
+            try {
+                suggester.suggest(command, optionsGetter, object : SlashCommandOptionSuggestionSink {
+                    override val suggested: Boolean
+                        get() = sink.suggested
+
+                    override fun suggest(options: Iterable<ApplicationCommandOptionChoiceData>) {
+                        result.addAll(options)
+                    }
+                })
+            } catch (t: Throwable) {
+                t.printStackTrace()
+            }
+            val optionOpt = optionsGetter.optNullable(this)
+            if (result.isEmpty()) {
+                val option = optionOpt ?: return@SlashCommandSuggester
+                sink.suggest(listOf(sink.choice(option)))
+            } else if (optionOpt == null || (optionOpt is String && optionOpt.isBlank())) {
+                sink.suggest(result.take(25))
+            } else {
+                val choice = sink.choice(optionOpt)
+                result.remove(choice)
+                sink.suggest(listOf(choice) + result.take(24))
+            }
+        }
     }
 
     fun required(required: Boolean) {

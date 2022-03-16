@@ -18,6 +18,7 @@ package me.shedaniel.linkie.discord.utils
 
 import discord4j.core.`object`.component.Button
 import discord4j.core.`object`.component.SelectMenu
+import discord4j.core.`object`.component.TextInput
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
@@ -99,6 +100,34 @@ fun ActionComponentAccepter.dismissButton() = secondaryButton("Dismiss", "❌".d
 fun ActionComponentAccepter.selectMenu(spec: SelectMenuBuilder.() -> Unit) = customId().also { id ->
     val (menu, builder) = spec.build(id)
     add(menu, builder.filter.fillDefault(), builder.action)
+}
+
+fun ActionComponentAccepter.smallText(label: String? = null, value: String? = null, placeholder: String? = null, required: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    var input = TextInput.small(id, label)
+    placeholder?.let { input = input.placeholder(it) }
+    value?.let { input = input.prefilled(it) }
+    add(input.required(required), filter.fillDefault(), action)
+}
+
+fun ActionComponentAccepter.smallText(label: String? = null, minLength: Int, maxLength: Int, value: String? = null, placeholder: String? = null, required: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    var input = TextInput.small(id, label, minLength, maxLength)
+    placeholder?.let { input = input.placeholder(it) }
+    value?.let { input = input.prefilled(it) }
+    add(input.required(required), filter.fillDefault(), action)
+}
+
+fun ActionComponentAccepter.paragraphText(label: String? = null, value: String? = null, placeholder: String? = null, required: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    var input = TextInput.paragraph(id, label)
+    placeholder?.let { input = input.placeholder(it) }
+    value?.let { input = input.prefilled(it) }
+    add(input.required(required), filter.fillDefault(), action)
+}
+
+fun ActionComponentAccepter.paragraphText(label: String? = null, minLength: Int, maxLength: Int, value: String? = null, placeholder: String? = null, required: Boolean = false, filter: ComponentFilterProvider? = null, action: ComponentAction = {}) = customId().also { id ->
+    var input = TextInput.paragraph(id, label, minLength, maxLength)
+    placeholder?.let { input = input.placeholder(it) }
+    value?.let { input = input.prefilled(it) }
+    add(input.required(required), filter.fillDefault(), action)
 }
 
 class SelectMenuBuilder(

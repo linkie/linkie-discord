@@ -66,7 +66,7 @@ fun MessageCreatorComplex.compile(client: GatewayDiscordClient, user: User): Lis
             when (filter(event, client, user)) {
                 ComponentActionType.NOT_APPLICABLE -> return@any false
                 ComponentActionType.ACKNOWLEDGE -> {
-                    event.acknowledge().subscribe()
+                    event.deferEdit().subscribe()
                     return@any true
                 }
                 ComponentActionType.HANDLE -> {
@@ -91,7 +91,7 @@ fun MessageCreatorComplex.compile(client: GatewayDiscordClient, user: User): Lis
                     })
                     action.invoke(msgCreator, event)
                     if (!sentAny) {
-                        event.acknowledge().subscribe()
+                        event.deferEdit().subscribe()
                     }
                     return@any true
                 }

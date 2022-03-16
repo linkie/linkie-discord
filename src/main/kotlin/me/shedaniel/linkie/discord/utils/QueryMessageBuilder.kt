@@ -26,6 +26,7 @@ import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.discord.lang.i18n
 import me.shedaniel.linkie.getMappedDesc
+import me.shedaniel.linkie.utils.MemberEntry
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
 import me.shedaniel.linkie.utils.localiseFieldDesc
@@ -47,10 +48,10 @@ object QueryMessageBuilder {
                 }
                 when {
                     value is Class -> buildClass(this, locale, namespace, value)
-                    value is Pair<*, *> && value.second is Field ->
-                        buildField(this, locale, namespace, value.second as Field, value.first as Class, mappings as? MappingsContainer)
-                    value is Pair<*, *> && value.second is Method ->
-                        buildMethod(this, locale, namespace, value.second as Method, value.first as Class, mappings as? MappingsContainer)
+                    value is MemberEntry<*> && value.member is Field ->
+                        buildField(this, locale, namespace, value.member as Field, value.owner, mappings as? MappingsContainer)
+                    value is MemberEntry<*> && value.member is Method ->
+                        buildMethod(this, locale, namespace, value.member as Method, value.owner, mappings as? MappingsContainer)
                 }
             }
         }

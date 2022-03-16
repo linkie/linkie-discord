@@ -61,6 +61,7 @@ import me.shedaniel.linkie.namespaces.MojangNamespace
 import me.shedaniel.linkie.namespaces.YarnNamespace
 import me.shedaniel.linkie.obfMergedName
 import me.shedaniel.linkie.optimumName
+import me.shedaniel.linkie.utils.MemberEntry
 import me.shedaniel.linkie.utils.QueryResult
 import me.shedaniel.linkie.utils.ResultHolder
 import me.shedaniel.linkie.utils.dropAndTake
@@ -144,20 +145,19 @@ class QueryTranslateMappingsCommand(
                     val provider = options.optNullable(version, VersionNamespaceConfig(src, defaultVersion) { allVersions }) ?: src.getProvider(defaultVersion)
                     val mappings = provider.get()
                     val result = MappingsQueryUtils.query(mappings, value, *types)
-                    val suggestions = result.results.asSequence().take(24).map { (value, _) ->
+                    val suggestions = result.results.asSequence().sortedByDescending { it.score }.map { (value, _) ->
                         when {
                             value is Class -> {
                                 sink.choice(value.optimumName)
                             }
-                            value is Pair<*, *> && value.second is MappingsMember -> {
-                                val parent = value.first as Class
-                                val member = value.second as MappingsMember
+                            value is MemberEntry<*> -> {
+                                val (parent, member) = value
                                 sink.choice("${parent.optimumName}.${member.optimumName}")
                             }
                             else -> throw IllegalStateException("Unknown type: $value")
                         }
                     }.toList()
-                    sink.suggest(listOf(sink.choice(rawValue)) + suggestions)
+                    sink.suggest(suggestions)
                 }
             }
         }
@@ -283,9 +283,9 @@ class QueryTranslateMappingsCommand(
                     val targetClass = target.getClassByObfName(obfName) ?: return@forEach
                     newResult.add(value to targetClass)
                 }
-                value is Pair<*, *> && value.second is Field -> {
-                    val parent = value.first as Class
-                    val field = value.second as Field
+                value is MemberEntry<*> && value.member is Field -> {
+                    val parent = value.owner
+                    val field = value.member as Field
 
                     val obfName = field.obfMergedName!!
                     val parentObfName = parent.obfMergedName!!
@@ -294,9 +294,9 @@ class QueryTranslateMappingsCommand(
 
                     newResult.add(FieldResult(parent.optimumName, field) to FieldResult(targetParent.optimumName, targetField))
                 }
-                value is Pair<*, *> && value.second is Method -> {
-                    val parent = value.first as Class
-                    val method = value.second as Method
+                value is MemberEntry<*> && value.member is Method -> {
+                    val parent = value.owner
+                    val method = value.member as Method
 
                     val obfName = method.obfMergedName!!
                     val obfDesc = method.getObfMergedDesc(source)
