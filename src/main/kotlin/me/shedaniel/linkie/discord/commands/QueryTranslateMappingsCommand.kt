@@ -208,6 +208,8 @@ class QueryTranslateMappingsCommand(
             if (maxPage.get() > 1) title("List of ${result.source.name}->${result.target.name} Mappings (Page ${page + 1}/${maxPage.get()})")
             else title("List of ${result.source.name}->${result.target.name} Mappings")
             buildSafeDescription {
+                append("text.mappings.query.new_site".i18n(ctx.locale)).appendLine().appendLine()
+
                 if (fuzzy.get()) {
                     append("text.mappings.query.fuzzy_matched".i18n(ctx, searchTerm)).appendLine()
                 }

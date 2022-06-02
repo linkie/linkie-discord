@@ -30,6 +30,7 @@ import me.shedaniel.linkie.discord.scommands.map
 import me.shedaniel.linkie.discord.scommands.mapCompound
 import me.shedaniel.linkie.discord.scommands.optNullable
 import me.shedaniel.linkie.discord.scommands.string
+import me.shedaniel.linkie.utils.like
 import me.shedaniel.linkie.utils.similarity
 
 inline fun SlashCommandOptionAcceptor.namespace(
@@ -66,7 +67,7 @@ fun StringCommandOption.suggestStrings(versionsGetter: (SuggestionOptionsGetter)
             val suggestions = versions.asSequence()
                 .sortedWith(
                     compareByDescending<String> { if (it.startsWith(value)) 1 else 0 }
-                        .thenByDescending { it.similarity(value) }
+                        .thenByDescending { it.like.similarity(value.like) }
                 )
                 .map { sink.choice(it, it) }
                 .toList()

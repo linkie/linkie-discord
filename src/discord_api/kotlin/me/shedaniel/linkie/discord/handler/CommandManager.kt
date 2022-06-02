@@ -97,7 +97,8 @@ open class CommandManager(
         }
         this.slashCommands.forEach { cmd ->
             if (cmd.slashCommand != null) {
-                slashCommands.globalCommand(cmd.slashCommand)
+//                slashCommands.globalCommand(cmd.slashCommand)
+                slashCommands.guildCommand(432055962233470986, cmd.slashCommand)
             }
         }
     }

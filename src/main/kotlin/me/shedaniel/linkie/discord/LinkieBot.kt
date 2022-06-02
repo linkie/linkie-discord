@@ -42,17 +42,14 @@ import me.shedaniel.linkie.MappingsEntryType
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.commands.AboutCommand
 import me.shedaniel.linkie.discord.commands.AddTrickCommand
-import me.shedaniel.linkie.discord.commands.ArchitecturyCommand
 import me.shedaniel.linkie.discord.commands.EvaluateCommand
 import me.shedaniel.linkie.discord.commands.FTBDramaCommand
-import me.shedaniel.linkie.discord.commands.FabricCommand
 import me.shedaniel.linkie.discord.commands.FabricDramaCommand
-import me.shedaniel.linkie.discord.commands.ForgeCommand
-import me.shedaniel.linkie.discord.commands.GenerateTemplateCommand
 import me.shedaniel.linkie.discord.commands.GetValueCommand
 import me.shedaniel.linkie.discord.commands.ListAllTricksCommand
 import me.shedaniel.linkie.discord.commands.ListTricksCommand
 import me.shedaniel.linkie.discord.commands.MigrateMMCommandToRequiredCommand
+import me.shedaniel.linkie.discord.commands.MigrateToLinkieWebCommand
 import me.shedaniel.linkie.discord.commands.MojWarningCommand
 import me.shedaniel.linkie.discord.commands.QueryMappingsCommand
 import me.shedaniel.linkie.discord.commands.QueryTranslateMappingsCommand
@@ -308,10 +305,10 @@ fun registerCommands(commands: CommandManager) {
     commands.registerCommand(false, ValueListCommand, "value-list")
     commands.registerCommand(TricksCommand, "trick")
     commands.registerCommand(ValueCommand, "value")
-    commands.registerCommand(FabricCommand, "fabric")
-    commands.registerCommand(ForgeCommand, "forge")
+    commands.registerCommand(MigrateToLinkieWebCommand, "fabric")
+    commands.registerCommand(MigrateToLinkieWebCommand, "forge")
     // commands.registerCommand(GenerateTemplateCommand, "template")
-    commands.registerCommand(ArchitecturyCommand, listOf("arch", "architectury"), listOf("architectury"))
+    commands.registerCommand(MigrateToLinkieWebCommand, listOf("arch", "architectury"), listOf("architectury"))
 }
 
 fun registerSlashCommands(commands: SlashCommands) {

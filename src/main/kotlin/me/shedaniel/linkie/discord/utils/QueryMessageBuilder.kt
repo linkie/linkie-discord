@@ -35,6 +35,8 @@ object QueryMessageBuilder {
     fun buildMessage(spec: EmbedCreateSpec.Builder, locale: String?, searchTerm: String, namespace: Namespace, results: List<ResultHolder<*>>, mappings: MappingsMetadata, page: Int, author: User, maxPage: Int, fuzzy: Boolean) {
         buildHeader(spec, locale, mappings, page, author, maxPage)
         spec.buildSafeDescription {
+            append("text.mappings.query.new_site".i18n(locale)).appendLine().appendLine()
+
             if (fuzzy) {
                 append("text.mappings.query.fuzzy_matched".i18n(locale, searchTerm)).appendLine().appendLine()
             }
