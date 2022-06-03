@@ -26,7 +26,7 @@ object MigrateToLinkieWebCommand : OptionlessCommand {
         ctx.message.reply {
             basicEmbed(ctx.user)
             title("Command removed")
-            description("Version commands are now on the [web](https://linkie.shedaniel.me/dependencies/)!")
+            description("Version commands are now on the [web](https://linkie.shedaniel.me/dependencies)!")
         }
     }
 }
