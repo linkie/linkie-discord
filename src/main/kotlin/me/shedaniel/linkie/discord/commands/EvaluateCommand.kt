@@ -26,6 +26,7 @@ import me.shedaniel.linkie.discord.scripting.EvalContext
 import me.shedaniel.linkie.discord.scripting.LinkieScripting
 import me.shedaniel.linkie.discord.scripting.push
 import me.shedaniel.linkie.discord.utils.CommandContext
+import me.shedaniel.linkie.discord.utils.acknowledge
 import me.shedaniel.linkie.discord.utils.use
 
 object EvaluateCommand : SimpleCommand<String> {
@@ -42,6 +43,7 @@ object EvaluateCommand : SimpleCommand<String> {
             var string = script
             if (string.startsWith("```")) string = string.substring(3)
             if (string.endsWith("```")) string = string.substring(0, string.length - 3)
+            ctx.message.acknowledge()
             LinkieScripting.eval(LinkieScripting.simpleContext.push {
                 ContextExtensions.commandContexts(EvalContext(
                     ctx,

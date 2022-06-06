@@ -17,10 +17,6 @@
 package me.shedaniel.linkie.discord.scripting
 
 import discord4j.core.event.domain.message.MessageCreateEvent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.tricks.ContentType
 import me.shedaniel.linkie.discord.tricks.TrickBase
@@ -112,29 +108,15 @@ object LinkieScripting {
             .option("log.level", "OFF")
             .build()
         try {
-            var t: Throwable? = null
-            withContext(Dispatchers.IO) {
-                withTimeout(3000) {
-                    launch {
-                        try {
-                            engine.getBindings("js").also {
-                                it.removeMember("load")
-                                it.removeMember("loadWithNewGlobal")
-                                it.removeMember("eval")
-                                it.removeMember("exit")
-                                it.removeMember("quit")
-                                context.applyTo(it)
-                            }
-                            engine.eval("js", script)
-                        } catch (throwable: Throwable) {
-                            t = throwable
-                        }
-                    }.join()
-                }
+            engine.getBindings("js").also {
+                it.removeMember("load")
+                it.removeMember("loadWithNewGlobal")
+                it.removeMember("eval")
+                it.removeMember("exit")
+                it.removeMember("quit")
+                context.applyTo(it)
             }
-            t?.let { throw it }
-        } catch (throwable: Throwable) {
-            throw throwable
+            engine.eval("js", script)
         } finally {
             engine.close(true)
         }

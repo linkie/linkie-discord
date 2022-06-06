@@ -142,20 +142,20 @@ private fun <T> Mono<T>.toFuturePossible(): FuturePossible<T> = object : FutureP
 class SlashCommandMessageCreator(
     val event: ChatInputInteractionEvent,
     val ctx: CommandContext,
-    val send: (Mono<*>) -> Unit,
+    val send: (acknowledge: Boolean, Mono<*>) -> Unit,
 ) : MessageCreator {
     var sent: Boolean = false
     override fun _acknowledge(ephemeral: Boolean?, content: MessageContent?) {
         if (!sent) {
             sent = true
-            send(event.deferReply().withEphemeral(ephemeral ?: false))
+            send(true, event.deferReply().withEphemeral(ephemeral ?: false))
         }
     }
 
     override fun _reply(blockIfPossible: Boolean, ephemeral: Boolean?, spec: MessageCreatorComplex): FuturePossible<Message> {
         if (!sent) {
             sent = true
-            send(event.replyMessage {
+            send(false, event.replyMessage {
                 ephemeral(ephemeral.possible())
                 embeds(listOf())
                 content(Possible.absent())
@@ -169,7 +169,7 @@ class SlashCommandMessageCreator(
                 spec.compile(ctx)?.also(this::components)
             })
         } else {
-            send(event.sendOriginalEdit {
+            send(false, event.sendOriginalEdit {
                 embedsOrNull(listOf())
                 content(Possible.absent())
                 spec.text?.content?.also(this::contentOrNull)
@@ -183,7 +183,7 @@ class SlashCommandMessageCreator(
     }
 
     override fun presentModal(spec: PresentableModalSpec) {
-        send(event.presentModal(spec.compile(ctx.client, ctx.user)))
+        send(false, event.presentModal(spec.compile(ctx.client, ctx.user)))
     }
 }
 

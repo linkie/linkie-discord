@@ -29,6 +29,8 @@ import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4j.discordjson.possible.Possible
+import me.shedaniel.linkie.discord.handler.RateLimitException
+import me.shedaniel.linkie.discord.handler.RateLimiter
 import me.shedaniel.linkie.discord.handler.ThrowableHandler
 import me.shedaniel.linkie.discord.utils.CommandContext
 import me.shedaniel.linkie.discord.utils.SlashCommandBasedContext
@@ -36,7 +38,13 @@ import me.shedaniel.linkie.discord.utils.dismissButton
 import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import me.shedaniel.linkie.discord.utils.replyComplex
+import me.shedaniel.linkie.discord.utils.user
 import reactor.core.publisher.Mono
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.stream.Collectors
 
 data class SlashCommandHandler(
@@ -50,6 +58,7 @@ class SlashCommands(
     private val errorHandler: (String) -> Unit = { println("Error: $it") },
     private val defaultEphemeral: Boolean = false,
     private val debug: Boolean = false,
+    val rateLimiter: RateLimiter = RateLimiter(Int.MAX_VALUE),
 ) {
     val applicationId: Long by lazy { client.restClient.applicationId.block() }
     val handlers = mutableMapOf<String, SlashCommandHandler>()
@@ -65,6 +74,7 @@ class SlashCommands(
             .collect(Collectors.toList())
     }
     val guildCommands = mutableMapOf<Snowflake, MutableList<ApplicationCommandData>>()
+    val executor: ExecutorService = Executors.newCachedThreadPool()
 
     data class GuildCommandKey(val guildId: Snowflake, val commandName: String)
 
@@ -240,13 +250,38 @@ class SlashCommands(
 
     private fun buildHandler(command: SlashCommand, cmd: String): SlashCommandHandler = SlashCommandHandler(responder = { event ->
         var sentAny = false
-        val ctx = SlashCommandBasedContext(command, cmd, event, defaultEphemeral) {
-            it.subscribe()
-            sentAny = true
+        val ctx = SlashCommandBasedContext(command, cmd, event, defaultEphemeral) { acknowledge, mono ->
+            mono.subscribe()
+            if (!acknowledge) {
+                sentAny = true
+            }
+        }
+        if (!rateLimiter.allow(event.user.id.asLong())) {
+            val exception = RateLimitException(rateLimiter.maxRequestPer10Sec)
+            if (throwableHandler.shouldError(exception)) {
+                try {
+                    ctx.message.replyComplex {
+                        layout { dismissButton() }
+                        embed { throwableHandler.generateThrowable(this, exception, ctx.user) }
+                    }
+                } catch (throwable2: Exception) {
+                    throwable2.addSuppressed(exception)
+                    throwable2.printStackTrace()
+                }
+            }
+            return@SlashCommandHandler
         }
         val optionsGetter = OptionsGetter.of(command, ctx, event)
         runCatching {
-            if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
+            try {
+                executor.submit {
+                    if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
+                    }
+                }.get(3, TimeUnit.SECONDS)
+            } catch (throwable: TimeoutException) {
+                throw TimeoutException("The command took too long to execute, the maximum execution time is 3 seconds.")
+            } catch (throwable: ExecutionException) {
+                throw throwable.cause ?: throwable
             }
             if (!sentAny) {
                 throw IllegalStateException("Command was not resolved!")

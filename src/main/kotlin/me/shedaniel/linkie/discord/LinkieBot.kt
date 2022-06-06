@@ -65,6 +65,7 @@ import me.shedaniel.linkie.discord.commands.legacy.RemapAWATCommand
 import me.shedaniel.linkie.discord.config.ConfigManager
 import me.shedaniel.linkie.discord.handler.CommandHandler
 import me.shedaniel.linkie.discord.handler.CommandManager
+import me.shedaniel.linkie.discord.handler.RateLimiter
 import me.shedaniel.linkie.discord.scommands.SlashCommands
 import me.shedaniel.linkie.discord.scommands.sub
 import me.shedaniel.linkie.discord.tricks.TricksManager
@@ -131,7 +132,8 @@ fun main() {
             )
         )
     ) {
-        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, debug = isDebug)
+        val rateLimiter = RateLimiter(3)
+        val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, debug = isDebug, rateLimiter = rateLimiter)
         TricksManager.listen(slashCommands)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
             override fun getPrefix(event: MessageCreateEvent): String {
@@ -149,7 +151,7 @@ fun main() {
         // register the commands
         registerCommands(commandManager)
         registerSlashCommands(slashCommands)
-        CommandHandler(this, commandManager, LinkieThrowableHandler).register()
+        CommandHandler(this, commandManager, LinkieThrowableHandler, rateLimiter = rateLimiter).register()
         commandManager.registerToSlashCommands(slashCommands)
         gateway.event<ThreadMembersUpdateEvent> { event ->
             val dispatch: ThreadMembersUpdate = ThreadMembersUpdateEvent::class.java.getDeclaredField("dispatch").also {

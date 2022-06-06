@@ -193,6 +193,7 @@ class QueryTranslateMappingsCommand(
             }
 
             val searchTermStr = options.opt(searchTerm).replace('.', '/').replace('#', '/')
+            require(searchTermStr.length < 50) { "Search term must be under 50 characters" } 
             execute(ctx, src, dst, srcVersion.version!!, searchTermStr, types)
         }
     }
