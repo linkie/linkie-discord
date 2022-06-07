@@ -304,6 +304,11 @@ class SlashCommands(
             if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
             }
         }, executor).orTimeout(10, TimeUnit.SECONDS)
+            .thenAccept {
+                if (!sentAny) {
+                    throw IllegalStateException("Command was not resolved!")
+                }
+            }
             .exceptionally {
                 it.let { throwable ->
                     if (throwable is TimeoutException) {
@@ -329,9 +334,6 @@ class SlashCommands(
                 null
             }
             .join()
-        if (!sentAny) {
-            throw IllegalStateException("Command was not resolved!")
-        }
     }, autoCompleter = { event ->
         val optionsGetter = WeakOptionsGetter.of(command, event).asSuggestion(event.commandName)
         var options: List<ApplicationCommandOptionChoiceData>? = null
