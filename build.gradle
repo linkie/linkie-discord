@@ -8,7 +8,7 @@ plugins {
 }
 
 group "me.shedaniel"
-sourceCompatibility = targetCompatibility = 1.8
+sourceCompatibility = targetCompatibility = 17
 
 license {
     include "**/*.kt"
@@ -131,7 +131,7 @@ build.finalizedBy mainJar
 
 compileKotlin {
     kotlinOptions.suppressWarnings = true
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "17"
     kotlinOptions {
         freeCompilerArgs = ["-Xopt-in=kotlin.RequiresOptIn", "-Xinline-classes"]
         languageVersion = "1.4"

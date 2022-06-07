@@ -133,6 +133,10 @@ class QueryTranslateMappingsCommand(
             suggest { _, options, sink ->
                 runBlocking {
                     val rawValue = options.optNullable(this@string) ?: ""
+                    if (rawValue.length >= 100) {
+                        sink.suggest(listOf())
+                        return@runBlocking
+                    }
                     val value = rawValue.replace('.', '/').replace('#', '/')
                     val src = weakSrcNamespaceGetter(options.cmd, options) ?: return@runBlocking
                     val dst = weakDstNamespaceGetter(options.cmd, options) ?: return@runBlocking
@@ -144,7 +148,11 @@ class QueryTranslateMappingsCommand(
 
                     val provider = options.optNullable(version, VersionNamespaceConfig(src, defaultVersion) { allVersions }) ?: src.getProvider(defaultVersion)
                     val mappings = provider.get()
-                    val result = MappingsQueryUtils.query(mappings, value, *types)
+                    val result = try {
+                        MappingsQueryUtils.query(mappings, value, *types)
+                    } catch (ignored: NullPointerException) {
+                        MappingsQueryUtils.Result(mutableListOf(), false)
+                    }
                     val suggestions = result.results.asSequence().sortedByDescending { it.score }.map { (value, _) ->
                         when {
                             value is Class -> {

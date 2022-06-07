@@ -24,6 +24,7 @@ import com.soywiz.klock.seconds
 import discord4j.core.`object`.entity.channel.ThreadChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.core.event.domain.thread.ThreadMembersUpdateEvent
+import discord4j.core.`object`.entity.User
 import discord4j.core.spec.EmbedCreateSpec
 import discord4j.discordjson.json.gateway.ThreadMembersUpdate
 import io.ktor.application.*
@@ -32,6 +33,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -132,7 +134,15 @@ fun main() {
             )
         )
     ) {
-        val rateLimiter = RateLimiter(3)
+        val rateLimiter = object : RateLimiter(3) {
+            override fun allow(user: User, cmd: String, args: Map<String, Any>): Boolean {
+                info("Handling command /$cmd ${
+                    args.entries.joinToString(" ")
+                    { "${it.key}: ${it.value}" }
+                } from ${user.discriminatedName}")
+                return super.allow(user, cmd, args)
+            }
+        }
         val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, debug = isDebug, rateLimiter = rateLimiter)
         TricksManager.listen(slashCommands)
         val commandManager = object : CommandManager(if (isDebug) "@" else "!") {
@@ -161,9 +171,11 @@ fun main() {
                 gateway.getChannelById(event.threadId).subscribe { channel ->
                     if (channel is ThreadChannel) {
                         channel.sendMessage {
-                            it.embeds(EmbedCreateSpec.create()
-                                .withTitle("Linked has entered the thread")
-                                .withDescription("Thanks for having me here! This message is sent when Linkie is brought into a thread.\nThread support in Linkie is still experimental, please report any issues found on our issue tracker! ٭(•﹏•)٭"))
+                            it.embeds(
+                                EmbedCreateSpec.create()
+                                    .withTitle("Linked has entered the thread")
+                                    .withDescription("Thanks for having me here! This message is sent when Linkie is brought into a thread.\nThread support in Linkie is still experimental, please report any issues found on our issue tracker! ٭(•﹏•)٭")
+                            )
                         }.subscribe()
                     }
                 }

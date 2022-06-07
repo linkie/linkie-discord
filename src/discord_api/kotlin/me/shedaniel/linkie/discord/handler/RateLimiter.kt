@@ -16,9 +16,10 @@
 
 package me.shedaniel.linkie.discord.handler
 
+import discord4j.core.`object`.entity.User
 import java.util.*
 
-class RateLimiter(val maxRequestPer10Sec: Int) {
+open class RateLimiter(val maxRequestPer10Sec: Int) {
     data class Entry(
         val time: Long,
         val userId: Long,
@@ -26,13 +27,14 @@ class RateLimiter(val maxRequestPer10Sec: Int) {
 
     private val log: Queue<Entry> = LinkedList()
 
-    fun allow(userId: Long): Boolean {
+    open fun allow(user: User, cmd: String, args: Map<String, Any>): Boolean {
         val curTime = System.currentTimeMillis()
         val boundary = curTime - 10000
         synchronized(log) {
             while (!log.isEmpty() && log.element().time <= boundary) {
                 log.poll()
             }
+            val userId = user.id.asLong()
             log.add(Entry(curTime, userId))
             return log.count { it.userId == userId } <= maxRequestPer10Sec
         }

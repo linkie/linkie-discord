@@ -25,6 +25,7 @@ import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
+import discord4j.core.`object`.command.ApplicationCommandOption
 import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandRequest
@@ -40,6 +41,8 @@ import me.shedaniel.linkie.discord.utils.extensions.getOrNull
 import me.shedaniel.linkie.discord.utils.replyComplex
 import me.shedaniel.linkie.discord.utils.user
 import reactor.core.publisher.Mono
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -256,7 +259,34 @@ class SlashCommands(
                 sentAny = true
             }
         }
-        if (!rateLimiter.allow(event.user.id.asLong())) {
+
+        fun ApplicationCommandInteractionOption.collectOptions(): MutableMap<String, Any> {
+            val map = mutableMapOf<String, Any>()
+            for (option in options) {
+                if (!map.containsKey(option.name)) {
+                    if (option.value.isPresent) {
+                        map[option.name] = option.value.get().raw
+                    }
+                    map.putAll(option.collectOptions())
+                }
+            }
+            return map
+        }
+
+        fun ChatInputInteractionEvent.collectOptions(): MutableMap<String, Any> {
+            val map = mutableMapOf<String, Any>()
+            for (option in options) {
+                if (!map.containsKey(option.name)) {
+                    if (option.value.isPresent) {
+                        map[option.name] = option.value.get().raw
+                    }
+                    map.putAll(option.collectOptions())
+                }
+            }
+            return map
+        }
+        
+        if (!rateLimiter.allow(event.user, cmd, event.collectOptions())) {
             val exception = RateLimitException(rateLimiter.maxRequestPer10Sec)
             if (throwableHandler.shouldError(exception)) {
                 try {
@@ -272,32 +302,37 @@ class SlashCommands(
             return@SlashCommandHandler
         }
         val optionsGetter = OptionsGetter.of(command, ctx, event)
-        runCatching {
-            try {
-                executor.submit {
-                    if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
-                    }
-                }.get(3, TimeUnit.SECONDS)
-            } catch (throwable: TimeoutException) {
-                throw TimeoutException("The command took too long to execute, the maximum execution time is 3 seconds.")
-            } catch (throwable: ExecutionException) {
-                throw throwable.cause ?: throwable
+        CompletableFuture.runAsync({
+            if (!executeOptions(command, ctx, optionsGetter, command.options, event.options) && !command.execute(command, ctx, optionsGetter)) {
             }
-            if (!sentAny) {
-                throw IllegalStateException("Command was not resolved!")
-            }
-        }.exceptionOrNull()?.also { throwable ->
-            if (throwableHandler.shouldError(throwable)) {
-                try {
-                    ctx.message.replyComplex {
-                        layout { dismissButton() }
-                        embed { throwableHandler.generateThrowable(this, throwable, ctx.user) }
+        }, executor).orTimeout(10, TimeUnit.SECONDS)
+            .exceptionally {
+                it.let { throwable ->
+                    if (throwable is TimeoutException) {
+                        TimeoutException("The command took too long to execute, the maximum execution time is 10 seconds.")
+                    } else if (throwable is CompletionException) {
+                        throwable.cause ?: throwable
+                    } else {
+                        throwable
                     }
-                } catch (throwable2: Exception) {
-                    throwable2.addSuppressed(throwable)
-                    throwable2.printStackTrace()
+                }.also { throwable ->
+                    if (throwableHandler.shouldError(throwable)) {
+                        try {
+                            ctx.message.replyComplex {
+                                layout { dismissButton() }
+                                embed { throwableHandler.generateThrowable(this, throwable, ctx.user) }
+                            }
+                        } catch (throwable2: Exception) {
+                            throwable2.addSuppressed(throwable)
+                            throwable2.printStackTrace()
+                        }
+                    }
                 }
+                null
             }
+            .join()
+        if (!sentAny) {
+            throw IllegalStateException("Command was not resolved!")
         }
     }, autoCompleter = { event ->
         val optionsGetter = WeakOptionsGetter.of(command, event).asSuggestion(event.commandName)
@@ -433,7 +468,10 @@ interface SlashCommandOptionSuggestionSink {
         .value(value)
         .build()
 
-    fun choice(value: Any): ApplicationCommandOptionChoiceData = choice(value.toString(), value)
+    fun choice(value: Any): ApplicationCommandOptionChoiceData = choice(value.toString().take(99), value.let {
+        if (it is String) it.take(99)
+        else it
+    })
 }
 
 interface SlashCommand : SlashCommandExecutor, SlashCommandSuggester, CommandOptionProperties {

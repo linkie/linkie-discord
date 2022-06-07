@@ -34,6 +34,8 @@ import me.shedaniel.linkie.discord.utils.event
 import me.shedaniel.linkie.discord.utils.replyComplex
 import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -56,47 +58,53 @@ class CommandHandler(
         val user = event.message.author.orElse(null)?.takeUnless { it.isBot } ?: return
         val message: String = event.message.content
         val prefix = commandAcceptor.getPrefix(event)
-        try {
-            executor.submit {
-                if (message.lowercase().startsWith(prefix)) {
-                    val content = message.substring(prefix.length)
-                    if (!rateLimiter.allow(user.id.asLong())) {
+        CompletableFuture.runAsync({
+            if (message.lowercase().startsWith(prefix)) {
+                val content = message.substring(prefix.length)
+                val split = content.splitArgs()
+                if (split.isNotEmpty()) {
+                    val cmd = split[0].lowercase()
+                    val args = split.drop(1).toMutableList()
+                    if (!rateLimiter.allow(user, cmd, mutableMapOf("args" to args))) {
                         throwableHandler.generateErrorMessage(event.message, RateLimitException(rateLimiter.maxRequestPer10Sec), channel, user)
-                        return@submit
+                        return@runAsync
                     }
-                    val split = content.splitArgs()
-                    if (split.isNotEmpty()) {
-                        val cmd = split[0].lowercase()
-                        val ctx = MessageBasedCommandContext(event, prefix, cmd, channel)
-                        val args = split.drop(1).toMutableList()
-                        try {
-                            runBlocking {
-                                commandAcceptor.execute(event, ctx, args)
-                            }
-                        } catch (throwable: Throwable) {
-                            if (throwableHandler.shouldError(throwable)) {
-                                try {
-                                    ctx.message.replyComplex {
-                                        layout { dismissButton() }
-                                        embed { throwableHandler.generateThrowable(this, throwable, user) }
-                                    }
-                                } catch (throwable2: Exception) {
-                                    throwable2.addSuppressed(throwable)
-                                    throwable2.printStackTrace()
+                    val ctx = MessageBasedCommandContext(event, prefix, cmd, channel)
+                    try {
+                        runBlocking {
+                            commandAcceptor.execute(event, ctx, args)
+                        }
+                    } catch (throwable: Throwable) {
+                        if (throwableHandler.shouldError(throwable)) {
+                            try {
+                                ctx.message.replyComplex {
+                                    layout { dismissButton() }
+                                    embed { throwableHandler.generateThrowable(this, throwable, user) }
                                 }
+                            } catch (throwable2: Exception) {
+                                throwable2.addSuppressed(throwable)
+                                throwable2.printStackTrace()
                             }
                         }
                     }
                 }
-            }.get(10, TimeUnit.SECONDS)
-        } catch (throwable: TimeoutException) {
-            val newThrowable = TimeoutException("The command took too long to execute, the maximum execution time is 10 seconds.")
-            throwableHandler.generateErrorMessage(event.message, newThrowable, channel, user)
-        } catch (throwable: ExecutionException) {
-            throwableHandler.generateErrorMessage(event.message, throwable.cause ?: throwable, channel, user)
-        } catch (throwable: Throwable) {
-            throwableHandler.generateErrorMessage(event.message, throwable, channel, user)
-        }
+            }
+        }, executor).orTimeout(10, TimeUnit.SECONDS)
+            .exceptionally {
+                it.let { throwable ->
+                    if (throwable is TimeoutException) {
+                        TimeoutException("The command took too long to execute, the maximum execution time is 10 seconds.")
+                    } else if (throwable is CompletionException) {
+                        throwable.cause ?: throwable
+                    } else {
+                        throwable
+                    }
+                }.also { throwable ->
+                    throwableHandler.generateErrorMessage(event.message, throwable, channel, user)
+                }
+                null
+            }
+            .join()
     }
 }
 

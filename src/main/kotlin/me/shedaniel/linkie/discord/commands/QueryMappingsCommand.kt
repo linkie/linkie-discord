@@ -21,12 +21,12 @@ import kotlinx.coroutines.runBlocking
 import me.shedaniel.linkie.Class
 import me.shedaniel.linkie.MappingsContainer
 import me.shedaniel.linkie.MappingsEntryType
-import me.shedaniel.linkie.MappingsMember
 import me.shedaniel.linkie.MappingsProvider
 import me.shedaniel.linkie.Method
 import me.shedaniel.linkie.Namespace
 import me.shedaniel.linkie.Namespaces
 import me.shedaniel.linkie.discord.Command
+import me.shedaniel.linkie.discord.MappingsQueryUtils
 import me.shedaniel.linkie.discord.MappingsQueryUtils.query
 import me.shedaniel.linkie.discord.scommands.CommandOptionMeta
 import me.shedaniel.linkie.discord.scommands.OptionsGetter
@@ -107,11 +107,19 @@ open class QueryMappingsCommand(
             suggest { _, options, sink ->
                 runBlocking {
                     val rawValue = options.optNullable(this@string) ?: ""
+                    if (rawValue.length >= 100) {
+                        sink.suggest(listOf())
+                        return@runBlocking
+                    }
                     val value = rawValue.replace('.', '/').replace('#', '/')
                     val namespace = weakNamespaceGetter(options.cmd, options) ?: return@runBlocking
                     val provider = options.optNullable(version, VersionNamespaceConfig(namespace)) ?: namespace.getDefaultProvider()
                     val mappings = provider.get()
-                    val result = query(mappings, value, *types)
+                    val result = try {
+                        query(mappings, value, *types)
+                    } catch (ignored: NullPointerException) {
+                        MappingsQueryUtils.Result(mutableListOf(), false)
+                    }
                     val suggestions = result.results.asSequence().sortedByDescending { it.score }.map { (value, _) ->
                         when {
                             value is Class -> {
