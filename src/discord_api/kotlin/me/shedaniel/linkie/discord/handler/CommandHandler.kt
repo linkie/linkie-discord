@@ -143,7 +143,7 @@ open class SimpleThrowableHandler : ThrowableHandler {
             title("Error Occurred")
             color(Color.RED)
             basicEmbed(user)
-            addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message"), false)
+            addField("Error occurred while processing the command:", throwable.javaClass.simpleName + ": " + (throwable.localizedMessage ?: "Unknown Message").take(800), false)
         }
     }
 }

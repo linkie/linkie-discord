@@ -260,17 +260,15 @@ class SlashCommands(
             }
         }
 
-        fun ApplicationCommandInteractionOption.collectOptions(): MutableMap<String, Any> {
-            val map = mutableMapOf<String, Any>()
+        fun ApplicationCommandInteractionOption.collectOptions(map: MutableMap<String, Any>) {
             for (option in options) {
                 if (!map.containsKey(option.name)) {
                     if (option.value.isPresent) {
                         map[option.name] = option.value.get().raw
                     }
-                    map.putAll(option.collectOptions())
+                    option.collectOptions(map)
                 }
             }
-            return map
         }
 
         fun ChatInputInteractionEvent.collectOptions(): MutableMap<String, Any> {
@@ -280,12 +278,12 @@ class SlashCommands(
                     if (option.value.isPresent) {
                         map[option.name] = option.value.get().raw
                     }
-                    map.putAll(option.collectOptions())
+                    option.collectOptions(map)
                 }
             }
             return map
         }
-        
+
         if (!rateLimiter.allow(event.user, cmd, event.collectOptions())) {
             val exception = RateLimitException(rateLimiter.maxRequestPer10Sec)
             if (throwableHandler.shouldError(exception)) {

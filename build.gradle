@@ -59,29 +59,28 @@ dependencies {
     implementation("me.shedaniel:linkie-core:1.0.103") {
         exclude module: "korio"
     }
-    discord_apiImplementation("com.github.Discord4J.Discord4J:discord4j-core:5f08aa8") {
+    discord_apiImplementation("com.github.Discord4J.Discord4J:discord4j-core:1a710e96") {
         force true
     }
 //    compile("com.github.shadorc.discord4j:discord4j-core:217336e") {
 //        force = true
 //    }
-    implementation('com.soywiz.korlibs.korio:korio-jvm:2.6.2') {
+    implementation('com.soywiz.korlibs.korio:korio-jvm:2.7.0') {
         exclude module: "kds"
         exclude module: "klock"
         exclude module: "klogger"
         exclude module: "krypto"
         exclude module: "kmem"
     }
-    implementation('com.soywiz.korlibs.kds:kds-jvm:2.6.2')
-    implementation('com.soywiz.korlibs.klock:klock-jvm:2.6.2')
-    implementation('com.soywiz.korlibs.klogger:klogger-jvm:2.6.2')
-    implementation('com.soywiz.korlibs.krypto:krypto-jvm:2.6.2')
-    implementation('com.soywiz.korlibs.kmem:kmem-jvm:2.6.2')
+    implementation('com.soywiz.korlibs.kds:kds-jvm:2.7.0')
+    implementation('com.soywiz.korlibs.klock:klock-jvm:2.7.0')
+    implementation('com.soywiz.korlibs.klogger:klogger-jvm:2.7.0')
+    implementation('com.soywiz.korlibs.krypto:krypto-jvm:2.7.0')
+    implementation('com.soywiz.korlibs.kmem:kmem-jvm:2.7.0')
     implementation 'org.graalvm.js:js-scriptengine:22.0.0.2'
     implementation 'org.graalvm.js:js:22.0.0.2'
     discord_apiImplementation "io.ktor:ktor-server-core:$ktor_version"
     discord_apiImplementation "io.ktor:ktor-server-netty:$ktor_version"
-    implementation "com.github.shedaniel:CurseMetaApi:0.2"
     testDiscordApiImplementation 'org.jetbrains.kotlin:kotlin-test-junit5:1.6.10'
 //        exclude(module: "truffle-api")
 //    compile("org.graalvm.sdk:graal-sdk:20.2.0")

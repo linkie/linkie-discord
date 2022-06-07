@@ -31,12 +31,12 @@ object LinkieThrowableHandler : SimpleThrowableHandler() {
         }
         when {
             throwable is org.graalvm.polyglot.PolyglotException -> {
-                val details = throwable.localizedMessage ?: ""
+                val details = throwable.localizedMessage?.take(800) ?: ""
                 builder.fields(mutableListOf())
                 builder.addField("Error occurred while processing the command", "```$details```", false)
             }
             throwable.javaClass.name.startsWith("org.graalvm") -> {
-                val details = throwable.localizedMessage ?: ""
+                val details = throwable.localizedMessage?.take(800) ?: ""
                 builder.fields(mutableListOf())
                 builder.addField("Error occurred while processing the command", "```" + throwable.javaClass.name + (if (details.isEmpty()) "" else ":\n") + details + "```", false)
             }
