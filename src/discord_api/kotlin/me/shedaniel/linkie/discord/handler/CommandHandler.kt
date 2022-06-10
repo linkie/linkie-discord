@@ -36,7 +36,6 @@ import me.shedaniel.linkie.discord.utils.sendEmbedMessage
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -86,6 +85,8 @@ class CommandHandler(
                                 throwable2.printStackTrace()
                             }
                         }
+                    } finally {
+                        rateLimiter.handledCommand(user, cmd, mutableMapOf("args" to args))
                     }
                 }
             }

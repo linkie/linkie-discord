@@ -55,6 +55,7 @@ data class Trick(
     override val contentType: ContentType,
     override val flags: List<Char> = emptyList(),
     override val content: String,
+    var noSlashCommand: Boolean = false,
 ) : TrickBase {
     override val requirePermissionForFlags: Boolean
         get() = true

@@ -79,10 +79,14 @@ object TricksManager {
                     .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
             }.exceptionOrNull()?.printStackTrace()
         }
-        TricksManager.tricks.values.forEach { trick ->
+        TricksManager.tricks.forEach { (uuid, trick) ->
+            if (trick.noSlashCommand) return@forEach
             runCatching {
                 slashCommands.guildCommand(trick.guildId, TrickBasedCommand(trick)
-                    .asSlashCommand("Run trick ${trick.name}", listOf(trick.name)))
+                    .asSlashCommand("Run trick ${trick.name}", listOf(trick.name))) { _ ->
+                    trick.noSlashCommand = true
+                    saveTrick(uuid)
+                }
             }.exceptionOrNull()?.printStackTrace()
         }
         ArrayList(slashCommands.globalCommands + slashCommands.registeredCommands.values).distinctBy { it.name() }.forEach { commands ->
@@ -124,11 +128,16 @@ object TricksManager {
     }
 
     fun save() {
-        tricks.forEach { (uuid, trick) ->
-            val trickFile = File(tricksFolder, "$uuid.json")
-            if (trickFile.exists().not()) {
-                trickFile.writeText(json.encodeToString(Trick.serializer(), trick))
-            }
+        tricks.forEach { (uuid, _) ->
+            saveTrick(uuid)
+        }
+    }
+
+    fun saveTrick(uuid: UUID) {
+        val trick = tricks[uuid] ?: return
+        val trickFile = File(tricksFolder, "$uuid.json")
+        if (trickFile.exists().not()) {
+            trickFile.writeText(json.encodeToString(Trick.serializer(), trick))
         }
     }
 

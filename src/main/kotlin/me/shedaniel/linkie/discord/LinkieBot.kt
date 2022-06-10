@@ -142,6 +142,13 @@ fun main() {
                 } from ${user.discriminatedName}")
                 return super.allow(user, cmd, args)
             }
+
+            override fun handledCommand(user: User, cmd: String, args: Map<String, Any>) {
+                info("Handled command /$cmd ${
+                    args.entries.joinToString(" ")
+                    { "${it.key}: ${it.value}" }
+                } from ${user.discriminatedName}")
+            }
         }
         val slashCommands = SlashCommands(this, LinkieThrowableHandler, ::warn, debug = isDebug, rateLimiter = rateLimiter)
         TricksManager.listen(slashCommands)

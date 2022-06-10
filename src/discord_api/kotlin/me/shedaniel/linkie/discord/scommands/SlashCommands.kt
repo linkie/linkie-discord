@@ -18,14 +18,13 @@ package me.shedaniel.linkie.discord.scommands
 
 import discord4j.common.util.Snowflake
 import discord4j.core.GatewayDiscordClient
+import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.`object`.command.ApplicationCommandInteractionOption
 import discord4j.core.`object`.command.ApplicationCommandOption.Type.*
 import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.entity.channel.Channel
-import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent
-import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
-import discord4j.core.`object`.command.ApplicationCommandOption
 import discord4j.discordjson.json.ApplicationCommandData
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData
 import discord4j.discordjson.json.ApplicationCommandRequest
@@ -43,7 +42,6 @@ import me.shedaniel.linkie.discord.utils.user
 import reactor.core.publisher.Mono
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -126,10 +124,10 @@ class SlashCommands(
         globalCommand(commandBuilder)
     }
 
-    fun guildCommand(guild: Long, command: SlashCommand) =
-        guildCommand(Snowflake.of(guild), command)
+    fun guildCommand(guild: Long, command: SlashCommand, errorCallback: (Throwable) -> Unit = {}) =
+        guildCommand(Snowflake.of(guild), command, errorCallback)
 
-    fun guildCommand(guild: Snowflake, command: SlashCommand) {
+    fun guildCommand(guild: Snowflake, command: SlashCommand, errorCallback: (Throwable) -> Unit = {}) {
         for (cmd in command.cmds) {
             guildHandlers[GuildCommandKey(guild, cmd)] = buildHandler(command, cmd)
 
@@ -167,7 +165,7 @@ class SlashCommands(
             }
 
             println("Registering guild (${guild.asString()}) command /$cmd")
-            createGuildCommand(guild, command, cmd).subscribe { newData ->
+            createGuildCommand(guild, command, cmd, errorCallback).subscribe { newData ->
                 registeredGuildCommands[GuildCommandKey(guild, cmd)] = newData
             }
         }
@@ -185,7 +183,7 @@ class SlashCommands(
             .doOnError { errorHandler("Unable to create global command: " + it.message) }
             .onErrorResume { Mono.empty() }
 
-    private fun createGuildCommand(guildId: Snowflake, command: SlashCommand, cmd: String) =
+    private fun createGuildCommand(guildId: Snowflake, command: SlashCommand, cmd: String, errorCallback: (Throwable) -> Unit) =
         client.restClient.applicationService
             .createGuildApplicationCommand(applicationId, guildId.asLong(), buildRequest(command, cmd))
             .doOnError { errorHandler("Unable to create guild command: " + it.message) }
@@ -284,7 +282,8 @@ class SlashCommands(
             return map
         }
 
-        if (!rateLimiter.allow(event.user, cmd, event.collectOptions())) {
+        val options = event.collectOptions()
+        if (!rateLimiter.allow(event.user, cmd, options)) {
             val exception = RateLimitException(rateLimiter.maxRequestPer10Sec)
             if (throwableHandler.shouldError(exception)) {
                 try {
@@ -333,6 +332,9 @@ class SlashCommands(
                 }
                 null
             }
+            .handle { _, _ ->
+                rateLimiter.handledCommand(event.user, cmd, options)
+            }
             .join()
     }, autoCompleter = { event ->
         val optionsGetter = WeakOptionsGetter.of(command, event).asSuggestion(event.commandName)
@@ -345,13 +347,16 @@ class SlashCommands(
                 options = it.toList().take(25)
             }
         }
-        runCatching {
+        CompletableFuture.runAsync({
             if (!suggestCompletions(command, optionsGetter, command.options, sink, event.focusedOption) && !(command.suggest(command, optionsGetter, sink).let { sink.suggested })) {
             }
-        }.exceptionOrNull()?.printStackTrace()
-        if (sink.suggested) {
-            event.respondWithSuggestions(options!!).subscribe()
-        }
+        }, executor).orTimeout(10, TimeUnit.SECONDS)
+            .thenAccept {
+                if (sink.suggested) {
+                    event.respondWithSuggestions(options!!).subscribe()
+                }
+            }
+            .join()
     })
 
     private fun buildRequest(command: SlashCommand, cmd: String): ApplicationCommandRequest =

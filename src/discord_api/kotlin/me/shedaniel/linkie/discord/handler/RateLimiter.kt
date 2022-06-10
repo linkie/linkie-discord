@@ -39,4 +39,7 @@ open class RateLimiter(val maxRequestPer10Sec: Int) {
             return log.count { it.userId == userId } <= maxRequestPer10Sec
         }
     }
+
+    open fun handledCommand(user: User, cmd: String, args: Map<String, Any>) {
+    }
 }
